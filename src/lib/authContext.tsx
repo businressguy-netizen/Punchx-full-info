@@ -132,31 +132,37 @@ const userDocRef = doc(db, 'users', firebaseUid);
     }
   };
 
-    // Only store application identity after Firebase authentication succeeds
-    setCurrentUser(identity);
-    localStorage.setItem(
-      'punchx_namoid_identity',
-      JSON.stringify(identity)
-    );
+  const loginWithNamoID = async (identity: NamoIDUserInfo, role?: 'citizen' | 'worker' | 'admin', idToken?: string) => {
+    try {
+      if (idToken && auth) {
+        await signInWithCustomToken(auth, idToken);
+      }
 
-    return await fetchOrCreateProfile(identity, role || activeRole);
-  } catch (fbAuthErr) {
-    console.error('Firebase authentication failed:', fbAuthErr);
+      // Only store application identity after Firebase authentication succeeds
+      setCurrentUser(identity);
+      localStorage.setItem(
+        'punchx_namoid_identity',
+        JSON.stringify(identity)
+      );
 
-    setCurrentUser(null);
-    localStorage.removeItem('punchx_namoid_identity');
+      return await fetchOrCreateProfile(identity, role || activeRole);
+    } catch (fbAuthErr) {
+      console.error('Firebase authentication failed:', fbAuthErr);
 
-    throw new Error('Unable to authenticate with Firebase');
-  }
-};
-const updateUserProfile = async (updates: Partial<UserProfile>) => {
-  const firebaseUid = auth.currentUser?.uid;
+      setCurrentUser(null);
+      localStorage.removeItem('punchx_namoid_identity');
 
-  if (!firebaseUid) return;
+      throw new Error('Unable to authenticate with Firebase');
+    }
+  };
 
-  try {
-    const userDocRef = doc(db, 'users', firebaseUid);
+  const updateUserProfile = async (updates: Partial<UserProfile>) => {
+    const firebaseUid = auth.currentUser?.uid;
 
+    if (!firebaseUid) return;
+
+    try {
+      const userDocRef = doc(db, 'users', firebaseUid);
 
       const payload = {
         ...updates,
