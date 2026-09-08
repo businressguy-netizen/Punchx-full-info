@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { signOut as firebaseSignOut, signInWithCustomToken, onAuthStateChanged, User } from 'firebase/auth'; 
+import {
+  OAuthProvider,
+  User,
+  onAuthStateChanged,
+  signInWithCredential,
+  signOut as firebaseSignOut,
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from '../types';
@@ -135,7 +141,9 @@ const userDocRef = doc(db, 'users', firebaseUid);
   const loginWithNamoID = async (identity: NamoIDUserInfo, role?: 'citizen' | 'worker' | 'admin', idToken?: string) => {
     try {
       if (idToken && auth) {
-        await signInWithCustomToken(auth, idToken);
+        const provider = new OAuthProvider('oidc.namoid');
+        const credential = provider.credential({ idToken });
+        await signInWithCredential(auth, credential);
       }
 
       // Only store application identity after Firebase authentication succeeds
