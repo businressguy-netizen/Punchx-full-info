@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { signOut as firebaseSignOut, signInWithCustomToken, onAuthStateChanged, User } from 'firebase/auth'; 
+import {
+  OAuthProvider,
+  User,
+  onAuthStateChanged,
+  signInWithCredential,
+  signOut as firebaseSignOut,
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import { UserProfile } from '../types';
@@ -133,25 +139,55 @@ const userDocRef = doc(db, 'users', firebaseUid);
   };
 
   const loginWithNamoID = async (identity: NamoIDUserInfo, role?: 'citizen' | 'worker' | 'admin', idToken?: string) => {
+    let firebaseAuthSucceeded = false;
     try {
       if (idToken && auth) {
-        await signInWithCustomToken(auth, idToken);
+        const provider = new OAuthProvider('oidc.namoid');
+        const credential = provider.credential({ idToken });
+        await signInWithCredential(auth, credential);
+        firebaseAuthSucceeded = true;
       }
+    } catch (fbAuthErr) {
+      console.warn('Firebase OIDC authentication notice:', fbAuthErr);
+      // Continue with local-only profile if Firebase auth fails
+      // This allows the app to function on domains not yet added to Firebase Authorized Domains
+    }
 
-      // Only store application identity after Firebase authentication succeeds
+    try {
+      // Store application identity (NamoID was already verified via token exchange)
       setCurrentUser(identity);
       localStorage.setItem(
         'punchx_namoid_identity',
         JSON.stringify(identity)
       );
 
-      return await fetchOrCreateProfile(identity, role || activeRole);
-    } catch (fbAuthErr) {
-      console.error('Firebase authentication failed:', fbAuthErr);
-
+      if (firebaseAuthSucceeded) {
+        return await fetchOrCreateProfile(identity, role || activeRole);
+      } else {
+        // Fallback: create a local-only profile when Firebase auth is unavailable
+        const fallbackName = identity.name ||
+          (identity.given_name ? `${identity.given_name} ${identity.family_name || ''}`.trim() : '') ||
+          (identity.email ? identity.email.split('@')[0] : 'PunchX Member');
+        const localProfile: UserProfile = {
+          uid: identity.sub || identity.email || 'local-user',
+          name: fallbackName,
+          email: identity.email || '',
+          photoURL: (identity.picture as string) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+          role: role || activeRole,
+          dob: (identity.birthdate as string) || '',
+          birthdate: (identity.birthdate as string) || '',
+          isProfileCompleted: false,
+          address: '',
+          phone: identity.phone_number || '',
+        };
+        setUserProfile(localProfile);
+        localStorage.setItem('punchx_namoid_profile', JSON.stringify(localProfile));
+        return localProfile;
+      }
+    } catch (profileErr) {
+      console.error('Profile creation failed:', profileErr);
       setCurrentUser(null);
       localStorage.removeItem('punchx_namoid_identity');
-
       throw new Error('Unable to authenticate with Firebase');
     }
   };

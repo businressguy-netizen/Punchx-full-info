@@ -28,9 +28,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: |
-          rm -rf package-lock.json node_modules
-          npm install
+        run: npm ci || npm install
 
       - name: Run npm audit
         id: audit
