@@ -22,9 +22,22 @@ const fallbackConfig = {
   oAuthClientId: "657136107440-3k02uag8mn3cbsqus25jcme9rpa022bo.apps.googleusercontent.com"
 };
 
+// Environment variable overrides (for Vercel/Netlify deployment configuration)
+const envConfig: Record<string, string> = {};
+if (import.meta.env.VITE_FIREBASE_API_KEY) envConfig.apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+if (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) envConfig.authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+if (import.meta.env.VITE_FIREBASE_PROJECT_ID) envConfig.projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+if (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) envConfig.storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+if (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) envConfig.messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+if (import.meta.env.VITE_FIREBASE_APP_ID) envConfig.appId = import.meta.env.VITE_FIREBASE_APP_ID;
+
 const firebaseConfig = {
   ...fallbackConfig,
-  ...(rawConfig || {})
+  ...(rawConfig || {}),
+  ...envConfig,
+  // BUG-02 fix: Use custom domain as authDomain so OAuth redirects/popups work
+  // on the production site instead of failing with CORS/origin mismatch
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'www.punchxapp.co.in',
 };
 
 let app: FirebaseApp;

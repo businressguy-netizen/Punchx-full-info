@@ -340,39 +340,56 @@ function AppMain() {
   };
 
   const handleTransition = (target: AppScreen) => {
-    let resolvedTarget = target;
-    if (target === 'panel-select' && currentUser) {
-      const resolvedRole = userProfile?.role || activePanelRole || 'customer';
-      if (resolvedRole === 'worker') {
-        resolvedTarget = 'worker-dashboard';
-      } else if (resolvedRole === 'admin') {
-        resolvedTarget = 'admin-dashboard';
-      } else {
-        resolvedTarget = 'home';
-      }
-    } else if (target === 'home' && !currentUser) {
-      resolvedTarget = 'panel-select';
-    }
+    try {
+      let resolvedTarget = target;
 
-    if (resolvedTarget === 'privacy-policy') {
-      window.history.pushState({}, '', '/privacy-policy');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (resolvedTarget === 'terms-and-conditions') {
-      window.history.pushState({}, '', '/terms-and-conditions');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (resolvedTarget === 'worker-signup') {
-      window.history.pushState({}, '', '/worker-signup');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (resolvedTarget === 'founder') {
-      window.history.pushState({}, '', '/founder');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
-      if (currentPath === '/privacy-policy' || currentPath === '/terms-and-conditions' || currentPath === '/terms' || currentPath === '/privacy' || currentPath === '/worker-signup' || currentPath === '/founder' || currentPath === '/leadership' || currentPath === '/founders') {
-        window.history.pushState({}, '', '/');
+      // BUG-03/04 fix: Show descriptive toast for protected nav items when not authenticated
+      const protectedNavScreens: Record<string, string> = {
+        'tracking': '📍 Live Tracking',
+        'providers': '🔍 Find Specialists',
+        'booking': '📋 Booking',
+        'payment': '💳 Payment',
+        'provider-details': '👤 Specialist Details',
+      };
+      if (!currentUser && protectedNavScreens[target]) {
+        showToast(`🔒 Sign in required to access ${protectedNavScreens[target]}. Redirecting to portal...`);
+        resolvedTarget = 'panel-select';
+      } else if (target === 'panel-select' && currentUser) {
+        const resolvedRole = userProfile?.role || activePanelRole || 'customer';
+        if (resolvedRole === 'worker') {
+          resolvedTarget = 'worker-dashboard';
+        } else if (resolvedRole === 'admin') {
+          resolvedTarget = 'admin-dashboard';
+        } else {
+          resolvedTarget = 'home';
+        }
+      } else if (target === 'home' && !currentUser) {
+        resolvedTarget = 'panel-select';
       }
+
+      if (resolvedTarget === 'privacy-policy') {
+        window.history.pushState({}, '', '/privacy-policy');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (resolvedTarget === 'terms-and-conditions') {
+        window.history.pushState({}, '', '/terms-and-conditions');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (resolvedTarget === 'worker-signup') {
+        window.history.pushState({}, '', '/worker-signup');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (resolvedTarget === 'founder') {
+        window.history.pushState({}, '', '/founder');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
+        if (currentPath === '/privacy-policy' || currentPath === '/terms-and-conditions' || currentPath === '/terms' || currentPath === '/privacy' || currentPath === '/worker-signup' || currentPath === '/founder' || currentPath === '/leadership' || currentPath === '/founders') {
+          window.history.pushState({}, '', '/');
+        }
+      }
+      setCurrentScreen(resolvedTarget);
+    } catch (navError) {
+      console.error('Navigation transition error:', navError);
+      showToast('⚠️ Navigation error occurred. Please try again.');
     }
-    setCurrentScreen(resolvedTarget);
   };
 
   // Ensure valid clean order history
