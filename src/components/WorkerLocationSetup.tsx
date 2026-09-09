@@ -218,6 +218,7 @@ export default function WorkerLocationSetup({
 
     const appData: WorkerApplication = {
       id: generatedAppId,
+      uid: activeUid,
       legalName: legalName.trim(),
       address: finalFormattedAddress,
       area: resolvedArea,

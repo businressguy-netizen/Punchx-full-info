@@ -30,9 +30,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: |
-          rm -rf package-lock.json node_modules
-          npm install
+        run: npm ci || npm install
 
       - name: Run npm audit
         run: |
@@ -78,9 +76,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: |
-          rm -rf package-lock.json node_modules
-          npm install
+        run: npm ci || npm install
 
       - name: TypeScript type check
         run: |
@@ -109,15 +105,19 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: |
-          rm -rf package-lock.json node_modules
-          npm install
+        run: npm ci || npm install
 
       - name: Build
         run: npm run build:pages
         env:
           GOOGLE_MAPS_PLATFORM_KEY: ${{ secrets.GOOGLE_MAPS_PLATFORM_KEY }}
-          VITE_NAMOID_CLIENT_ID: ${{ secrets.VITE_NAMOID_CLIENT_ID }}
+          VITE_NAMOID_CLIENT_ID: ${{ secrets.VITE_NAMOID_CLIENT_ID || 'namoid_client_live_6SHiIOdLuGIBZmiJjC5Iu5KCbqB2QQjd' }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN || 'www.punchxapp.co.in' }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
