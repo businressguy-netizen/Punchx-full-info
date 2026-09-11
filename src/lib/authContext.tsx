@@ -32,20 +32,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
   useEffect( () => { const unsubscribe = onAuthStateChanged(auth, (user) => { setFirebaseUser(user); });
                     return () => unsubscribe(); }, []);
 
-  // Initialize from localStorage on mount
+  // Restore cached profile only when a Firebase-authenticated user exists.
+  // Never trust localStorage alone — Firebase auth state is the source of truth.
   useEffect(() => {
-    const storedIdentity = localStorage.getItem('punchx_namoid_identity');
-    const storedProfile = localStorage.getItem('punchx_namoid_profile');
-    if (storedIdentity && storedProfile) {
-      try {
-        setCurrentUser(JSON.parse(storedIdentity));
-        setUserProfile(JSON.parse(storedProfile));
-      } catch (e) {
-        console.error("Error reading stored auth profile:", e);
+    if (firebaseUser) {
+      const storedIdentity = localStorage.getItem('punchx_namoid_identity');
+      const storedProfile = localStorage.getItem('punchx_namoid_profile');
+      if (storedIdentity && storedProfile) {
+        try {
+          setCurrentUser(JSON.parse(storedIdentity));
+          setUserProfile(JSON.parse(storedProfile));
+        } catch (e) {
+          console.error("Error reading stored auth profile:", e);
+        }
       }
+    } else {
+      // No Firebase user — clear any stale cached identity/profile
+      setCurrentUser(null);
+      setUserProfile(null);
+      localStorage.removeItem('punchx_namoid_identity');
+      localStorage.removeItem('punchx_namoid_profile');
     }
     setIsLoadingProfile(false);
-  }, []);
+  }, [firebaseUser]);
 
   const fetchOrCreateProfile = async (identity: NamoIDUserInfo, role: 'citizen' | 'worker' | 'admin' = activeRole): Promise<UserProfile> => {
     const extractedName = identity.name || 
@@ -139,18 +148,19 @@ const userDocRef = doc(db, 'users', firebaseUid);
   };
 
   const loginWithNamoID = async (identity: NamoIDUserInfo, role?: 'citizen' | 'worker' | 'admin', idToken?: string) => {
-    let firebaseAuthSucceeded = false;
     try {
       if (idToken && auth) {
         const provider = new OAuthProvider('oidc.namoid');
         const credential = provider.credential({ idToken });
         await signInWithCredential(auth, credential);
-        firebaseAuthSucceeded = true;
+      } else {
+        throw new Error('Firebase authentication requires a valid ID token');
       }
     } catch (fbAuthErr) {
-      console.warn('Firebase OIDC authentication notice:', fbAuthErr);
-      // Continue with local-only profile if Firebase auth fails
-      // This allows the app to function on domains not yet added to Firebase Authorized Domains
+      console.error('Firebase OIDC authentication failed:', fbAuthErr);
+      // FE-01 FIX: Do NOT continue with a local-only profile.
+      // Firebase auth failure = login failure.
+      throw new Error('Firebase authentication failed. Please try again.');
     }
 
     try {
@@ -161,29 +171,8 @@ const userDocRef = doc(db, 'users', firebaseUid);
         JSON.stringify(identity)
       );
 
-      if (firebaseAuthSucceeded) {
-        return await fetchOrCreateProfile(identity, role || activeRole);
-      } else {
-        // Fallback: create a local-only profile when Firebase auth is unavailable
-        const fallbackName = identity.name ||
-          (identity.given_name ? `${identity.given_name} ${identity.family_name || ''}`.trim() : '') ||
-          (identity.email ? identity.email.split('@')[0] : 'PunchX Member');
-        const localProfile: UserProfile = {
-          uid: identity.sub || identity.email || 'local-user',
-          name: fallbackName,
-          email: identity.email || '',
-          photoURL: (identity.picture as string) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-          role: role || activeRole,
-          dob: (identity.birthdate as string) || '',
-          birthdate: (identity.birthdate as string) || '',
-          isProfileCompleted: false,
-          address: '',
-          phone: identity.phone_number || '',
-        };
-        setUserProfile(localProfile);
-        localStorage.setItem('punchx_namoid_profile', JSON.stringify(localProfile));
-        return localProfile;
-      }
+      // Firebase auth succeeded — fetch or create the Firestore profile
+      return await fetchOrCreateProfile(identity, role || activeRole);
     } catch (profileErr) {
       console.error('Profile creation failed:', profileErr);
       setCurrentUser(null);

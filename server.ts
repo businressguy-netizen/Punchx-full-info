@@ -210,45 +210,11 @@ async function startServer() {
     }
   });
 
-  // ─── Server-Side Admin Dashboard Authentication ───
-  // Passwords are stored in env vars, NEVER in client code
-  app.post("/api/admin/verify", async (req, res) => {
-    const { email, password } = req.body;
-    const cleanEmail = (email || "").trim().toLowerCase();
-    const cleanPass = (password || "").trim();
+  // ─── BE-07: Admin session endpoint REMOVED ───
+  // The previous /api/admin/verify endpoint generated unverified random tokens.
+  // Admin access is now exclusively controlled via Firebase Authentication + Firestore role === 'admin'.
+  // Do NOT add a custom password-based admin login system.
 
-    if (!cleanEmail || !cleanPass) {
-      return res.status(400).json({ success: false, message: "Email and password are required." });
-    }
-
-    // Admin credentials from environment variables
-    const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
-    const adminPassword = process.env.ADMIN_PASSWORD || "";
-
-    if (!adminEmail || !adminPassword) {
-      console.error("ADMIN_EMAIL and ADMIN_PASSWORD environment variables are not set.");
-      return res.status(500).json({ success: false, message: "Admin authentication is not configured." });
-    }
-
-    // Constant-time comparison to prevent timing attacks
-    const emailMatch = cleanEmail === adminEmail;
-    const passBuffer = Buffer.from(cleanPass);
-    const adminBuffer = Buffer.from(adminPassword);
-    const passMatch = passBuffer.length === adminBuffer.length &&
-                      crypto.timingSafeEqual(passBuffer, adminBuffer);
-
-    if (emailMatch && passMatch) {
-      // Generate a simple session token (in production, use JWT or proper sessions)
-      const sessionToken = crypto.randomBytes(32).toString('hex');
-      return res.json({
-        success: true,
-        message: "Access granted.",
-        token: sessionToken,
-      });
-    }
-
-    return res.status(401).json({ success: false, message: "Invalid credentials." });
-  });
 
   // Google Maps Platform Config API — Origin-restricted
   app.get("/api/maps/config", (req, res) => {
@@ -273,11 +239,32 @@ async function startServer() {
   app.post("/api/maps/geocode", async (req, res) => {
     try {
       let { lat, lng, address, landmark, area: requestedArea } = req.body;
+
+      // BE-09: Input validation
+      if (address && typeof address === 'string' && address.length > 500) {
+        return res.status(400).json({ error: 'Address too long (max 500 characters)' });
+      }
+      if (landmark && typeof landmark === 'string' && landmark.length > 200) {
+        return res.status(400).json({ error: 'Landmark too long (max 200 characters)' });
+      }
+      if (lat !== undefined && lat !== null) {
+        lat = Number(lat);
+        if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+          return res.status(400).json({ error: 'Invalid latitude (must be -90 to 90)' });
+        }
+      }
+      if (lng !== undefined && lng !== null) {
+        lng = Number(lng);
+        if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+          return res.status(400).json({ error: 'Invalid longitude (must be -180 to 180)' });
+        }
+      }
+
       const mapsKey = process.env.GOOGLE_MAPS_PLATFORM_KEY || process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || "";
       
       let fullAddress = address || "";
       let area = requestedArea || "";
-      let city = "Bengaluru";
+      let city = "";
       let postalCode = "";
       let plusCode = "";
       let locationType = "APPROXIMATE";
@@ -392,16 +379,18 @@ async function startServer() {
         }
       }
 
-      // Default Bengaluru fallback if completely unresolved
+      // Return error if location could not be resolved at all
       if (!lat || !lng) {
-        lat = 12.9716;
-        lng = 77.5946;
+        return res.status(400).json({
+          success: false,
+          error: 'Could not resolve location. Please provide valid coordinates or a more specific address.'
+        });
       }
       if (!fullAddress) {
-        fullAddress = "Indiranagar 100ft Road, Sector 2, Bengaluru, KA 560038";
+        fullAddress = address || `Location (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`;
       }
 
-      const rawArea = (area || fullAddress.split(',')[0] || "Indiranagar").trim();
+      const rawArea = (area || fullAddress.split(',')[0] || "").trim();
       let sectorName = "";
       const lowerStr = (fullAddress + " " + rawArea).toLowerCase();
 
@@ -434,8 +423,8 @@ async function startServer() {
         success: true,
         address: fullAddress,
         area: rawArea,
-        city: city || "Bengaluru",
-        postalCode: postalCode || "560038",
+        city: city || "",
+        postalCode: postalCode || "",
         plusCode: plusCode,
         sector: sectorName,
         lat: Number(lat),
@@ -457,12 +446,23 @@ async function startServer() {
         return res.status(400).json({ error: "Origin and Destination coordinates are required" });
       }
 
+      // BE-09: Validate coordinates
+      const originLat = typeof origin.lat === 'number' && Number.isFinite(origin.lat) ? origin.lat : null;
+      const originLng = typeof origin.lng === 'number' && Number.isFinite(origin.lng) ? origin.lng : null;
+      const destLat = typeof destination.lat === 'number' && Number.isFinite(destination.lat) ? destination.lat : null;
+      const destLng = typeof destination.lng === 'number' && Number.isFinite(destination.lng) ? destination.lng : null;
+
+      if (originLat === null || originLng === null || destLat === null || destLng === null) {
+        return res.status(400).json({ error: 'Valid numeric lat/lng required for both origin and destination' });
+      }
+      if (originLat < -90 || originLat > 90 || destLat < -90 || destLat > 90) {
+        return res.status(400).json({ error: 'Latitude must be between -90 and 90' });
+      }
+      if (originLng < -180 || originLng > 180 || destLng < -180 || destLng > 180) {
+        return res.status(400).json({ error: 'Longitude must be between -180 and 180' });
+      }
+
       const mapsKey = process.env.GOOGLE_MAPS_PLATFORM_KEY || process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY || "";
-      
-      const originLat = typeof origin.lat === 'number' ? origin.lat : 12.9716;
-      const originLng = typeof origin.lng === 'number' ? origin.lng : 77.5946;
-      const destLat = typeof destination.lat === 'number' ? destination.lat : 12.9610;
-      const destLng = typeof destination.lng === 'number' ? destination.lng : 77.5850;
 
       // Geodesic distance calculation as baseline (Earth radius = 6371km)
       const dLat = ((destLat - originLat) * Math.PI) / 180;
@@ -549,12 +549,23 @@ async function startServer() {
         return res.status(400).json({ error: "Origin and destinations array are required" });
       }
 
-      const originLat = origin.lat || 12.9716;
-      const originLng = origin.lng || 77.5946;
+      // BE-09: Validate and limit input
+      if (destinations.length > 100) {
+        return res.status(400).json({ error: 'Destinations array too large (max 100)' });
+      }
+
+      const originLat = typeof origin.lat === 'number' && Number.isFinite(origin.lat) ? origin.lat : null;
+      const originLng = typeof origin.lng === 'number' && Number.isFinite(origin.lng) ? origin.lng : null;
+      if (originLat === null || originLng === null || originLat < -90 || originLat > 90 || originLng < -180 || originLng > 180) {
+        return res.status(400).json({ error: 'Valid origin lat/lng required' });
+      }
 
       const results = destinations.map((dest: any, index: number) => {
-        const destLat = dest.lat || 12.9716;
-        const destLng = dest.lng || 77.5946;
+        const destLat = typeof dest.lat === 'number' && Number.isFinite(dest.lat) ? dest.lat : null;
+        const destLng = typeof dest.lng === 'number' && Number.isFinite(dest.lng) ? dest.lng : null;
+        if (destLat === null || destLng === null) {
+          return { id: dest.id || `dest_${index}`, error: 'Invalid coordinates', distanceKm: 0, isWithin15Km: false };
+        }
 
         const dLat = ((destLat - originLat) * Math.PI) / 180;
         const dLon = ((destLng - originLng) * Math.PI) / 180;
@@ -1398,12 +1409,18 @@ async function startServer() {
     }
   });
 
-  // Secure Server-side Gemini API Route
+  // BE-10: AUTH DECISION — This endpoint proxies to Google Gemini AI.
+  // Currently protected by rate-limiting + CORS origin allowlist.
+  // TODO: Add Firebase ID token verification for authenticated-only access.
   app.post("/api/gemini", async (req, res) => {
     try {
       const { prompt } = req.body;
       if (!prompt) {
         return res.status(400).json({ error: "Prompt parameter is required" });
+      }
+      // BE-09: Limit prompt length to prevent excessive API costs
+      if (typeof prompt === 'string' && prompt.length > 2000) {
+        return res.status(400).json({ error: 'Prompt too long (max 2000 characters)' });
       }
 
       const apiKey = process.env.GEMINI_API_KEY;

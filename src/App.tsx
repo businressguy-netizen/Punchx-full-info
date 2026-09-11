@@ -11,7 +11,7 @@ import WebsiteNavbar from './components/WebsiteNavbar';
 import WebsiteFooter from './components/WebsiteFooter';
 import { AppScreen, Worker, WorkerApplication } from './types';
 import { AuthProvider, useAuth } from './lib/authContext';
-// Dashboard auth is now handled server-side via /api/admin/verify
+// Admin access is gated by Firebase Authentication + Firestore role === 'admin'
 import OtpVerify from './components/OtpVerify';
 import { Analytics } from '@vercel/analytics/react';
 import { NamoIDProvider, useNamoID } from "@namoidhq/react";
@@ -223,7 +223,7 @@ function AppMain() {
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
 
   const [citizenName, setCitizenName] = useState('PunchX Citizen');
-  const [citizenAddress, setCitizenAddress] = useState('42nd Galaxy Towers, Block C, Bengaluru, KA 560001');
+  const [citizenAddress, setCitizenAddress] = useState('');
 
   const [authMethod, setAuthMethod] = useState<'phone' | 'gmail'>('phone');
   const [authTarget, setAuthTarget] = useState('');
@@ -248,7 +248,7 @@ function AppMain() {
   // State for Global Profile & Orders Drawer
   const [isGlobalProfileOpen, setIsGlobalProfileOpen] = useState(false);
 
-  // Admin dashboard auth is now handled server-side (no client-side credential setup needed)
+  // Admin access is gated by Firebase Authentication + Firestore userProfile.role === 'admin'
 
   // Sync authenticated profile from AuthContext
   useEffect(() => {

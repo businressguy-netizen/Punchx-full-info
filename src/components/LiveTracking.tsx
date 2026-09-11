@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doc, updateDoc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { AppScreen } from '../types';
 import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
 import {
@@ -395,7 +395,8 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
         if (distance < 0.0006) {
           clearInterval(intervalId);
           // Update status in Firestore so worker dashboard reflects it too
-          if (activeOrder?.id) {
+          // FE-05: Require authenticated user before Firestore writes
+          if (activeOrder?.id && auth.currentUser?.uid) {
             updateDoc(doc(db, 'orders', activeOrder.id), { status: 'Arrived' })
               .catch(err => console.warn("Firestore status update failed:", err));
           }
@@ -434,7 +435,8 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
     const orderId = activeOrder?.id || `PX-${Date.now()}`;
 
     try {
-      if (activeOrder?.id) {
+      // FE-05: Require authenticated user before Firestore writes
+      if (activeOrder?.id && auth.currentUser?.uid) {
         await updateDoc(doc(db, 'orders', activeOrder.id), {
           status: 'Cancelled',
           cancelReason,

@@ -1,7 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// BE-08: Trusted PUNCHX origin allowlist (matches server.ts)
+const ALLOWED_ORIGINS = [
+  "https://www.punchxapp.co.in",
+  "https://punchxapp.co.in",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // BE-08 FIX: Only allow requests from trusted PUNCHX origins (no wildcard)
+  const requestOrigin = (req.headers.origin as string) || "";
+  if (ALLOWED_ORIGINS.includes(requestOrigin)) {
+    res.setHeader("Access-Control-Allow-Origin", requestOrigin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, X-Requested-With");
   res.setHeader("Access-Control-Max-Age", "86400");

@@ -115,9 +115,9 @@ export default function ChoosePayment({
     setPaying(true);
     
     const currentCitizenName = localStorage.getItem('punchx_citizen_name') || userProfile?.name || 'Elite Customer';
-    const currentCitizenAddress = localStorage.getItem('punchx_user_address') || 'HSR Layout, Bengaluru';
-    const currentCitizenPhone = userProfile?.phone || '+91 98765 43210';
-    let customerCoords = { lat: 12.9716, lng: 77.5946 };
+    const currentCitizenAddress = localStorage.getItem('punchx_user_address') || userProfile?.address || '';
+    const currentCitizenPhone = userProfile?.phone || '';
+    let customerCoords: { lat: number; lng: number } | null = null;
     try {
       const locRaw = localStorage.getItem('punchx_user_location');
       if (locRaw) {
@@ -160,7 +160,7 @@ const newOrder = {
       customerName: currentCitizenName,
       customerAddress: currentCitizenAddress,
       customerPhone: currentCitizenPhone,
-      customerLocation: customerCoords,
+      customerLocation: customerCoords || undefined,
       // 30-Day Guarantee Details
       hasWarrantyGuarantee: hasWarranty,
       warrantyFee: warrantyFee,
