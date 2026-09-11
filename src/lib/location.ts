@@ -11,6 +11,21 @@ export interface LocationData {
   timestamp: string;
 }
 
+// Phase 2: Helper to securely retrieve Firebase ID token for authenticated requests
+async function getAuthToken(): Promise<string> {
+  if (auth.currentUser) {
+    try {
+      return await auth.currentUser.getIdToken();
+    } catch (e) {
+      console.warn("Failed to retrieve Firebase ID token:", e);
+    }
+  }
+  return "";
+}
+
+// Local cache for avoiding repeat calls
+const locationCache: Record<string, LocationData> = {};
+
 // Convert address string or area or coordinates into a standardized Sector string
 export function getSectorFromAddress(address?: string, area?: string, lat?: number, lng?: number): string {
   const str = ((address || "") + " " + (area || "")).toLowerCase();
@@ -188,9 +203,13 @@ export function isSameAreaOrNearby(
 export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ address: string; area: string; city: string; sector: string; accuracyScore?: number }> {
   // 1. Primary High-Precision: Google Maps Platform Backend API (/api/maps/geocode)
   try {
+    const token = await getAuthToken();
     const res = await fetch('/api/maps/geocode', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ lat, lng })
     });
     if (res.ok) {
@@ -476,9 +495,13 @@ export async function fetchRegisteredLocationServices(params: {
   lng?: number;
 }): Promise<LocationServicesResponse | null> {
   try {
+    const token = await getAuthToken();
     const res = await fetch('/api/location-services', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(params)
     });
     if (res.ok) {
@@ -591,9 +614,13 @@ export async function fetchGoogleMapsRoute(
   destination: { lat: number; lng: number }
 ): Promise<RouteResult> {
   try {
+    const token = await getAuthToken();
     const res = await fetch('/api/maps/routes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ origin, destination })
     });
     if (res.ok) {
@@ -650,9 +677,13 @@ export async function fetchGoogleMapsDistanceMatrix(
   destinations: any[]
 ): Promise<DistanceMatrixResponse | null> {
   try {
+    const token = await getAuthToken();
     const res = await fetch('/api/maps/distance-matrix', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ origin, destinations })
     });
     if (res.ok) {
@@ -670,9 +701,13 @@ export async function forwardGeocodeWithGoogleMaps(
   landmark?: string
 ): Promise<{ lat: number; lng: number; address: string; area: string; city: string; sector: string; accuracyScore: number }> {
   try {
+    const token = await getAuthToken();
     const res = await fetch('/api/maps/geocode', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({ address, landmark })
     });
     if (res.ok) {

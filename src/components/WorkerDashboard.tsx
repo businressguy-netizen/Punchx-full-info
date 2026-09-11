@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppScreen, OrderRecord, CustomerReview } from '../types';
 import PUNCHX_LOGO from '../assets/logo';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../lib/authContext';
 import { requestAndAutoUpdateLocation, LocationData, getSectorFromAddress, calculateDistanceKm, getCoordinatesForAddressOrSector, checkIsWithin15KmRadius, getAccurateCurrentPosition } from '../lib/location';
@@ -72,7 +72,7 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
     visitingFee: 199,
     rating: 5.0,
     completedJobs: 0,
-    address: 'Indiranagar 100ft Road, Sector 2, Bengaluru',
+    address: '',
     area: 'Indiranagar',
     sector: 'Sector 2'
   });
@@ -361,10 +361,13 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
     updateOrdersInStateAndStorage(updated);
     setSelectedOrder({ ...selectedOrder, status: 'In-Progress' });
 
-    try {
-      await updateDoc(doc(db, 'orders', selectedOrder.id), { status: 'In-Progress' });
-    } catch (e) {
-      console.error("Firestore accept order update failed:", e);
+    // FE-05: Require authenticated user before Firestore writes
+    if (auth.currentUser?.uid) {
+      try {
+        await updateDoc(doc(db, 'orders', selectedOrder.id), { status: 'In-Progress' });
+      } catch (e) {
+        console.error("Firestore accept order update failed:", e);
+      }
     }
 
     // Trigger Real-Time Push Notification to Customer
@@ -386,10 +389,13 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
     updateOrdersInStateAndStorage(updated);
     setShowOrderModal(false);
 
-    try {
-      await updateDoc(doc(db, 'orders', selectedOrder.id), { status: 'Cancelled' });
-    } catch (e) {
-      console.error("Firestore reject order update failed:", e);
+    // FE-05: Require authenticated user before Firestore writes
+    if (auth.currentUser?.uid) {
+      try {
+        await updateDoc(doc(db, 'orders', selectedOrder.id), { status: 'Cancelled' });
+      } catch (e) {
+        console.error("Firestore reject order update failed:", e);
+      }
     }
 
     setSelectedOrder(null);
@@ -402,21 +408,24 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
     setShowOrderModal(false);
     setShowLiveNavigationModal(true);
 
-    try {
-      const currentPos = await getAccurateCurrentPosition();
-      await updateDoc(doc(db, 'orders', selectedOrder.id), {
-        status: 'Out for Service',
-        workerLocation: { lat: currentPos.lat, lng: currentPos.lng },
-        updatedAt: new Date().toISOString()
-      });
-    } catch {
+    // FE-05: Require authenticated user before Firestore writes
+    if (auth.currentUser?.uid) {
       try {
+        const currentPos = await getAccurateCurrentPosition();
         await updateDoc(doc(db, 'orders', selectedOrder.id), {
           status: 'Out for Service',
+          workerLocation: { lat: currentPos.lat, lng: currentPos.lng },
           updatedAt: new Date().toISOString()
         });
-      } catch (e) {
-        console.error("Firestore out for delivery status update failed:", e);
+      } catch {
+        try {
+          await updateDoc(doc(db, 'orders', selectedOrder.id), {
+            status: 'Out for Service',
+            updatedAt: new Date().toISOString()
+          });
+        } catch (e) {
+          console.error("Firestore out for delivery status update failed:", e);
+        }
       }
     }
 
@@ -857,7 +866,7 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pt-2 border-t border-zinc-800/80 text-xs text-zinc-400 font-mono">
                         <div className="flex items-center gap-1 text-zinc-300">
                           <MapPin className="w-3.5 h-3.5 text-[#c5a059]" />
-                          <span className="truncate max-w-[280px]">{order.customerAddress || 'Indiranagar, Bengaluru'}</span>
+                          <span className="truncate max-w-[280px]">{order.customerAddress || 'Address not available'}</span>
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -1370,7 +1379,7 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
                   <span className="text-[10px] font-mono text-zinc-400 block">Customer Contact</span>
                   <span className="font-bold text-white text-sm block">{selectedOrder.customerName || 'Aarav Sharma'}</span>
                   <span className="text-emerald-400 font-mono font-bold flex items-center gap-1 mt-0.5">
-                    <Phone className="w-3.5 h-3.5" /> {selectedOrder.customerPhone || '+91 98765 43210'}
+                    <Phone className="w-3.5 h-3.5" /> {selectedOrder.customerPhone || 'Phone not available'}
                   </span>
                 </div>
 
@@ -1378,7 +1387,7 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
                   <span className="text-[10px] font-mono text-zinc-400 block">Customer Site Location</span>
                   <span className="font-medium text-white flex items-start gap-1.5">
                     <MapPin className="w-4 h-4 text-[#c5a059] flex-shrink-0 mt-0.5" />
-                    {selectedOrder.customerAddress || '42nd Galaxy Towers, Block C, Indiranagar, Bengaluru'}
+                    {selectedOrder.customerAddress || 'Address not available'}
                   </span>
                 </div>
 
@@ -1879,7 +1888,8 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
                   onClick={async () => {
                     if (!tempVisitingFee || tempVisitingFee <= 0) return;
                     try {
-                      if (currentUser?.sub) {
+                      // FE-05: Require authenticated user before Firestore writes
+                      if (currentUser?.sub && auth.currentUser?.uid) {
                         await updateDoc(doc(db, 'users', currentUser.sub), {
                           visitingFee: Number(tempVisitingFee),
                           price: Number(tempVisitingFee)

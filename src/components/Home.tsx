@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { useAuth } from '../lib/authContext';
 import { Search, MapPin, ChevronRight, Star, Verified, Home, Shield, Wrench, Navigation, Plus, Laptop, CreditCard, User, Mail, Phone, Calendar, X, CheckCircle, AlertTriangle, ShieldCheck, Edit3, ChevronDown, FileText, BookOpen, Compass, Bell, Zap, Grid, Clock } from 'lucide-react';
 import { AppScreen, Worker, ServiceCategory, OrderRecord, CustomerReview } from '../types';
@@ -333,7 +333,8 @@ export default function HomeDashboard({
       // storage fallback
     }
 
-    if (currentUser?.sub) {
+    // FE-05: Require authenticated user before Firestore writes
+    if (currentUser?.sub && auth.currentUser?.uid) {
       try {
         await updateDoc(doc(db, 'users', currentUser.sub), {
           name: editName.trim(),
@@ -367,10 +368,13 @@ export default function HomeDashboard({
     setHistoryOrders(updated);
     localStorage.setItem('punchx_order_history', JSON.stringify(updated));
 
-    try {
-      await updateDoc(doc(db, 'orders', orderId), { status: 'Cancelled' });
-    } catch (e) {
-      console.error("Firestore cancel update failed:", e);
+    // FE-05: Require authenticated user before Firestore writes
+    if (auth.currentUser?.uid) {
+      try {
+        await updateDoc(doc(db, 'orders', orderId), { status: 'Cancelled' });
+      } catch (e) {
+        console.error("Firestore cancel update failed:", e);
+      }
     }
 
     showNotification(`⚠️ Booking ${orderId} has been cancelled.`);
@@ -391,25 +395,29 @@ export default function HomeDashboard({
     setHistoryOrders(updated);
     localStorage.setItem('punchx_order_history', JSON.stringify(updated));
 
-    try {
-      await updateDoc(doc(db, 'orders', orderId), {
-        isRated: true,
-        userRating: tempRatingStars,
-        userBehaviour: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.'
-      });
+    // FE-05: Require authenticated user before Firestore writes
+    if (auth.currentUser?.uid) {
+      try {
+        await updateDoc(doc(db, 'orders', orderId), {
+          isRated: true,
+          userRating: tempRatingStars,
+          userBehaviour: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.'
+        });
 
-      // Also save to reviews collection
-      const reviewId = `REV-${Date.now()}`;
-      await setDoc(doc(db, 'reviews', reviewId), {
-        id: reviewId,
-        customer: citizenName || 'Verified Customer',
-        rating: tempRatingStars,
-        category: 'Service Review',
-        comment: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.',
-        date: new Date().toLocaleDateString()
-      });
-    } catch (e) {
-      console.error("Firestore review submission error:", e);
+        // Also save to reviews collection
+        const reviewId = `REV-${Date.now()}`;
+        await setDoc(doc(db, 'reviews', reviewId), {
+          id: reviewId,
+          customer: citizenName || 'Verified Customer',
+          reviewerId: auth.currentUser.uid,
+          rating: tempRatingStars,
+          category: 'Service Review',
+          comment: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.',
+          date: new Date().toLocaleDateString()
+        });
+      } catch (e) {
+        console.warn("Firestore review save notice:", e);
+      }
     }
 
     showNotification(`⭐ Rating of ${tempRatingStars} ★ and behaviour review submitted for ${workerName}!`);

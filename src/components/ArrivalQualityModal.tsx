@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { ShieldAlert, CheckCircle, AlertTriangle, X, Wrench, ThumbsUp, ThumbsDown, MessageSquare, IndianRupee } from 'lucide-react';
 import { OrderRecord, ComplaintRecord } from '../types';
 
@@ -49,10 +49,10 @@ export default function ArrivalQualityModal({
       id: complaintId,
       orderId: order.id,
       customerName: order.customerName || 'Customer',
-      customerPhone: order.customerPhone || '+91 98765 43210',
-      customerAddress: order.customerAddress || 'Indiranagar, Bengaluru',
+      customerPhone: order.customerPhone || '',
+      customerAddress: order.customerAddress || '',
       workerName: order.workerName || 'Assigned Specialist',
-      workerPhone: order.workerPhone || '+91 98765 43210',
+      workerPhone: order.workerPhone || '',
       workerCategory: order.category,
       correctEquipment: correctEquipment,
       equipmentWorking: equipmentWorking,
@@ -65,9 +65,14 @@ export default function ArrivalQualityModal({
     };
 
     try {
-      // 1. Log in Firestore complaints
+      // 1. Log in Firestore complaints (requires authenticated user)
+      if (!auth.currentUser?.uid) {
+        showNotification('⚠️ You must be signed in to submit feedback.');
+        setIsSubmitting(false);
+        return;
+      }
       if (isNegative) {
-        await setDoc(doc(db, 'complaints', complaintId), complaintRecord);
+        await setDoc(doc(db, 'complaints', complaintId), { ...complaintRecord, customerId: auth.currentUser.uid });
       }
 
       // 2. Update order document with quality results

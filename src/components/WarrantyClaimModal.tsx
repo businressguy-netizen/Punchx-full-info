@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { ShieldCheck, Upload, X, Calendar, Clock, AlertTriangle, CheckCircle, Camera } from 'lucide-react';
 import { OrderRecord, WarrantyClaim } from '../types';
 
@@ -69,7 +69,7 @@ export default function WarrantyClaimModal({
       id: claimId,
       orderId: order.id,
       customerName: order.customerName || 'Customer',
-      customerPhone: order.customerPhone || '+91 98765 43210',
+      customerPhone: order.customerPhone || '',
       customerAddress: order.customerAddress || 'Customer Address',
       category: order.category,
       originalWorkerName: order.workerName,
@@ -85,8 +85,15 @@ export default function WarrantyClaimModal({
     };
 
     try {
+      // FE-05: Require authenticated user before Firestore writes
+      if (!auth.currentUser?.uid) {
+        showNotification('⚠️ You must be signed in to file a warranty claim.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // 1. Save claim into Firestore
-      await setDoc(doc(db, 'warranty_claims', claimId), newClaim);
+      await setDoc(doc(db, 'warranty_claims', claimId), { ...newClaim, customerId: auth.currentUser.uid });
 
       // 2. Update order document with claim info
       try {

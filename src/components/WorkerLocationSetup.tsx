@@ -226,7 +226,7 @@ export default function WorkerLocationSetup({
       skill: selectedCategories.join(', ') || 'AC Technician',
       categories: selectedCategories,
       experienceYears: workerApplication?.experienceYears || '3-5 Years',
-      phone: authMethod === 'phone' ? authTarget : (workerApplication?.phone || currentUser?.phone_number || '+91 98765 43210'),
+      phone: authMethod === 'phone' ? authTarget : (workerApplication?.phone || currentUser?.phone_number || ''),
       email: authMethod === 'gmail' ? authTarget : (workerApplication?.email || currentUser?.email || 'partner@punchx.com'),
       visitingFee: workerApplication?.visitingFee || 199,
       termsAccepted: true,

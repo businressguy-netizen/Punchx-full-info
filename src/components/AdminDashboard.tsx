@@ -51,7 +51,7 @@ export default function AdminDashboard({ onTransition, showNotification }: Admin
   const [reassignModal, setReassignModal] = useState<{ open: boolean; orderId: string; currentWorker: string } | null>(null);
   const [inspectModal, setInspectModal] = useState<OrderRecord | null>(null);
   const [rejectModal, setRejectModal] = useState<{ open: boolean; appId: string; applicantName: string } | null>(null);
-  const [rejectReason, setRejectReason] = useState<string>('Incomplete Identity Documentation');
+  const [rejectionReason, setRejectionReason] = useState<string>('Incomplete Identity Documentation');
 
   // Manual Dispatch Modal State
   const [newDispatchModal, setNewDispatchModal] = useState(false);
@@ -266,13 +266,13 @@ export default function AdminDashboard({ onTransition, showNotification }: Admin
     }
 
     try {
-      await setDoc(doc(db, 'workerApplications', appId), { status: 'REJECTED', rejectReason, rejectedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(doc(db, 'workerApplications', appId), { status: 'REJECTED', rejectionReason, rejectedAt: new Date().toISOString() }, { merge: true });
     } catch (e) {
       console.error("Error updating worker application status in Firestore:", e);
     }
 
-    showNotification(`❌ Registration ${appId} (${applicantName}) DECLINED. Reason: ${rejectReason}`);
-    addActivityLog(`Registration ${appId} DECLINED (${rejectReason})`, 'WORKER');
+    showNotification(`❌ Registration ${appId} (${applicantName}) DECLINED. Reason: ${rejectionReason}`);
+    addActivityLog(`Registration ${appId} DECLINED (${rejectionReason})`, 'WORKER');
     setRejectModal(null);
   };
 
@@ -1622,8 +1622,8 @@ if (!isUnlocked) {
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-mono uppercase text-zinc-400 font-bold">Select Decline Reason</label>
                 <select
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
                   className="w-full bg-[#07122a] border border-zinc-800 rounded-xl p-3 text-xs text-white outline-none focus:border-rose-500 font-mono cursor-pointer"
                 >
                   <option value="Incomplete Identity Documentation">Incomplete Identity Documentation</option>
