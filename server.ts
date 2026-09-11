@@ -6,6 +6,44 @@ import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import crypto from "crypto";
+import * as admin from "firebase-admin";
+
+// ─── Firebase Admin Setup ───
+try {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const serviceAccount = JSON.parse(
+      Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, "base64").toString()
+    );
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+  } else {
+    // Falls back to GOOGLE_APPLICATION_CREDENTIALS or GCE default
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault()
+    });
+  }
+} catch (error) {
+  console.warn("Firebase Admin initialization skipped/failed:", error);
+}
+
+// ─── Firebase Auth Middleware ───
+export const requireFirebaseUser = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized: Missing or invalid Authorization header" });
+  }
+
+  const idToken = authHeader.split("Bearer ")[1];
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    (req as any).user = decodedToken;
+    next();
+  } catch (error) {
+    console.warn("Firebase ID Token verification failed:", error);
+    return res.status(401).json({ error: "Unauthorized: Invalid or expired token" });
+  }
+};
 
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
@@ -236,7 +274,7 @@ async function startServer() {
   });
 
   // Comprehensive Google Maps Geocoding & High-Precision Reverse Geocoding API
-  app.post("/api/maps/geocode", async (req, res) => {
+  app.post("/api/maps/geocode", requireFirebaseUser, async (req, res) => {
     try {
       let { lat, lng, address, landmark, area: requestedArea } = req.body;
 
@@ -439,7 +477,7 @@ async function startServer() {
   });
 
   // Google Maps Routes API / Directions Endpoint
-  app.post("/api/maps/routes", async (req, res) => {
+  app.post("/api/maps/routes", requireFirebaseUser, async (req, res) => {
     try {
       const { origin, destination, travelMode = "DRIVE" } = req.body;
       if (!origin || !destination) {
@@ -542,7 +580,7 @@ async function startServer() {
   });
 
   // Google Maps Distance Matrix & 15km Zone Scanner API
-  app.post("/api/maps/distance-matrix", async (req, res) => {
+  app.post("/api/maps/distance-matrix", requireFirebaseUser, async (req, res) => {
     try {
       const { origin, destinations } = req.body;
       if (!origin || !Array.isArray(destinations)) {
@@ -805,7 +843,7 @@ async function startServer() {
   });
 
   // Dedicated Registered Services by Location API Endpoint
-  app.post("/api/location-services", async (req, res) => {
+  app.post("/api/location-services", requireFirebaseUser, async (req, res) => {
     try {
       let { lat, lng, address, landmark } = req.body;
       const mapsKey = process.env.GOOGLE_MAPS_PLATFORM_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
@@ -1412,7 +1450,7 @@ async function startServer() {
   // BE-10: AUTH DECISION — This endpoint proxies to Google Gemini AI.
   // Currently protected by rate-limiting + CORS origin allowlist.
   // TODO: Add Firebase ID token verification for authenticated-only access.
-  app.post("/api/gemini", async (req, res) => {
+  app.post("/api/gemini", requireFirebaseUser, async (req, res) => {
     try {
       const { prompt } = req.body;
       if (!prompt) {
