@@ -172,7 +172,7 @@ const userDocRef = doc(db, 'users', firebaseUid);
       );
 
       // Firebase auth succeeded — fetch or create the Firestore profile
-      return await fetchOrCreateProfile(identity, role || activeRole);
+      return  fetchOrCreateProfile(identity, role || activeRole);
     } catch (profileErr) {
       console.error('Profile creation failed:', profileErr);
       setCurrentUser(null);
