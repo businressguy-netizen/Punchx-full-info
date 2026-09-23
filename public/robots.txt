@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /auth/callback
+Disallow: /api/
 
 Sitemap: https://www.punchxapp.co.in/sitemap.xml

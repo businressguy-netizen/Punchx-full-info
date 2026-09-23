@@ -131,7 +131,7 @@ export default function PanelSelect({ onSelectPanel, showNotification }: PanelSe
           </motion.div>
 
           <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
-            SELECT OPERATING PANEL
+            Book Trusted Home Services
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400 max-w-md font-sans">
             Choose your dedicated workspace to book services or manage technician dispatches.
