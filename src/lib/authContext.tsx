@@ -4,8 +4,6 @@ import {
   User,
   onAuthStateChanged,
   signInWithCredential,
-  signInWithCustomToken,
-  signInAnonymously,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
@@ -156,26 +154,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
   };
 
   const loginWithNamoID = async (identity: NamoIDUserInfo, role?: 'citizen' | 'worker' | 'admin', idToken?: string) => {
-    let firebaseUid: string | null = null;
-
-    if (auth) {
-      // 1. Try backend Custom Token endpoint
-      try {
-        const backendBase = import.meta.env.VITE_BACKEND_URL || '';
-        const tokenRes = await fetch(`${backendBase}/api/auth/namoid-token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken, identity, role }),
-        });
-        if (tokenRes.ok) {
-          const data = await tokenRes.json();
-          if (data.customToken) {
-            const userCred = await signInWithCustomToken(auth, data.customToken);
-            firebaseUid = userCred.user.uid;
-          }
-        }
-      } catch (customTokErr) {
-        console.warn('Custom token auth notice:', customTokErr);
+    try {
+      if (idToken && auth) {
+        const provider = new OAuthProvider('oidc.namoid');
+        const credential = provider.credential({ idToken });
+        await signInWithCredential(auth, credential);
       }
 
       // 2. Try OIDC provider credential
