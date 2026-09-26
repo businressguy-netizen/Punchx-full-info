@@ -106,7 +106,7 @@ export default function WebsiteNavbar({
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5 text-[#e9c176] font-bold">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            PAN-BENGALURU HIGH-SPEED SMART DISPATCH ACTIVE
+            PAN-Kolkata HIGH-SPEED SMART DISPATCH ACTIVE
           </span>
           <span className="text-zinc-600">|</span>
           <span className="text-zinc-400 flex items-center gap-1">
@@ -469,7 +469,7 @@ export default function WebsiteNavbar({
               <div className="bg-[#0b162e] border border-zinc-800 rounded-2xl p-3 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-white">Join PunchX Premium</p>
-                  <p className="text-[10px] text-zinc-400">Book verified master specialists pan-Bengaluru</p>
+                  <p className="text-[10px] text-zinc-400">Book verified master specialists pan-Kolkata</p>
                 </div>
                 <button
                   onClick={() => handleNavClick('auth')}

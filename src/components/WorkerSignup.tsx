@@ -284,7 +284,7 @@ onTransition('worker-otp-pass');
             </div>
             <textarea
               rows={2}
-              placeholder="e.g. House #104, 3rd Cross, Indiranagar, Bengaluru, KA 560038"
+              placeholder="e.g. House #104, 3rd Cross, Indiranagar, Kolkata, KA 560038"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-colors resize-none"

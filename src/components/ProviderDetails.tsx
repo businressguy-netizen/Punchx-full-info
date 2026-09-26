@@ -73,7 +73,7 @@ export default function ProviderDetails({
   const getBio = (worker: Worker) => {
     switch (worker.id) {
       case 'rajesh':
-        return 'AC specialist with 9+ years of field experience in South Bengaluru. Expert in compressor overhaul, copper piping, coolant leak diagnosis, and multi-split inverter repairs. Verified HVAC professional.';
+        return 'AC specialist with 9+ years of field experience in South Kolkata. Expert in compressor overhaul, copper piping, coolant leak diagnosis, and multi-split inverter repairs. Verified HVAC professional.';
       case 'amit':
         return 'Certified Senior Technician. Specializes in rapid-response troubleshooting, condenser replacement, and heavy cooling unit setups. Completed deep vetting checks.';
       case 'marcus':

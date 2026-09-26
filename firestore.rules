@@ -34,12 +34,16 @@ service cloud.firestore {
 
     // =====================================================
     // USER PROFILES
+    // BE-03 FIX: Owner-or-admin read access only.
+    // Private user data (phone, address, DOB) must not be
+    // readable by unrelated authenticated users.
+    // Provider discovery uses workerApplications, not users.
     // =====================================================
 
     match /users/{userId} {
 
-      // Authenticated users can discover profiles.
-      allow read: if signedIn();
+      // BE-03: Only the profile owner or an admin can read user profiles.
+      allow read: if isOwner(userId) || isAdmin();
 
       // A user can create only their own profile.
       // New client-created profiles cannot make themselves admin.
@@ -61,20 +65,33 @@ service cloud.firestore {
               'email',
               'phone',
               'address',
+              'streetAddress',
+              'landmark',
               'avatar',
+              'photoURL',
               'location',
               'dob',
+              'birthdate',
               'sector',
+              'area',
+              'city',
               'updatedAt',
               'lastSeen',
               'serviceCategory',
               'visitFee',
+              'visitingFee',
               'bio',
               'experience',
               'serviceRadius',
               'serviceRadiusKm',
               'isOnline',
-              'workerStatus'
+              'workerStatus',
+              'workerSkill',
+              'categories',
+              'skill',
+              'isProfileCompleted',
+              'applicationId',
+              'status'
             ])
         );
 
@@ -85,9 +102,13 @@ service cloud.firestore {
 
     // =====================================================
     // WORKER APPLICATIONS
+    // BE-01 FIX: Path corrected to camelCase /workerApplications/
+    // BE-02 FIX: Client creates are restricted to initial
+    // application fields only. Approval state cannot be set
+    // by clients.
     // =====================================================
 
-    match /workerapplications/{appId} {
+    match /workerApplications/{appId} {
 
       // Only authenticated users can read applications.
       allow read: if signedIn() && (
@@ -96,10 +117,18 @@ service cloud.firestore {
         || resource.data.uid == request.auth.uid
       );
 
-      // Authenticated users can submit applications.
-allow create: if signedIn()
-  && request.resource.data.uid == request.auth.uid
-  && request.resource.data.keys().hasAll(['legalName','phone','category','uid']);
+      // BE-02 FIX: Authenticated users can submit applications,
+      // but CANNOT set approval-related fields on create.
+      // Status must be 'PENDING' on initial submission.
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasAll(['legalName','phone','uid'])
+        && request.resource.data.status == 'PENDING'
+        && !request.resource.data.keys().hasAny([
+          'reviewedBy',
+          'approvedAt',
+          'otpVerified'
+        ]);
 
       // Only admins can approve/reject applications.
       allow update: if isAdmin()
@@ -121,43 +150,70 @@ allow create: if signedIn()
 
     // =====================================================
     // ORDERS / BOOKINGS
+    // BE-06 FIX: Restrict customer and worker updates to
+    // only their permitted fields. Ownership, price, payment,
+    // and admin-controlled fields are protected.
     // =====================================================
 
-match /orders/{orderId} {
+    match /orders/{orderId} {
 
-  // Customers and assigned workers can read their own orders.
-  // Admins can read all orders.
-  allow read: if signedIn() && (
-    isAdmin()
-    || resource.data.customerId == request.auth.uid
-    || resource.data.workerId == request.auth.uid
-  );
-
-  // A customer can create only an order belonging to themselves.
-  allow create: if signedIn()
-    && request.resource.data.customerId == request.auth.uid
-    && request.resource.data.keys().hasAll([
-      'customerId',
-      'category'
-    ]);
-
-  // Prevent customers/workers from changing ownership.
-  // Admins can update orders.
-  allow update: if signedIn() && (
-    isAdmin()
-    || (
-      (
-        resource.data.customerId == request.auth.uid
+      // Customers and assigned workers can read their own orders.
+      // Admins can read all orders.
+      allow read: if signedIn() && (
+        isAdmin()
+        || resource.data.customerId == request.auth.uid
         || resource.data.workerId == request.auth.uid
-      )
-      && request.resource.data.customerId == resource.data.customerId
-      && request.resource.data.workerId == resource.data.workerId
-    )
-  );
+      );
 
-  // Orders must never be deleted directly from the client.
-  allow delete: if false;
-}
+      // A customer can create only an order belonging to themselves.
+      allow create: if signedIn()
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'customerId',
+          'category'
+        ]);
+
+      // BE-06 FIX: Field-level restrictions for updates.
+      // Admins can update any field.
+      // Customers can only update limited feedback/status fields.
+      // Workers can only update limited operational fields.
+      allow update: if signedIn() && (
+        isAdmin()
+        || (
+          resource.data.customerId == request.auth.uid
+          && request.resource.data.customerId == resource.data.customerId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'status',
+              'arrivalFeedbackSubmitted',
+              'arrivalQualityRating',
+              'qualityDiscountApplied',
+              'prepaidRefundStatus',
+              'prepaidRefundAmount',
+              'isRated',
+              'userRating',
+              'userBehaviour',
+              'warrantyClaimId',
+              'warrantyClaimStatus'
+            ])
+        )
+        || (
+          resource.data.workerId == request.auth.uid
+          && request.resource.data.workerId == resource.data.workerId
+          && request.resource.data.customerId == resource.data.customerId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'status',
+              'completedAt',
+              'photoProof'
+            ])
+        )
+      );
+
+      // Orders must never be deleted directly from the client.
+      allow delete: if false;
+    }
+
 
     // =====================================================
     // REVIEWS
@@ -214,6 +270,68 @@ match /orders/{orderId} {
             'resolvedAt'
           ]);
 
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // COMPLAINTS
+    // BE-04 FIX: Secure rules for complaints collection.
+    // Customers/workers involved can create/read their own.
+    // Admins can read and update. Unrelated users denied.
+    // =====================================================
+
+    match /complaints/{complaintId} {
+
+      // The customer who filed, or admin, can read a complaint.
+      allow read: if signedIn() && (
+        isAdmin()
+        || resource.data.customerId == request.auth.uid
+      );
+
+      // Authenticated users can create a complaint for an order they own.
+      allow create: if signedIn()
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'orderId',
+          'customerName',
+          'workerName',
+          'status'
+        ]);
+
+      // Only admins can update complaint status/resolution.
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'status',
+            'adminActionNotes',
+            'resolvedAt',
+            'updatedAt'
+          ]);
+
+      // Complaints cannot be deleted from the client.
+      allow delete: if false;
+    }
+
+
+    // =====================================================
+    // WORKERS
+    // BE-05 FIX: Dedicated rules for workers collection.
+    // Workers can modify only their own document.
+    // Admins can manage. Not publicly writable.
+    // =====================================================
+
+    match /workers/{workerId} {
+
+      // Authenticated users can read worker profiles (for provider discovery).
+      allow read: if signedIn();
+
+      // A worker can create/update only their own document.
+      allow create: if isOwner(workerId);
+
+      allow update: if isOwner(workerId) || isAdmin();
+
+      // Workers cannot be deleted from the client.
       allow delete: if false;
     }
 

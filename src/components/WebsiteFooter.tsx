@@ -122,7 +122,7 @@ export default function WebsiteFooter({
             </div>
 
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Bengaluru’s premier AI-assisted smart home utility and rapid emergency technician network. Connecting citizens with vetted master specialists in real-time.
+              Kolkata’s premier AI-assisted smart home utility and rapid emergency technician network. Connecting citizens with vetted master specialists in real-time.
             </p>
 
             <div className="pt-2">
@@ -164,7 +164,11 @@ export default function WebsiteFooter({
               <div className="text-base font-extrabold text-white font-mono tracking-wider">
                 1800-PUNCHX-24
               </div>
-              <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1">
+              <div className="text-[11px] font-mono text-zinc-400 mt-2">SUPPORT EMAIL</div>
+              <div className="text-sm font-extrabold text-white font-mono tracking-wider">
+                <a href="mailto:PUNCHXSERVICE@GMAIL.COM" className="hover:text-[#e9c176] transition-colors">PUNCHXSERVICE@GMAIL.COM</a>
+              </div>
+              <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 mt-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                 <span>AVERAGE PICKUP: &lt; 15 SECONDS</span>
               </div>

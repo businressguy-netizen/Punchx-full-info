@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, Check, Sparkles, ThumbsUp, ShieldCheck, Clock, UserCheck, Sparkles as SparkleIcon, X, Loader2 } from 'lucide-react';
 import { CustomerReview, OrderRecord } from '../types';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 
 interface PostServiceReviewModalProps {
@@ -88,8 +88,15 @@ export default function PostServiceReviewModal({
     };
 
     try {
+      // FE-05: Require authenticated user before Firestore writes
+      if (!auth.currentUser?.uid) {
+        showNotification('\u26a0\ufe0f You must be signed in to submit a review.');
+        setIsSubmitting(false);
+        return;
+      }
+
       // 1. Save to Firestore /reviews/{reviewId}
-      await setDoc(doc(db, 'reviews', reviewId), reviewPayload);
+      await setDoc(doc(db, 'reviews', reviewId), { ...reviewPayload, reviewerId: auth.currentUser.uid });
 
       // 2. Update order in Firestore /orders/{orderId}
       try {

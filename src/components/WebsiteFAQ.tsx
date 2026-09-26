@@ -24,8 +24,8 @@ export default function WebsiteFAQ() {
     },
     {
       category: 'Dispatch',
-      question: 'How quickly will a technician arrive at my doorstep in Bengaluru?',
-      answer: 'Our smart GPS radar allocates the nearest available on-duty master technician in your neighborhood sector. Average arrival time across Bengaluru is 15–30 minutes for emergency dispatches, with live real-time turn-by-turn tracking available directly on your customer tracking screen.'
+      question: 'How quickly will a technician arrive at my doorstep in Kolkata?',
+      answer: 'Our smart GPS radar allocates the nearest available on-duty master technician in your neighborhood sector. Average arrival time across Kolkata is 15–30 minutes for emergency dispatches, with live real-time turn-by-turn tracking available directly on your customer tracking screen.'
     },
     {
       category: 'Payments',
@@ -104,7 +104,7 @@ export default function WebsiteFAQ() {
       <div className="space-y-3 pt-2">
         {filteredFaqs.length === 0 ? (
           <div className="text-center py-10 text-zinc-500 text-xs font-mono">
-            No questions matched your search query. Try another term or contact our 24/7 helpline.
+            No questions matched your search query. Try another term or contact our 24/7 helpline at 1800-PUNCHX-24 or PUNCHXSERVICE@GMAIL.COM.
           </div>
         ) : (
           filteredFaqs.map((faq, idx) => {
@@ -157,7 +157,7 @@ export default function WebsiteFAQ() {
           </div>
           <div>
             <h4 className="text-sm font-bold text-white">Have a specific emergency or enterprise question?</h4>
-            <p className="text-xs text-zinc-400">Our concierge support team is available 24/7 across Bengaluru.</p>
+            <p className="text-xs text-zinc-400">Our concierge support team is available 24/7 across Kolkata.</p>
           </div>
         </div>
 

@@ -8,3 +8,12 @@ coverage/
 .env*
 !.env.example
 .vercel
+# Firebase Credentials
+serviceAccountKey.json
+*-firebase-*.json
+firebase-credentials.json
+
+# PDF documents
+*.pdf
+dd078834-3648-483c-82c4-7b46310decb0.pdf
+

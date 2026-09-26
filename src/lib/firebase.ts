@@ -11,20 +11,33 @@ try {
 }
 
 const fallbackConfig = {
-  projectId: "gen-lang-client-0120647960",
-  appId: "1:657136107440:web:1456f92b13b6e13f44e075",
-  apiKey: "AIzaSyDNH2eC_XcMCrWWSL4cTHemb4hH0-9kCcc",
-  authDomain: "gen-lang-client-0120647960.firebaseapp.com",
-  firestoreDatabaseId: "ai-studio-punchxservicecus-c71be4cc-9ee1-4ae7-b718-125aa03bcd38",
-  storageBucket: "gen-lang-client-0120647960.firebasestorage.app",
-  messagingSenderId: "657136107440",
-  measurementId: "G-HXBW3TPMF9",
-  oAuthClientId: "657136107440-3k02uag8mn3cbsqus25jcme9rpa022bo.apps.googleusercontent.com"
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "",
+  oAuthClientId: import.meta.env.VITE_FIREBASE_OAUTH_CLIENT_ID || ""
 };
+
+// Environment variable overrides (for Vercel/Netlify deployment configuration)
+const envConfig: Record<string, string> = {};
+if (import.meta.env.VITE_FIREBASE_API_KEY) envConfig.apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+if (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN) envConfig.authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+if (import.meta.env.VITE_FIREBASE_PROJECT_ID) envConfig.projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+if (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET) envConfig.storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+if (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID) envConfig.messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+if (import.meta.env.VITE_FIREBASE_APP_ID) envConfig.appId = import.meta.env.VITE_FIREBASE_APP_ID;
 
 const firebaseConfig = {
   ...fallbackConfig,
-  ...(rawConfig || {})
+  ...(rawConfig || {}),
+  ...envConfig,
+  // BUG-02 fix: Use custom domain as authDomain so OAuth redirects/popups work
+  // on the production site instead of failing with CORS/origin mismatch
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'www.punchxapp.co.in',
 };
 
 let app: FirebaseApp;

@@ -92,7 +92,7 @@ export default function CustomerLocationSetup({
   // Location resolution state from backend
   const [resolvedSector, setResolvedSector] = useState('Sector 2 (Indiranagar)');
   const [resolvedArea, setResolvedArea] = useState('Indiranagar');
-  const [resolvedCity, setResolvedCity] = useState('Bengaluru');
+  const [resolvedCity, setResolvedCity] = useState('Kolkata');
   const [registeredServices, setRegisteredServices] = useState<RegisteredService[]>([]);
   const [coverageStatus, setCoverageStatus] = useState('Checking registered services in your area...');
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: 12.9716, lng: 77.5946 });
@@ -131,7 +131,7 @@ export default function CustomerLocationSetup({
     setIsResolvingBackend(true);
     try {
       const resp = await fetchRegisteredLocationServices({
-        address: targetAddress || address || 'Indiranagar 100ft Road, Bengaluru',
+        address: targetAddress || address || 'Indiranagar 100ft Road, Kolkata',
         landmark: targetLandmark || landmark,
         lat: lat || coords.lat,
         lng: lng || coords.lng
@@ -140,7 +140,7 @@ export default function CustomerLocationSetup({
       if (resp && resp.success) {
         setResolvedSector(resp.sector || 'Sector (Metro Zone)');
         setResolvedArea(resp.area || 'Local Area');
-        setResolvedCity(resp.city || 'Bengaluru');
+        setResolvedCity(resp.city || 'Kolkata');
         setRegisteredServices(resp.registeredServices || []);
         setCoverageStatus(resp.coverageStatus || '100% Active & Certified Coverage');
         if (resp.lat && resp.lng) {
@@ -156,7 +156,7 @@ export default function CustomerLocationSetup({
 
   // Initial lookup on mount
   useEffect(() => {
-    resolveServicesFromBackend(address || 'Indiranagar, Bengaluru', landmark);
+    resolveServicesFromBackend(address || 'Indiranagar, Kolkata', landmark);
   }, []);
 
   // Debounced lookup when user types manual address or landmark

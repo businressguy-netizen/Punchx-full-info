@@ -123,7 +123,7 @@ export default function WorkerSafetyStoreModal({
               </div>
               <h4 className="text-xl font-bold text-white">Safety Gear Order Dispatched</h4>
               <p className="text-xs text-zinc-300 max-w-md mx-auto leading-relaxed">
-                Your order of <strong>{totalItemsCount} item(s)</strong> worth <strong>₹{totalCost}</strong> has been confirmed. The equipment will be delivered directly to your registered Bengaluru hub address within 24 hours. The cost will be automatically deducted from your partner weekly payout ledger.
+                Your order of <strong>{totalItemsCount} item(s)</strong> worth <strong>₹{totalCost}</strong> has been confirmed. The equipment will be delivered directly to your registered Kolkata hub address within 24 hours. The cost will be automatically deducted from your partner weekly payout ledger.
               </p>
               <div className="pt-4">
                 <button

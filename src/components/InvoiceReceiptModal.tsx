@@ -81,7 +81,7 @@ export default function InvoiceReceiptModal({
                 </div>
               </div>
               <p className="text-[11px] text-zinc-600 pt-1">
-                Indiranagar Prestige Tech Center, Bengaluru, KA - 560038
+                Indiranagar Prestige Tech Center, Kolkata, KA - 560038
               </p>
             </div>
 
@@ -100,7 +100,7 @@ export default function InvoiceReceiptModal({
             <div>
               <span className="font-mono font-bold text-zinc-400 uppercase text-[10px] block mb-1">CUSTOMER DETAILS</span>
               <div className="font-bold text-zinc-900">{order.customerName || 'Verified Citizen'}</div>
-              <div className="text-zinc-600 text-[11px] mt-0.5">{order.customerAddress || 'Bengaluru, Karnataka'}</div>
+              <div className="text-zinc-600 text-[11px] mt-0.5">{order.customerAddress || 'Kolkata, West Bengal'}</div>
               <div className="text-zinc-500 font-mono text-[10px] mt-1">Payment: {order.paymentMethod || 'UPI / Digital Gateway'}</div>
             </div>
 

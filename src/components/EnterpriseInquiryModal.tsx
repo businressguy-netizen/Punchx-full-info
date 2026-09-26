@@ -18,17 +18,43 @@ export default function EnterpriseInquiryModal({
   const [phone, setPhone] = useState<string>('');
   const [societyName, setSocietyName] = useState<string>('');
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!contactName.trim() || !phone.trim() || !societyName.trim()) {
       showNotification('⚠️ Please enter your name, contact phone number, and society/property name.');
       return;
     }
-    setSubmitted(true);
-    showNotification('✓ Corporate AMC Inquiry registered! Relationship manager will contact within 30 minutes.');
+    
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/consultant-inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          propertyType,
+          unitCount,
+          contactName,
+          phone,
+          societyName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit inquiry');
+      }
+
+      setSubmitted(true);
+      showNotification('✓ Corporate AMC Inquiry registered! Relationship manager will contact within 30 minutes.');
+    } catch (error) {
+      console.error('Error submitting inquiry:', error);
+      showNotification('❌ Failed to submit inquiry. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -67,7 +93,7 @@ export default function EnterpriseInquiryModal({
               </div>
               <h4 className="text-xl font-bold text-white">Inquiry Registered Successfully</h4>
               <p className="text-xs text-zinc-300 max-w-md mx-auto leading-relaxed">
-                Thank you, <strong>{contactName}</strong>. Our dedicated Bengaluru Enterprise Account Manager has received your proposal request for <strong>{societyName}</strong> ({unitCount}) and will call you on <strong>{phone}</strong> within 30 minutes.
+                Thank you, <strong>{contactName}</strong>. Our dedicated Kolkata Enterprise Account Manager has received your proposal request for <strong>{societyName}</strong> ({unitCount}) and will call you on <strong>{phone}</strong> within 30 minutes.
               </p>
               <div className="pt-4">
                 <button
@@ -173,10 +199,11 @@ export default function EnterpriseInquiryModal({
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#c5a059] hover:bg-[#e9c176] text-black font-bold text-xs transition-all shadow-lg flex items-center gap-1.5 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 rounded-xl bg-[#c5a059] hover:bg-[#e9c176] text-black font-bold text-xs transition-all shadow-lg flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Request Custom AMC Proposal</span>
+                  <span>{isSubmitting ? 'Sending...' : 'Request Custom AMC Proposal'}</span>
                 </button>
               </div>
             </form>

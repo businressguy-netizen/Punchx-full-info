@@ -75,7 +75,7 @@ export default function ProvidersList({
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.status === 'APPROVED') {
-          const wrkAddr = data.address || citizenAddress || 'Indiranagar, Bengaluru';
+          const wrkAddr = data.address || citizenAddress || 'Indiranagar, Kolkata';
           const wrkArea = data.area || extractAreaFromAddress(wrkAddr);
           const wrkSector = data.sector || getSectorFromAddress(wrkAddr, wrkArea);
 

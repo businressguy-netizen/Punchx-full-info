@@ -11,7 +11,7 @@ import WebsiteNavbar from './components/WebsiteNavbar';
 import WebsiteFooter from './components/WebsiteFooter';
 import { AppScreen, Worker, WorkerApplication } from './types';
 import { AuthProvider, useAuth } from './lib/authContext';
-// Dashboard auth is now handled server-side via /api/admin/verify
+// Admin access is gated by Firebase Authentication + Firestore role === 'admin'
 import OtpVerify from './components/OtpVerify';
 import { Analytics } from '@vercel/analytics/react';
 import { NamoIDProvider, useNamoID } from "@namoidhq/react";
@@ -35,134 +35,7 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const TermsAndConditions = lazy(() => import('./components/TermsAndConditions'));
 const Founder = lazy(() => import('./components/Founder'));
 
-async function completePunchXAuthRedirect(client: any, callbackUrl: string = window.location.href) {
-  const url = new URL(callbackUrl);
-  const storageKey = `namoid_oidc:${client.clientId.slice(-12)}`;
-
-  let raw = sessionStorage.getItem(storageKey);
-  if (!raw) {
-    raw = localStorage.getItem(storageKey);
-  }
-  if (!raw) {
-    throw new Error("Authorization transaction is missing. Please try signing in again.");
-  }
-  const transaction = JSON.parse(raw);
-
-  const returnedState = url.searchParams.get("state");
-  if (!returnedState || transaction.state !== returnedState) {
-    throw new Error("Authorization state mismatch. Please try signing in again.");
-  }
-
-  const authError = url.searchParams.get("error");
-  if (authError) {
-    sessionStorage.removeItem(storageKey);
-    localStorage.removeItem(storageKey);
-    throw new Error(url.searchParams.get("error_description") || authError);
-  }
-
-  const code = url.searchParams.get("code");
-  if (!code) {
-    throw new Error("Authorization code is missing");
-  }
-
-  // 1. Exchange authorization code for tokens using NamoID client (routed via namoidFetcher proxy)
-  const tokens = await client.hostedAuth.exchangeCode({
-    code,
-    redirectUri: transaction.redirectUri,
-    codeVerifier: transaction.codeVerifier,
-  });
-
-  if (!tokens || !tokens.access_token) {
-    throw new Error("Token exchange did not return an access token");
-  }
-
-  // 2. Retrieve user identity using NamoID client UserInfo endpoint
-  const identity = await client.hostedAuth.userInfo(tokens.access_token);
-
-  // 3. Decode id_token payload safely (if present)
-  let idTokenClaims: any = {};
-  if (tokens.id_token) {
-    try {
-      const parts = tokens.id_token.split('.');
-      if (parts.length === 3) {
-        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-          atob(base64)
-            .split('')
-            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-            .join('')
-        );
-        idTokenClaims = JSON.parse(jsonPayload);
-      }
-    } catch (jwtErr) {
-      console.warn("Notice: decoding id_token payload:", jwtErr);
-    }
-  }
-
-  // Clean up transaction keys
-  sessionStorage.removeItem(storageKey);
-  localStorage.removeItem(storageKey);
-
-  return { tokens, identity, idTokenClaims };
-}
-
-function AuthCallback({ onTransition }: { onTransition: (target: AppScreen) => void }) {
-  const client = useNamoID();
-  const { loginWithNamoID } = useAuth();
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const hasProcessedRef = useRef(false);
-
-  useEffect(() => {
-    if (hasProcessedRef.current) return;
-    hasProcessedRef.current = true;
-
-    async function processCallback() {
-      try {
-        const callbackUrl = window.location.href;
-        const result = await completePunchXAuthRedirect(client, callbackUrl);
-        const rawRole = localStorage.getItem('punchx_auth_role') || 'customer';
-        const role: 'citizen' | 'worker' | 'admin' = 
-          rawRole === 'worker' ? 'worker' : rawRole === 'admin' ? 'admin' : 'citizen';
-
-        await loginWithNamoID(result.identity, role, result.tokens.id_token);
-        window.history.replaceState({}, document.title, '/');
-
-        if (role === 'admin') onTransition('admin-dashboard');
-        else if (role === 'worker') onTransition('worker-dashboard');
-        else onTransition('home');
-      } catch (e: any) {
-        console.error("❌ [AuthCallback] Auth callback error:", e);
-        setErrorMessage(e?.message || "Authentication callback could not be completed.");
-      }
-    }
-    processCallback();
-  }, [client, loginWithNamoID, onTransition]);
-
-  if (errorMessage) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
-        <div className="max-w-md bg-[#11192e] border border-red-500/30 p-6 rounded-2xl shadow-xl">
-          <p className="text-red-400 font-bold text-base mb-2">Sign In Notice</p>
-          <p className="text-zinc-400 text-xs mb-4 leading-relaxed">{errorMessage}</p>
-          <button
-            onClick={() => onTransition('auth')}
-            className="px-4 py-2 bg-[#c5a059] text-black font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-[#d8b46e] transition-all cursor-pointer"
-          >
-            Return to Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] text-center">
-      <div className="w-12 h-12 border-4 border-[#c5a059]/20 border-t-[#c5a059] rounded-full animate-spin shadow-[0_0_15px_rgba(197,160,89,0.5)] mb-4"></div>
-      <p className="text-sm font-bold text-white uppercase tracking-wider">Completing NamoID Authorization...</p>
-      <p className="text-xs text-zinc-400 mt-1">Verifying security token & initializing profile</p>
-    </div>
-  );
-}
+const AuthCallback = lazy(() => import('./components/AuthCallback'));
 
 function AppMain() {
   const { currentUser, userProfile, isLoadingProfile } = useAuth();
@@ -223,7 +96,7 @@ function AppMain() {
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
 
   const [citizenName, setCitizenName] = useState('PunchX Citizen');
-  const [citizenAddress, setCitizenAddress] = useState('42nd Galaxy Towers, Block C, Bengaluru, KA 560001');
+  const [citizenAddress, setCitizenAddress] = useState('');
 
   const [authMethod, setAuthMethod] = useState<'phone' | 'gmail'>('phone');
   const [authTarget, setAuthTarget] = useState('');
@@ -248,7 +121,7 @@ function AppMain() {
   // State for Global Profile & Orders Drawer
   const [isGlobalProfileOpen, setIsGlobalProfileOpen] = useState(false);
 
-  // Admin dashboard auth is now handled server-side (no client-side credential setup needed)
+  // Admin access is gated by Firebase Authentication + Firestore userProfile.role === 'admin'
 
   // Sync authenticated profile from AuthContext
   useEffect(() => {
@@ -340,39 +213,56 @@ function AppMain() {
   };
 
   const handleTransition = (target: AppScreen) => {
-    let resolvedTarget = target;
-    if (target === 'panel-select' && currentUser) {
-      const resolvedRole = userProfile?.role || activePanelRole || 'customer';
-      if (resolvedRole === 'worker') {
-        resolvedTarget = 'worker-dashboard';
-      } else if (resolvedRole === 'admin') {
-        resolvedTarget = 'admin-dashboard';
-      } else {
-        resolvedTarget = 'home';
-      }
-    } else if (target === 'home' && !currentUser) {
-      resolvedTarget = 'panel-select';
-    }
+    try {
+      let resolvedTarget = target;
 
-    if (resolvedTarget === 'privacy-policy') {
-      window.history.pushState({}, '', '/privacy-policy');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (resolvedTarget === 'terms-and-conditions') {
-      window.history.pushState({}, '', '/terms-and-conditions');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (resolvedTarget === 'worker-signup') {
-      window.history.pushState({}, '', '/worker-signup');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else if (resolvedTarget === 'founder') {
-      window.history.pushState({}, '', '/founder');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
-      if (currentPath === '/privacy-policy' || currentPath === '/terms-and-conditions' || currentPath === '/terms' || currentPath === '/privacy' || currentPath === '/worker-signup' || currentPath === '/founder' || currentPath === '/leadership' || currentPath === '/founders') {
-        window.history.pushState({}, '', '/');
+      // BUG-03/04 fix: Show descriptive toast for protected nav items when not authenticated
+      const protectedNavScreens: Record<string, string> = {
+        'tracking': '📍 Live Tracking',
+        'providers': '🔍 Find Specialists',
+        'booking': '📋 Booking',
+        'payment': '💳 Payment',
+        'provider-details': '👤 Specialist Details',
+      };
+      if (!currentUser && protectedNavScreens[target]) {
+        showToast(`🔒 Sign in required to access ${protectedNavScreens[target]}. Redirecting to portal...`);
+        resolvedTarget = 'panel-select';
+      } else if (target === 'panel-select' && currentUser) {
+        const resolvedRole = userProfile?.role || activePanelRole || 'customer';
+        if (resolvedRole === 'worker') {
+          resolvedTarget = 'worker-dashboard';
+        } else if (resolvedRole === 'admin') {
+          resolvedTarget = 'admin-dashboard';
+        } else {
+          resolvedTarget = 'home';
+        }
+      } else if (target === 'home' && !currentUser) {
+        resolvedTarget = 'panel-select';
       }
+
+      if (resolvedTarget === 'privacy-policy') {
+        window.history.pushState({}, '', '/privacy-policy');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (resolvedTarget === 'terms-and-conditions') {
+        window.history.pushState({}, '', '/terms-and-conditions');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (resolvedTarget === 'worker-signup') {
+        window.history.pushState({}, '', '/worker-signup');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (resolvedTarget === 'founder') {
+        window.history.pushState({}, '', '/founder');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
+        if (currentPath === '/privacy-policy' || currentPath === '/terms-and-conditions' || currentPath === '/terms' || currentPath === '/privacy' || currentPath === '/worker-signup' || currentPath === '/founder' || currentPath === '/leadership' || currentPath === '/founders') {
+          window.history.pushState({}, '', '/');
+        }
+      }
+      setCurrentScreen(resolvedTarget);
+    } catch (navError) {
+      console.error('Navigation transition error:', navError);
+      showToast('⚠️ Navigation error occurred. Please try again.');
     }
-    setCurrentScreen(resolvedTarget);
   };
 
   // Ensure valid clean order history

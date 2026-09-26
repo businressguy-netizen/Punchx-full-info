@@ -130,6 +130,8 @@ export interface OrderRecord {
   customerAddress?: string;
   customerPhone?: string;
   customerLocation?: { lat: number; lng: number };
+  customerId?: string;
+  workerId?: string;
   area?: string;
   sector?: string;
   otpCode?: string;

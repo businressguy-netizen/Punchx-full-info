@@ -64,7 +64,7 @@ export default function Founder({ onTransition, showNotification }: FounderProps
           "name": "PunchX",
           "url": "https://www.punchxapp.co.in/",
           "logo": "https://www.punchxapp.co.in/favicon.jpg",
-          "description": "PunchX is an on-demand service platform connecting users with verified technicians and specialists across Bengaluru, India.",
+          "description": "PunchX is an on-demand service platform connecting users with verified technicians and specialists across Kolkata, India.",
           "founder": {
             "@type": "Person",
             "@id": "https://www.punchxapp.co.in/founder#rimil-das",
@@ -205,7 +205,7 @@ export default function Founder({ onTransition, showNotification }: FounderProps
               </div>
               
               <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed font-sans">
-                PunchX was founded by <strong>Rimil Das</strong> (Founder &amp; COO) and co-founded by <strong>Abhradip Ghosh</strong> (Co-Founder &amp; CEO). Learn about the executive leadership establishing Bengaluru's prestige on-demand service utility.
+                PunchX was founded by <strong>Rimil Das</strong> (Founder &amp; COO) and co-founded by <strong>Abhradip Ghosh</strong> (Co-Founder &amp; CEO). Learn about the executive leadership establishing Kolkata's prestige on-demand service utility.
               </p>
 
               <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-zinc-400 pt-1">
@@ -216,7 +216,7 @@ export default function Founder({ onTransition, showNotification }: FounderProps
                 <span className="hidden sm:inline text-zinc-600">•</span>
                 <span className="flex items-center gap-1.5 text-zinc-300">
                   <MapPin className="w-3.5 h-3.5 text-[#c5a059]" />
-                  Headquarters: <strong className="text-white">Bengaluru, Karnataka, India</strong>
+                  Headquarters: <strong className="text-white">Kolkata, West Bengal, India</strong>
                 </span>
               </div>
             </div>
@@ -451,10 +451,10 @@ export default function Founder({ onTransition, showNotification }: FounderProps
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs sm:text-sm text-zinc-300 leading-relaxed">
             <div className="space-y-3">
               <p>
-                <strong>PunchX</strong> is an on-demand service utility operating in Bengaluru, Karnataka. The platform connects households with vetted master specialists across electrical maintenance, plumbing, AC repair, carpentry, and home care.
+                <strong>PunchX</strong> is an on-demand service utility operating in Kolkata, West Bengal. The platform connects households with vetted master specialists across electrical maintenance, plumbing, AC repair, carpentry, and home care.
               </p>
               <p>
-                As <strong>Founder &amp; COO, Rimil Das</strong> oversees operational performance, platform execution, specialist onboarding compliance, and rapid dispatch logistics to deliver consistent service excellence across all Bengaluru sectors.
+                As <strong>Founder &amp; COO, Rimil Das</strong> oversees operational performance, platform execution, specialist onboarding compliance, and rapid dispatch logistics to deliver consistent service excellence across all Kolkata sectors.
               </p>
             </div>
 

@@ -29,10 +29,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
   
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
-  useEffect( () => { const unsubscribe = onAuthStateChanged(auth, (user) => { setFirebaseUser(user); });
-                    return () => unsubscribe(); }, []);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => { setFirebaseUser(user); });
+    return () => unsubscribe();
+  }, []);
 
-  // Initialize from localStorage on mount
+  // Restore cached profile when a Firebase-authenticated user exists or stored profile exists.
   useEffect(() => {
     const storedIdentity = localStorage.getItem('punchx_namoid_identity');
     const storedProfile = localStorage.getItem('punchx_namoid_profile');
@@ -43,11 +45,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
       } catch (e) {
         console.error("Error reading stored auth profile:", e);
       }
+    } else if (!firebaseUser) {
+      setCurrentUser(null);
+      setUserProfile(null);
     }
     setIsLoadingProfile(false);
-  }, []);
+  }, [firebaseUser]);
 
-  const fetchOrCreateProfile = async (identity: NamoIDUserInfo, role: 'citizen' | 'worker' | 'admin' = activeRole): Promise<UserProfile> => {
+  const fetchOrCreateProfile = async (
+    identity: NamoIDUserInfo,
+    role: 'citizen' | 'worker' | 'admin' = activeRole,
+    overrideUid?: string
+  ): Promise<UserProfile> => {
     const extractedName = identity.name || 
       (identity.given_name ? `${identity.given_name} ${identity.family_name || ''}`.trim() : '') || 
       (identity.email ? identity.email.split('@')[0] : 'PunchX Member');
@@ -58,81 +67,87 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
       (identity.birth_date as string) || 
       '';
 
+    const rawSub = (identity as any)?.sub || (identity as any)?.id || (identity as any)?.user_id;
+    const firebaseUid: string = String(overrideUid || auth.currentUser?.uid || rawSub || `user_${Date.now()}`);
+
+    const isCompleted = !!extractedName && !!extractedDob;
+    const fallbackProfile: UserProfile = {
+      uid: firebaseUid,
+      name: extractedName,
+      email: identity.email || '',
+      photoURL:
+        (identity.picture as string) ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      role,
+      dob: extractedDob,
+      birthdate: extractedDob,
+      isProfileCompleted: isCompleted,
+      address: '',
+      phone: identity.phone_number || '',
+    };
+
     try {
       setIsLoadingProfile(true);
-      const firebaseUid = auth.currentUser?.uid;
 
-if (!firebaseUid) {
-  throw new Error('Firebase user is not authenticated');
-}
+      if (db && firebaseUid) {
+        const userDocRef = doc(db, 'users', firebaseUid);
 
-const userDocRef = doc(db, 'users', firebaseUid);
-
-      const userSnap = await Promise.race([
-        getDoc(userDocRef),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Firestore connection timeout')), 2500)
-        )
-      ]);
-
-      if (userSnap.exists()) {
-        const existingData = userSnap.data() as UserProfile;
-        const updatedProfile: UserProfile = {
-          ...existingData,
-          uid: firebaseUid,
-          email: existingData.email || identity.email || '',
-          photoURL: existingData.photoURL || (identity.picture as string) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-          name: existingData.name || extractedName,
-          dob: existingData.dob || existingData.birthdate || extractedDob,
-          birthdate: existingData.birthdate || existingData.dob || extractedDob,
-          isProfileCompleted: existingData.isProfileCompleted ?? (!!existingData.name && !!(existingData.dob || existingData.birthdate) && !!existingData.address),
-          role: existingData.role || role,
-          address: existingData.address !== undefined ? existingData.address : '',
-          phone: existingData.phone || identity.phone_number || ''
-        };
-        
-        setUserProfile(updatedProfile);
-        localStorage.setItem('punchx_namoid_profile', JSON.stringify(updatedProfile));
-        return updatedProfile;
-     } else {
-        const isCompleted = !!extractedName && !!extractedDob;
-
-        const newProfile: UserProfile = {
-          uid: firebaseUid,
-          name: extractedName,
-          email: identity.email || '',
-          photoURL:
-            (identity.picture as string) ||
-            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
-          role,
-          dob: extractedDob,
-          birthdate: extractedDob,
-          isProfileCompleted: isCompleted,
-          address: '',
-          phone: identity.phone_number || '',
-        };
-
-        await Promise.race([
-          setDoc(userDocRef, newProfile),
-          new Promise<never>((_, reject) =>
-            setTimeout(
-              () => reject(new Error('Firestore setDoc timeout')),
-              2500
+        try {
+          const userSnap = await Promise.race([
+            getDoc(userDocRef),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Firestore connection timeout')), 2500)
             )
-          ),
-        ]);
+          ]);
 
-        setUserProfile(newProfile);
-        localStorage.setItem(
-          'punchx_namoid_profile',
-          JSON.stringify(newProfile)
-        );
+          if (userSnap.exists()) {
+            const existingData = userSnap.data() as UserProfile;
+            const updatedProfile: UserProfile = {
+              ...existingData,
+              uid: firebaseUid,
+              email: existingData.email || identity.email || '',
+              photoURL: existingData.photoURL || (identity.picture as string) || fallbackProfile.photoURL,
+              name: existingData.name || extractedName,
+              dob: existingData.dob || existingData.birthdate || extractedDob,
+              birthdate: existingData.birthdate || existingData.dob || extractedDob,
+              isProfileCompleted: existingData.isProfileCompleted ?? (!!existingData.name && !!(existingData.dob || existingData.birthdate) && !!existingData.address),
+              role: existingData.role || role,
+              address: existingData.address !== undefined ? existingData.address : '',
+              phone: existingData.phone || identity.phone_number || ''
+            };
+            
+            setUserProfile(updatedProfile);
+            localStorage.setItem('punchx_namoid_profile', JSON.stringify(updatedProfile));
+            return updatedProfile;
+          } else {
+            try {
+              await Promise.race([
+                setDoc(userDocRef, fallbackProfile),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error('Firestore setDoc timeout')), 2500)
+                ),
+              ]);
+            } catch (setErr) {
+              console.warn('Firestore setDoc notice (using local profile state):', setErr);
+            }
 
-        return newProfile;
+            setUserProfile(fallbackProfile);
+            localStorage.setItem('punchx_namoid_profile', JSON.stringify(fallbackProfile));
+            return fallbackProfile;
+          }
+        } catch (fsErr) {
+          console.warn('Firestore fetch notice (using local profile state):', fsErr);
+        }
       }
+
+      setUserProfile(fallbackProfile);
+      localStorage.setItem('punchx_namoid_profile', JSON.stringify(fallbackProfile));
+      return fallbackProfile;
     } catch (error) {
-      console.error('Failed to fetch or create user profile:', error);
-      throw error;
+      console.warn('Profile fetch notice:', error);
+      setUserProfile(fallbackProfile);
+      localStorage.setItem('punchx_namoid_profile', JSON.stringify(fallbackProfile));
+      return fallbackProfile;
     } finally {
       setIsLoadingProfile(false);
     }
@@ -146,21 +161,46 @@ const userDocRef = doc(db, 'users', firebaseUid);
         await signInWithCredential(auth, credential);
       }
 
-      // Only store application identity after Firebase authentication succeeds
+      // 2. Try OIDC provider credential
+      if (!auth.currentUser && idToken) {
+        try {
+          const provider = new OAuthProvider('oidc.namoid');
+          const credential = provider.credential({ idToken });
+          const userCred = await signInWithCredential(auth, credential);
+          firebaseUid = userCred.user.uid;
+        } catch (oidcErr) {
+          console.warn('Firebase OIDC credential auth notice:', oidcErr);
+        }
+      }
+
+      // 3. Try Anonymous Auth fallback
+      if (!auth.currentUser) {
+        try {
+          const userCred = await signInAnonymously(auth);
+          firebaseUid = userCred.user.uid;
+        } catch (anonErr) {
+          console.warn('Firebase anonymous auth notice:', anonErr);
+        }
+      }
+
+      if (auth.currentUser) {
+        firebaseUid = auth.currentUser.uid;
+      }
+    }
+
+    const rawSub = (identity as any)?.sub || (identity as any)?.id || (identity as any)?.user_id;
+    const resolvedUid: string = String(firebaseUid || rawSub || `namoid_${Date.now()}`);
+
+    try {
       setCurrentUser(identity);
-      localStorage.setItem(
-        'punchx_namoid_identity',
-        JSON.stringify(identity)
-      );
+      localStorage.setItem('punchx_namoid_identity', JSON.stringify(identity));
 
-      return await fetchOrCreateProfile(identity, role || activeRole);
-    } catch (fbAuthErr) {
-      console.error('Firebase authentication failed:', fbAuthErr);
-
+      return await fetchOrCreateProfile(identity, role || activeRole, resolvedUid);
+    } catch (profileErr) {
+      console.error('Profile setup failed:', profileErr);
       setCurrentUser(null);
       localStorage.removeItem('punchx_namoid_identity');
-
-      throw new Error('Unable to authenticate with Firebase');
+      throw new Error('Unable to complete profile setup');
     }
   };
 

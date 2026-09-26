@@ -89,7 +89,7 @@ export default function CustomerTestimonials() {
               Citizen Reviews & Verified Ratings
             </h2>
             <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-              Live feedback from residents across Bengaluru following verified job completions.
+              Live feedback from residents across Kolkata following verified job completions.
             </p>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function CustomerTestimonials() {
         <div className="p-8 rounded-3xl bg-[#09152e] border border-zinc-800 text-center space-y-2">
           <p className="text-sm font-bold text-zinc-300">No verified citizen reviews recorded yet.</p>
           <p className="text-xs text-zinc-500 max-w-md mx-auto">
-            Book any service pan-Bengaluru. Once work is fulfilled, your verified rating and feedback will appear directly on this board.
+            Book any service pan-Kolkata. Once work is fulfilled, your verified rating and feedback will appear directly on this board.
           </p>
         </div>
       </section>
@@ -117,7 +117,7 @@ export default function CustomerTestimonials() {
             Live Citizen Reviews
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-            Real feedback from residents across Bengaluru after verified on-site service completion.
+            Real feedback from residents across Kolkata after verified on-site service completion.
           </p>
         </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { doc, updateDoc, onSnapshot, collection, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { AppScreen } from '../types';
 import { APIProvider, Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps';
 import {
@@ -288,7 +288,7 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
     if (showToast) setTrackingNotification("Acquiring high-accuracy satellite GPS coordinates...");
 
     try {
-      const pos = await getAccurateCurrentPosition();
+      const pos = await getAccurateCurrentPosition(true);
       setLiveCoords(pos);
       setGeoStatus('granted');
 
@@ -316,12 +316,20 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
         setTrackingNotification("✓ Live GPS and satellite telemetry synchronized.");
         setTimeout(() => setTrackingNotification(null), 3500);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("GPS resolution notice in LiveTracking:", err);
-      setGeoStatus('denied');
-      if (showToast) {
-        setTrackingNotification("Live device GPS synchronized with active sector.");
-        setTimeout(() => setTrackingNotification(null), 3000);
+      if (err.message === 'Permission denied') {
+        setGeoStatus('denied');
+        if (showToast) {
+          setTrackingNotification("❌ GPS permission denied. Please enable location access.");
+          setTimeout(() => setTrackingNotification(null), 4000);
+        }
+      } else {
+        setGeoStatus('denied');
+        if (showToast) {
+          setTrackingNotification("Live device GPS synchronized with active sector.");
+          setTimeout(() => setTrackingNotification(null), 3000);
+        }
       }
     } finally {
       setIsTrackingLocation(false);
@@ -395,7 +403,8 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
         if (distance < 0.0006) {
           clearInterval(intervalId);
           // Update status in Firestore so worker dashboard reflects it too
-          if (activeOrder?.id) {
+          // FE-05: Require authenticated user before Firestore writes
+          if (activeOrder?.id && auth.currentUser?.uid) {
             updateDoc(doc(db, 'orders', activeOrder.id), { status: 'Arrived' })
               .catch(err => console.warn("Firestore status update failed:", err));
           }
@@ -434,7 +443,8 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
     const orderId = activeOrder?.id || `PX-${Date.now()}`;
 
     try {
-      if (activeOrder?.id) {
+      // FE-05: Require authenticated user before Firestore writes
+      if (activeOrder?.id && auth.currentUser?.uid) {
         await updateDoc(doc(db, 'orders', activeOrder.id), {
           status: 'Cancelled',
           cancelReason,
@@ -608,6 +618,12 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
           </span>
         </div>
       </header>
+
+      {geoStatus === 'denied' && (
+        <div className="bg-red-500/10 border-b border-red-500/30 text-red-400 px-4 py-2.5 text-xs font-mono flex justify-center items-center gap-2 text-center">
+          ⚠️ GPS permission denied. Using estimated location.
+        </div>
+      )}
 
       {/* Main Grid Content */}
       <main className="w-full max-w-7xl mx-auto pt-4 pb-20 px-3 sm:px-6 lg:px-8 relative z-10 space-y-4">
@@ -1003,7 +1019,7 @@ export default function LiveTracking({ onTransition, bookingTime }: LiveTracking
                     </span>
                   </div>
                   <p className="text-xs font-bold text-white mt-1 truncate">
-                    {liveAddressName || activeOrder.customerAddress || 'Indiranagar, Sector 2, Bengaluru'}
+                    {liveAddressName || activeOrder.customerAddress || 'Indiranagar, Sector 2, Kolkata'}
                   </p>
                   <p className="text-[10px] font-mono text-zinc-400 mt-0.5">
                     Lat: {liveCoords.lat.toFixed(5)}° • Lng: {liveCoords.lng.toFixed(5)}°

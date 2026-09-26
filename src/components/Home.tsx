@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { useAuth } from '../lib/authContext';
 import { Search, MapPin, ChevronRight, Star, Verified, Home, Shield, Wrench, Navigation, Plus, Laptop, CreditCard, User, Mail, Phone, Calendar, X, CheckCircle, AlertTriangle, ShieldCheck, Edit3, ChevronDown, FileText, BookOpen, Compass, Bell, Zap, Grid, Clock } from 'lucide-react';
 import { AppScreen, Worker, ServiceCategory, OrderRecord, CustomerReview } from '../types';
@@ -175,7 +175,7 @@ export default function HomeDashboard({
             price: data.visitingFee || 199,
             visitingFee: data.visitingFee || 199,
             available: true,
-            address: data.address || citizenAddress || 'Indiranagar, Bengaluru',
+            address: data.address || citizenAddress || 'Indiranagar, Kolkata',
             area: data.area || 'Indiranagar',
             sector: data.sector || 'Sector 2',
             phone: data.phone || '+91 98765 43210'
@@ -196,7 +196,7 @@ export default function HomeDashboard({
             price: 199,
             visitingFee: 199,
             available: true,
-            address: citizenAddress || 'Indiranagar 100ft Road, Sector 2, Bengaluru',
+            address: citizenAddress || 'Indiranagar 100ft Road, Sector 2, Kolkata',
             area: 'Indiranagar',
             sector: 'Sector 2',
             phone: '+91 98765 43210'
@@ -212,7 +212,7 @@ export default function HomeDashboard({
             price: 179,
             visitingFee: 179,
             available: true,
-            address: citizenAddress || 'Indiranagar 100ft Road, Sector 2, Bengaluru',
+            address: citizenAddress || 'Indiranagar 100ft Road, Sector 2, Kolkata',
             area: 'Indiranagar',
             sector: 'Sector 2',
             phone: '+91 98765 11223'
@@ -228,7 +228,7 @@ export default function HomeDashboard({
             price: 149,
             visitingFee: 149,
             available: true,
-            address: citizenAddress || 'Indiranagar 100ft Road, Sector 2, Bengaluru',
+            address: citizenAddress || 'Indiranagar 100ft Road, Sector 2, Kolkata',
             area: 'Indiranagar',
             sector: 'Sector 2',
             phone: '+91 98765 44556'
@@ -333,7 +333,8 @@ export default function HomeDashboard({
       // storage fallback
     }
 
-    if (currentUser?.sub) {
+    // FE-05: Require authenticated user before Firestore writes
+    if (currentUser?.sub && auth.currentUser?.uid) {
       try {
         await updateDoc(doc(db, 'users', currentUser.sub), {
           name: editName.trim(),
@@ -367,10 +368,13 @@ export default function HomeDashboard({
     setHistoryOrders(updated);
     localStorage.setItem('punchx_order_history', JSON.stringify(updated));
 
-    try {
-      await updateDoc(doc(db, 'orders', orderId), { status: 'Cancelled' });
-    } catch (e) {
-      console.error("Firestore cancel update failed:", e);
+    // FE-05: Require authenticated user before Firestore writes
+    if (auth.currentUser?.uid) {
+      try {
+        await updateDoc(doc(db, 'orders', orderId), { status: 'Cancelled' });
+      } catch (e) {
+        console.error("Firestore cancel update failed:", e);
+      }
     }
 
     showNotification(`⚠️ Booking ${orderId} has been cancelled.`);
@@ -391,25 +395,29 @@ export default function HomeDashboard({
     setHistoryOrders(updated);
     localStorage.setItem('punchx_order_history', JSON.stringify(updated));
 
-    try {
-      await updateDoc(doc(db, 'orders', orderId), {
-        isRated: true,
-        userRating: tempRatingStars,
-        userBehaviour: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.'
-      });
+    // FE-05: Require authenticated user before Firestore writes
+    if (auth.currentUser?.uid) {
+      try {
+        await updateDoc(doc(db, 'orders', orderId), {
+          isRated: true,
+          userRating: tempRatingStars,
+          userBehaviour: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.'
+        });
 
-      // Also save to reviews collection
-      const reviewId = `REV-${Date.now()}`;
-      await setDoc(doc(db, 'reviews', reviewId), {
-        id: reviewId,
-        customer: citizenName || 'Verified Customer',
-        rating: tempRatingStars,
-        category: 'Service Review',
-        comment: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.',
-        date: new Date().toLocaleDateString()
-      });
-    } catch (e) {
-      console.error("Firestore review submission error:", e);
+        // Also save to reviews collection
+        const reviewId = `REV-${Date.now()}`;
+        await setDoc(doc(db, 'reviews', reviewId), {
+          id: reviewId,
+          customer: citizenName || 'Verified Customer',
+          reviewerId: auth.currentUser.uid,
+          rating: tempRatingStars,
+          category: 'Service Review',
+          comment: tempBehaviourFeedback.trim() || 'Polite and professional behaviour.',
+          date: new Date().toLocaleDateString()
+        });
+      } catch (e) {
+        console.warn("Firestore review save notice:", e);
+      }
     }
 
     showNotification(`⭐ Rating of ${tempRatingStars} ★ and behaviour review submitted for ${workerName}!`);
@@ -464,7 +472,7 @@ export default function HomeDashboard({
                 </span>
               </div>
               <p className="text-[11px] text-zinc-400 truncate mt-0.5 max-w-md">
-                📍 {citizenAddress || 'Detecting Bengaluru address...'}
+                📍 {citizenAddress || 'Detecting Kolkata address...'}
               </p>
             </div>
           </div>
@@ -911,7 +919,7 @@ export default function HomeDashboard({
           <div className="p-4 rounded-2xl bg-[#09152e] border border-[#c5a059]/25 text-center shadow-lg">
             <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight">15-30m</div>
             <p className="text-[11px] text-emerald-400 font-mono font-bold mt-0.5">DOORSTEP ARRIVAL</p>
-            <span className="text-[9px] text-zinc-500 block">Pan-Bengaluru Smart Radar</span>
+            <span className="text-[9px] text-zinc-500 block">Pan-Kolkata Smart Radar</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#09152e] border border-[#c5a059]/25 text-center shadow-lg">
@@ -942,7 +950,7 @@ export default function HomeDashboard({
                 How PunchX Works
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400">
-                Precision 3-step rapid dispatch across Bengaluru
+                Precision 3-step rapid dispatch across Kolkata
               </p>
             </div>
           </div>

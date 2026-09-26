@@ -1,3 +1,5 @@
+import { auth } from '../lib/firebase';
+
 // Client-side Gemini service calling secure server-side API endpoint
 export async function getAIResponse(userMessage: string): Promise<string> {
   if (!userMessage.trim()) {
@@ -5,10 +7,16 @@ export async function getAIResponse(userMessage: string): Promise<string> {
   }
 
   try {
+    let token = "";
+    if (auth.currentUser) {
+      token = await auth.currentUser.getIdToken();
+    }
+
     const res = await fetch("/api/gemini", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({ prompt: userMessage }),
     });

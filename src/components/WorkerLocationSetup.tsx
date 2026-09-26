@@ -78,7 +78,7 @@ export default function WorkerLocationSetup({
   // Location resolution state from backend
   const [resolvedSector, setResolvedSector] = useState('Sector 2 (Indiranagar)');
   const [resolvedArea, setResolvedArea] = useState('Indiranagar');
-  const [resolvedCity, setResolvedCity] = useState('Bengaluru');
+  const [resolvedCity, setResolvedCity] = useState('Kolkata');
   const [coverageMessage, setCoverageMessage] = useState('Connecting to location dispatch server...');
   const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: 12.9716, lng: 77.5946 });
 
@@ -101,7 +101,7 @@ export default function WorkerLocationSetup({
     setIsResolvingBackend(true);
     try {
       const resp = await fetchRegisteredCustomersForWorkerLocation({
-        address: targetAddress || address || 'Indiranagar 100ft Road, Bengaluru',
+        address: targetAddress || address || 'Indiranagar 100ft Road, Kolkata',
         landmark: targetLandmark || landmark,
         lat: lat || coords.lat,
         lng: lng || coords.lng
@@ -110,7 +110,7 @@ export default function WorkerLocationSetup({
       if (resp && resp.success) {
         setResolvedSector(resp.sector || 'Sector 2 (Indiranagar)');
         setResolvedArea(resp.area || 'Indiranagar');
-        setResolvedCity(resp.city || 'Bengaluru');
+        setResolvedCity(resp.city || 'Kolkata');
         setCoverageMessage(resp.coverageMessage || `Service partner visibility active for ${resp.sector}`);
         if (resp.lat && resp.lng) {
           setCoords({ lat: resp.lat, lng: resp.lng });
@@ -125,7 +125,7 @@ export default function WorkerLocationSetup({
 
   // Initial lookup on mount
   useEffect(() => {
-    resolveWorkerLocationFromBackend(address || 'Indiranagar 100ft Road, Bengaluru', landmark);
+    resolveWorkerLocationFromBackend(address || 'Indiranagar 100ft Road, Kolkata', landmark);
   }, []);
 
   // Debounced lookup when worker types address or landmark manually
@@ -218,6 +218,7 @@ export default function WorkerLocationSetup({
 
     const appData: WorkerApplication = {
       id: generatedAppId,
+      uid: activeUid,
       legalName: legalName.trim(),
       address: finalFormattedAddress,
       area: resolvedArea,
@@ -225,7 +226,7 @@ export default function WorkerLocationSetup({
       skill: selectedCategories.join(', ') || 'AC Technician',
       categories: selectedCategories,
       experienceYears: workerApplication?.experienceYears || '3-5 Years',
-      phone: authMethod === 'phone' ? authTarget : (workerApplication?.phone || currentUser?.phone_number || '+91 98765 43210'),
+      phone: authMethod === 'phone' ? authTarget : (workerApplication?.phone || currentUser?.phone_number || ''),
       email: authMethod === 'gmail' ? authTarget : (workerApplication?.email || currentUser?.email || 'partner@punchx.com'),
       visitingFee: workerApplication?.visitingFee || 199,
       termsAccepted: true,
@@ -477,7 +478,7 @@ export default function WorkerLocationSetup({
                 rows={2}
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. 100ft Road, Sector 2, Indiranagar, Bengaluru"
+                placeholder="e.g. 100ft Road, Sector 2, Indiranagar, Kolkata"
                 required
                 className="w-full bg-[#09152e] border border-zinc-700/80 focus:border-[#c5a059] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition-all focus:ring-1 focus:ring-[#c5a059] resize-none"
               />
