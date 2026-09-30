@@ -81,6 +81,7 @@ export default function ProvidersList({
 
           list.push({
             id: docSnap.id,
+            uid: data.uid || data.userId || docSnap.id,
             name: data.legalName || 'Authorized Specialist',
             category: data.skill || 'General Repairs',
             rating: 5.0,
