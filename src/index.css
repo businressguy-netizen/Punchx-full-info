@@ -3,7 +3,7 @@
 
 @theme {
   --font-sans: "Calibri", "Segoe UI", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-[#c5a059]: "Calibri", "Montserrat", sans-serif;
+  --font-brand: "Calibri", "Montserrat", sans-serif;
   --font-mono: "Calibri", "JetBrains Mono", monospace;
 }
 
