@@ -1,0 +1,62 @@
+export const SERVICE_WORKS_5 = {
+  'tile-marble-installer': [
+    ['Floor Tiles', ['Floor tile installation', 'Tile replacement', 'Tile repair', 'Tile grouting']],
+    ['Wall Tiles', ['Bathroom wall tiling', 'Kitchen backsplash tiling', 'Wall tile replacement', 'Tile regrouting']],
+    ['Marble & Granite', ['Marble installation', 'Granite installation', 'Countertop fitting', 'Stone polishing']],
+    ['Finishing', ['Tile polishing', 'Grout repair', 'Edge finishing', 'Broken tile replacement']],
+  ],
+  'waterproofing-specialist': [
+    ['Roof', ['Terrace waterproofing', 'Roof leakage repair', 'Crack sealing', 'Chemical coating']],
+    ['Bathroom', ['Bathroom waterproofing', 'Wet-area treatment', 'Tile joint sealing', 'Seepage repair']],
+    ['Walls', ['Damp wall treatment', 'Exterior waterproofing', 'Basement seepage treatment', 'Wall crack waterproofing']],
+    ['Inspection', ['Leakage inspection', 'Moisture diagnosis', 'Water test', 'Maintenance visit']],
+  ],
+  'fabricator': [
+    ['Aluminium', ['Aluminium window fabrication', 'Aluminium door fabrication', 'Sliding window repair', 'Mosquito mesh frame']],
+    ['Steel', ['Steel railing fabrication', 'Steel gate fabrication', 'Steel frame fabrication', 'Steel rack fabrication']],
+    ['Shed', ['Roof shed fabrication', 'Parking shed', 'Storage shed', 'Canopy fabrication']],
+    ['Custom', ['Custom metal frame', 'Metal staircase work', 'Grill fabrication', 'Fabrication repair']],
+  ],
+  'upholstery-sofa-cleaner': [
+    ['Sofa', ['Sofa deep cleaning', 'Sofa shampooing', 'Sofa stain removal', 'Sofa sanitization']],
+    ['Mattress', ['Mattress cleaning', 'Mattress sanitization', 'Mattress stain removal', 'Mattress deodorizing']],
+    ['Carpet & Rugs', ['Carpet cleaning', 'Rug cleaning', 'Carpet stain removal', 'Carpet sanitization']],
+    ['Upholstery', ['Chair cleaning', 'Curtain cleaning', 'Cushion cleaning', 'Upholstery repair']],
+  ],
+  'interior-decorator': [
+    ['Design', ['Room interior consultation', 'Home styling consultation', 'Color consultation', 'Space planning']],
+    ['Walls', ['Wallpaper installation', 'Wall panel installation', 'Feature wall design', 'Decor wall installation']],
+    ['Kitchen & Wardrobe', ['Modular kitchen consultation', 'Wardrobe design', 'Storage planning', 'Kitchen accessory installation']],
+    ['Lighting & Decor', ['Decor lighting plan', 'Mirror decor', 'Curtain setup', 'Home decor installation']],
+  ],
+  'event-decorator': [
+    ['Birthday', ['Birthday decoration', 'Balloon decoration', 'Theme setup', 'Kids party decoration']],
+    ['Wedding', ['Wedding stage decor', 'Flower decoration', 'Mandap decoration', 'Reception decor']],
+    ['Corporate', ['Corporate stage decor', 'Office event decor', 'Product launch decor', 'Conference decor']],
+    ['Special Events', ['Festival decoration', 'Anniversary decoration', 'Baby shower decoration', 'Engagement decoration']],
+  ],
+  'photographer': [
+    ['Portrait', ['Portrait photoshoot', 'Family photoshoot', 'Professional headshots', 'Kids photoshoot']],
+    ['Events', ['Birthday photography', 'Corporate event photography', 'Engagement photography', 'Wedding photography']],
+    ['Products', ['Product photography', 'Food photography', 'Real-estate photography', 'E-commerce catalog shoot']],
+    ['Special', ['Pre-wedding shoot', 'Maternity shoot', 'Baby shoot', 'Portfolio shoot']],
+  ],
+  'videographer': [
+    ['Events', ['Birthday videography', 'Wedding videography', 'Corporate videography', 'Event highlights']],
+    ['Social Media', ['Reels shooting', 'YouTube recording', 'Short-form video', 'Social media package']],
+    ['Production', ['Product video', 'Real-estate video', 'Interview recording', 'Promotional video']],
+    ['Editing', ['Video editing', 'Reels editing', 'Wedding highlight edit', 'Color correction']],
+  ],
+  'dj-sound-technician': [
+    ['DJ', ['Birthday DJ', 'Wedding DJ', 'Party DJ', 'Corporate DJ']],
+    ['Sound', ['PA sound setup', 'Speaker installation', 'Microphone setup', 'Mixer setup']],
+    ['Stage', ['Stage sound setup', 'Stage monitor setup', 'Event audio setup', 'Sound check']],
+    ['Recording', ['Live recording', 'Event audio recording', 'Podcast setup', 'Voice recording setup']],
+  ],
+  'orchestra-team': [
+    ['Live Orchestra', ['Wedding orchestra', 'Reception orchestra', 'Festival orchestra', 'Cultural program orchestra']],
+    ['Band', ['Live band performance', 'Instrumental band', 'Rock band setup', 'Acoustic band']],
+    ['Vocal & Music', ['Singer performance', 'Instrumental performance', 'DJ + orchestra combo', 'Live music package']],
+    ['Event Entertainment', ['Birthday music package', 'Corporate music package', 'Community event music', 'Custom event performance']],
+  ],
+} as const;
