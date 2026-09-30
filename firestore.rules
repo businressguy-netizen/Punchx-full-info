@@ -205,7 +205,12 @@ service cloud.firestore {
             .hasOnly([
               'status',
               'completedAt',
-              'photoProof'
+              'photoProof',
+              'workerLocation',
+              'workerLocationUpdatedAt',
+              'workerLocationAccuracyM',
+              'workerLocationHeading',
+              'workerLocationSpeed'
             ])
         )
       );
