@@ -1,5 +1,5 @@
 import React from 'react';
-import SimpleProvidersFlow from './SimpleProvidersFlow';
+import PdfServiceFlow from './PdfServiceFlow';
 import { AppScreen, Worker } from '../types';
 
 interface ProvidersListProps {
@@ -17,15 +17,5 @@ interface ProvidersListProps {
 }
 
 export default function ProvidersList(props: ProvidersListProps) {
-  return (
-    <SimpleProvidersFlow
-      onTransition={props.onTransition}
-      selectedCategory={props.selectedCategory}
-      onSelectCategory={props.onSelectCategory}
-      onSelectWorker={props.onSelectWorker}
-      showNotification={props.showNotification}
-      citizenAddress={props.citizenAddress}
-      setCitizenAddress={props.setCitizenAddress}
-    />
-  );
+  return <PdfServiceFlow onTransition={props.onTransition} selectedCategory={props.selectedCategory} onSelectCategory={props.onSelectCategory} onSelectWorker={props.onSelectWorker} showNotification={props.showNotification} citizenAddress={props.citizenAddress} setCitizenAddress={props.setCitizenAddress} />;
 }
