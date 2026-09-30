@@ -161,6 +161,9 @@ const newOrder = {
       customerAddress: currentCitizenAddress,
       customerPhone: currentCitizenPhone,
       customerLocation: customerCoords || undefined,
+      workerId: selectedWorker ? (selectedWorker.uid || selectedWorker.id) : undefined,
+      workerLocation: selectedWorker?.location || undefined,
+      workerLocationUpdatedAt: selectedWorker?.location ? new Date().toISOString() : undefined,
       // 30-Day Guarantee Details
       hasWarrantyGuarantee: hasWarranty,
       warrantyFee: warrantyFee,
