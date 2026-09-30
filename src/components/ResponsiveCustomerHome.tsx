@@ -162,7 +162,7 @@ export default function ResponsiveCustomerHome({
 
   return (
     <div id="punchx-responsive-customer-home" className="min-h-screen bg-[#f7f7f8] text-zinc-900 lg:bg-[#07122a] lg:text-[#e1e3e4] font-sans overflow-x-hidden pb-20 lg:pb-0">
-      <header className="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-zinc-200">
+      <header className="md:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-zinc-200">
         <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
           <button onClick={() => openTab('home')} className="flex items-center gap-2 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-[#07122a] flex items-center justify-center text-[#e9c176] font-black text-sm">PX</div>
@@ -177,6 +177,28 @@ export default function ResponsiveCustomerHome({
           <button onClick={handleSyncLocation} className="w-full flex items-center gap-2 rounded-xl bg-zinc-50 border border-zinc-200 px-3 py-2 text-left">
             <MapPin className="w-4 h-4 text-[#c5a059]" /><span className="text-xs font-semibold truncate flex-1">{isLocating ? 'Detecting your live location…' : locationLabel}</span><span className="text-[10px] font-bold text-[#8b5e16]">{isLocating ? 'GPS' : 'Change'}</span>
           </button>
+        </div>
+      </header>
+
+      <header className="hidden md:flex lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-xl border-b border-zinc-200">
+        <div className="w-full max-w-5xl mx-auto px-6 py-3 flex items-center gap-5">
+          <button onClick={() => openTab('home')} className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#07122a] flex items-center justify-center text-[#e9c176] font-black">PX</div>
+            <div className="min-w-0 text-left">
+              <div className="font-black text-lg leading-none">PUNCH<span className="text-[#c5a059]">X</span></div>
+              <div className="text-[8px] uppercase tracking-[0.18em] font-bold text-zinc-500">Service Utility</div>
+            </div>
+          </button>
+          <nav className="flex items-center gap-1.5 flex-1 justify-center">
+            <button onClick={() => openTab('home')} className="px-3 py-2 rounded-xl text-xs font-bold text-zinc-900 hover:bg-zinc-100">Home</button>
+            <button onClick={() => openTab('services')} className="px-3 py-2 rounded-xl text-xs font-bold text-zinc-900 hover:bg-zinc-100">Services</button>
+            <button onClick={() => openTab('tracking')} className="px-3 py-2 rounded-xl text-xs font-bold text-zinc-900 hover:bg-zinc-100">Live Tracking</button>
+            <button onClick={() => openTab('bookings')} className="px-3 py-2 rounded-xl text-xs font-bold text-zinc-900 hover:bg-zinc-100">Bookings</button>
+          </nav>
+          <div className="flex items-center gap-2">
+            <button onClick={handleSyncLocation} className="px-3 py-2 rounded-xl border border-zinc-200 bg-zinc-50 text-[10px] font-bold text-[#8b5e16]"><Navigation className="inline w-3.5 h-3.5 mr-1" />{isLocating ? 'GPS…' : 'Live location'}</button>
+            <button onClick={() => openTab('profile')} className="w-10 h-10 rounded-xl bg-[#07122a] text-white flex items-center justify-center"><User className="w-4 h-4" /></button>
+          </div>
         </div>
       </header>
 
@@ -226,7 +248,7 @@ export default function ResponsiveCustomerHome({
 
       <footer className="hidden lg:block border-t border-[#c5a059]/20 bg-[#050d1d]"><div className="max-w-7xl mx-auto px-8 py-8 grid grid-cols-3 gap-8"><div><div className="text-lg font-black text-white">PUNCH<span className="text-[#c5a059]">X</span></div><p className="mt-2 text-xs text-zinc-400 max-w-sm">Citizen-first marketplace connecting users with verified independent professionals.</p></div><div><div className="text-[9px] uppercase tracking-widest text-[#e9c176] font-bold">Quick access</div><div className="mt-3 space-y-2 text-xs text-zinc-400"><button onClick={() => setIsCategoryModalOpen(true)}>Browse 50 services</button><button onClick={() => onTransition('providers')}>Find specialists</button><button onClick={() => onTransition('tracking')}>Live tracking</button></div></div><div><div className="text-[9px] uppercase tracking-widest text-[#e9c176] font-bold">Support</div><div className="mt-3 space-y-2 text-xs text-zinc-400"><div>24/7 priority support</div><div>Transparent starting prices</div><div>Verified service marketplace</div></div></div></div></footer>
 
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-zinc-200 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-2 py-2" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}><div className="grid grid-cols-5 gap-1 max-w-2xl mx-auto">{[['home', Home, 'Home'], ['services', Grid2X2, 'Services'], ['tracking', Navigation, 'Track'], ['bookings', ClipboardList, 'Bookings'], ['profile', User, 'Profile']].map(([key, Icon, label]) => <button key={key as string} onClick={() => openTab(key as typeof activeTab)} className="flex flex-col items-center justify-center gap-1 py-1.5 text-[9px] font-bold"><div className={'w-8 h-8 rounded-xl flex items-center justify-center ' + (activeTab === key ? 'bg-[#07122a] text-[#e9c176]' : 'text-zinc-400')}><Icon className="w-4 h-4" /></div><span className={activeTab === key ? 'text-[#07122a]' : 'text-zinc-400'}>{label as string}</span></button>)}</div></nav>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-zinc-200 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] px-2 py-2" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}><div className="grid grid-cols-5 gap-1 max-w-2xl mx-auto">{[['home', Home, 'Home'], ['services', Grid2X2, 'Services'], ['tracking', Navigation, 'Track'], ['bookings', ClipboardList, 'Bookings'], ['profile', User, 'Profile']].map(([key, Icon, label]) => <button key={key as string} onClick={() => openTab(key as typeof activeTab)} className="flex flex-col items-center justify-center gap-1 py-1.5 text-[9px] font-bold"><div className={'w-8 h-8 rounded-xl flex items-center justify-center ' + (activeTab === key ? 'bg-[#07122a] text-[#e9c176]' : 'text-zinc-400')}><Icon className="w-4 h-4" /></div><span className={activeTab === key ? 'text-[#07122a]' : 'text-zinc-400'}>{label as string}</span></button>)}</div></nav>
 
       <ServiceCategoryModal
         isOpen={isCategoryModalOpen}
