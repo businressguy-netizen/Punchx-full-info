@@ -523,9 +523,10 @@ function AppMain() {
         {currentScreen === 'worker-dashboard' && (
           <>
             <WorkerLiveLocationSync />
+            <WorkerDashboard
               onTransition={handleTransition}
-            showNotification={showToast}
-          />
+              showNotification={showToast}
+            />
           </>
         )}
         {currentScreen === 'admin-dashboard' && (
