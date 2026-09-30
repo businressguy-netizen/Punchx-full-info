@@ -70,6 +70,7 @@ export interface UserProfile {
 
 export interface Worker {
   id: string;
+  uid?: string;
   name: string;
   category: string;
   categories?: string[];
@@ -131,6 +132,11 @@ export interface OrderRecord {
   customerAddress?: string;
   customerPhone?: string;
   customerLocation?: { lat: number; lng: number };
+  workerLocation?: { lat: number; lng: number };
+  workerLocationUpdatedAt?: string;
+  workerLocationAccuracyM?: number | null;
+  workerLocationHeading?: number | null;
+  workerLocationSpeed?: number | null;
   customerId?: string;
   workerId?: string;
   area?: string;
