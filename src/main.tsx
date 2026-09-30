@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import './punchx-marketplace.css';
 
 // Production-safe recovery for Vite deployment/version skew. Vite documents that
 // an old HTML document can reference chunks removed by a newer deployment. A
