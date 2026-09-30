@@ -5,23 +5,25 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 import './punchx-marketplace.css';
 
-// Production-safe recovery for Vite deployment/version skew. Vite documents that
-// an old HTML document can reference chunks removed by a newer deployment. A
-// plain reload can reuse that stale HTML, so recovery uses a one-time cache-busting
-// URL and the server sends no-cache headers for the HTML document.
+// Production-safe recovery for Vite deployment/version skew.
+// The recovery key is deployment-specific so an old browser session cannot
+// block recovery for a newer deployment.
 if (typeof window !== 'undefined') {
-  const recoveryKey = 'punchx-vite-recovery-version';
+  const BUILD_MARKER = '2026-09-30-ui-recovery-v2';
+  const recoveryKey = `punchx-vite-recovery:${BUILD_MARKER}`;
 
   const recoverFromStaleDeployment = () => {
     try {
-      const currentVersion = sessionStorage.getItem(recoveryKey);
-      const recoveryVersion = String(Date.now());
-      // Allow one cache-busted recovery for each browser session/version incident.
-      if (currentVersion) return;
-      sessionStorage.setItem(recoveryKey, recoveryVersion);
+      // Remove legacy recovery flags from older builds. They can otherwise
+      // prevent the current build from performing its first recovery attempt.
+      sessionStorage.removeItem('punchx-vite-recovery-version');
+      sessionStorage.removeItem('punchx-vite-recovery-attempt');
+
+      if (sessionStorage.getItem(recoveryKey) === '1') return;
+      sessionStorage.setItem(recoveryKey, '1');
 
       const url = new URL(window.location.href);
-      url.searchParams.set('__punchx_refresh', recoveryVersion);
+      url.searchParams.set('__punchx_refresh', `${BUILD_MARKER}-${Date.now()}`);
       window.location.replace(url.toString());
     } catch {
       window.location.reload();
