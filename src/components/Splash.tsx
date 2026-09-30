@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Cpu, ArrowRight } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { AppScreen } from '../types';
 import PUNCHX_LOGO from '../assets/logo';
 
@@ -9,148 +9,102 @@ interface SplashProps {
 }
 
 export default function Splash({ onTransition }: SplashProps) {
-  const [initPercent, setInitPercent] = useState(0);
-  const [completed, setCompleted] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const totalDuration = 5000; // exactly 5 seconds
-    const intervalTime = 50; // smooth update step
-    const steps = totalDuration / intervalTime; // 100 increments
-    let currentStep = 0;
-
-    const interval = setInterval(() => {
-      currentStep += 1;
-      const progress = Math.min(Math.round((currentStep / steps) * 100), 100);
-      setInitPercent(progress);
-
-      if (currentStep >= steps) {
-        clearInterval(interval);
-        setCompleted(true);
-        onTransition('panel-select');
+    const duration = 2200;
+    const started = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const value = Math.min(100, Math.round(((now - started) / duration) * 100));
+      setProgress(value);
+      if (value >= 100) {
+        setReady(true);
+        return;
       }
-    }, intervalTime);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [onTransition]);
-
-  const handleQuickProceed = () => {
-    onTransition('panel-select');
-  };
+  const proceed = () => onTransition('panel-select');
 
   return (
-    <main
-      id="splash-screen-container"
-      className="relative h-screen w-full flex flex-col items-center justify-center bg-[#07122a] overflow-hidden select-none"
-    >
-      {/* Background Atmospheric Gradients */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[40%] bg-[#c5a059]/10 rounded-full blur-[140px]"></div>
-        <div className="absolute -bottom-[10%] -right-[10%] w-[50%] h-[40%] bg-[#e9c176]/5 rounded-full blur-[140px]"></div>
-        {/* Futuristic Grid Layer */}
-        <div className="absolute inset-0 opacity-[0.03] bg-[linear-gradient(to_right,#c5a059_1px,transparent_1px),linear-gradient(to_bottom,#c5a059_1px,transparent_1px)] bg-[size:32px_32px]"></div>
-      </div>
+    <main id="splash-screen-container" className="relative flex min-h-screen w-full select-none items-center justify-center overflow-hidden px-5 py-10">
+      <div className="absolute inset-0 pointer-events-none" aria-hidden="true" />
 
-      {/* Center Logo with Premium Glow Framing */}
-      <div id="splash-core" className="relative z-10 flex flex-col items-center gap-6 max-w-md px-6 text-center">
-        <motion.div
+      <div id="splash-core" className="relative z-10 flex w-full max-w-md flex-col items-center text-center">
+        <motion.button
+          type="button"
           id="splash-logo-container"
-          className="relative group cursor-pointer"
-          onClick={handleQuickProceed}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', damping: 15, stiffness: 100 }}
+          onClick={proceed}
+          className="relative rounded-full"
+          initial={{ opacity: 0, scale: .86 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 18 }}
+          aria-label="Continue to PunchX"
         >
-          {/* Pulsing Outer Radiance Aura */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-[#c5a059]/30 to-[#e9c176]/30 blur-3xl rounded-full scale-105 animate-pulse"></div>
-
-          {/* Golden Rotating Metallic Frame */}
-          <div className="relative w-36 h-36 md:w-44 md:h-44 bg-white rounded-full p-2 flex items-center justify-center shadow-2xl border-2 border-[#c5a059]/40 overflow-hidden">
-            <img
-              id="splash-logo-image"
-              src={PUNCHX_LOGO}
-              alt="PunchX Logo"
-              className="object-contain w-full h-full transform group-hover:scale-105 transition-transform duration-500"
-            />
+          <div className="absolute inset-[-18px] rounded-full blur-3xl" />
+          <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border bg-white p-3 shadow-xl sm:h-40 sm:w-40">
+            <img id="splash-logo-image" src={PUNCHX_LOGO} alt="PunchX" className="h-full w-full object-contain" />
           </div>
+        </motion.button>
+
+        <motion.div
+          id="splash-brand-details"
+          className="mt-7"
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: .15, duration: .45 }}
+        >
+          <h1 id="splash-brand-heading" className="text-5xl font-black tracking-[-.06em] sm:text-6xl">
+            PUNCH<span className="font-semibold">X</span>
+          </h1>
+          <p id="splash-brand-tagline" className="mt-2 text-[11px] font-extrabold uppercase tracking-[.28em]">
+            Everyday services, made simple
+          </p>
         </motion.div>
 
-        {/* Brand Name Text with Gradient Shine */}
-        <div id="splash-brand-details" className="flex flex-col items-center gap-1.5 mt-2" onClick={handleQuickProceed}>
-          <motion.h1
-            id="splash-brand-heading"
-            className="font-sans font-extrabold text-[44px] md:text-[52px] leading-tight text-white tracking-tight cursor-pointer"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            PUNCH<span className="text-[#c5a059] font-light">X</span>
-          </motion.h1>
-          <motion.p
-            id="splash-brand-tagline"
-            className="font-mono text-xs text-[#c5a059] tracking-[0.25em] uppercase font-bold opacity-80 cursor-pointer"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            Prestige Service Utility
-          </motion.p>
-        </div>
-
-        {/* Value Proposition Statement */}
         <motion.p
           id="splash-brand-description"
-          className="text-sm text-zinc-300 leading-relaxed max-w-sm mt-2"
+          className="mt-5 max-w-sm text-sm leading-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: .3 }}
         >
-          Connecting Citizens, Workers, and Authorities through AI-driven smart living.
+          Discover verified local professionals, book a service and follow your service journey from dispatch to completion.
         </motion.p>
-      </div>
 
-      {/* Loader with Loading Percentage Slider */}
-      <div id="splash-loader-area" className="absolute bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 w-full max-w-[280px] px-4">
-        {completed ? (
-          <motion.button
-            id="splash-proceed-btn"
-            onClick={() => onTransition('panel-select')}
-            className="w-full py-4 px-6 bg-gradient-to-r from-[#c5a059] to-[#e9c176] hover:from-[#e9c176] hover:to-[#c5a059] text-black font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 uppercase tracking-widest shadow-[0_4px_25px_rgba(197,160,89,0.3)] hover:shadow-[0_4px_30px_rgba(197,160,89,0.45)] transition-all cursor-pointer border border-[#ffdea5]/50 active:scale-[0.98]"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.02 }}
-          >
-            Initialize Protocol
-            <ArrowRight className="w-4 h-4 text-black" />
-          </motion.button>
-        ) : (
-          <div id="loading-meter" className="w-full flex flex-col gap-2.5 items-center cursor-pointer" onClick={handleQuickProceed}>
-            {/* Minimalist Tech Stats */}
-            <div className="w-full flex justify-between font-mono text-[10px] text-[#e9c176] font-bold opacity-80">
-              <span className="flex items-center gap-1">
-                <Cpu className="w-3.5 h-3.5 text-[#c5a059] animate-spin" />
-                INIT SECURE_SHELL
-              </span>
-              <span>{initPercent}%</span>
-            </div>
-            {/* Glowing Golden Bar */}
-            <div className="w-full h-1 bg-zinc-900 border border-[#c5a059]/10 rounded-full overflow-hidden">
-              <div
-                id="loading-bar-completion"
-                className="h-full bg-gradient-to-r from-[#c5a059] to-[#e9c176] shadow-[0_0_8px_#c5a059] transition-all duration-75"
-                style={{ width: `${initPercent}%` }}
-              ></div>
-            </div>
+        <div id="splash-loader-area" className="mt-10 w-full max-w-xs">
+          {ready ? (
+            <motion.button
+              id="splash-proceed-btn"
+              type="button"
+              onClick={proceed}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-black shadow-lg"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              Explore PunchX <ArrowRight className="h-4 w-4" />
+            </motion.button>
+          ) : (
+            <button type="button" onClick={proceed} className="w-full text-left" aria-label="Skip welcome screen">
+              <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-[.14em]">
+                <span className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5" /> Preparing your service network</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-black/5">
+                <div id="loading-bar-completion" className="h-full rounded-full transition-[width] duration-75" style={{ width: `${progress}%` }} />
+              </div>
+            </button>
+          )}
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.12em]">
+            <ShieldCheck className="h-3.5 w-3.5" /> Secure PunchX experience
           </div>
-        )}
-
-        <div className="flex items-center gap-1 text-[11px] text-zinc-500 font-mono tracking-wider mt-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-          <span>MIL-GRADE SECURED</span>
         </div>
       </div>
-
-      {/* Decorative Bottom glowing accent line */}
-      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#c5a059]/40 to-transparent"></div>
     </main>
   );
 }
