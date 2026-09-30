@@ -1,5 +1,5 @@
 import React from 'react';
-import CitizenHomeRedesign from './CitizenHomeRedesign';
+import SimpleCustomerHome from './SimpleCustomerHome';
 import { AppScreen, Worker } from '../types';
 
 interface HomeProps {
@@ -25,14 +25,12 @@ interface HomeProps {
 
 export default function Home(props: HomeProps) {
   return (
-    <CitizenHomeRedesign
+    <SimpleCustomerHome
       onTransition={props.onTransition}
       onSelectWorker={props.onSelectWorker}
       onSelectCategory={props.onSelectCategory}
       citizenName={props.citizenName}
       citizenAddress={props.citizenAddress}
-      showNotification={props.showNotification}
-      onOpenNotificationCenter={props.onOpenNotificationCenter}
       onOpenProfile={props.setIsProfileDrawerOpen ? () => props.setIsProfileDrawerOpen?.(true) : undefined}
     />
   );
