@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { RefreshCw, AlertTriangle, Trash2 } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Trash2 } from 'lucide-react';
 import PUNCHX_LOGO from '../assets/logo';
 
 interface Props {
@@ -27,32 +27,15 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('PunchX Runtime Error Boundary caught:', error, errorInfo);
     this.setState({ errorInfo });
 
-    // A very common production-only failure after a Vite deployment is a
-    // stale browser tab trying to load a chunk that no longer exists.
-    // Recover once automatically instead of trapping the customer on the
-    // diagnostic screen forever.
-    const message = String(error?.message || '').toLowerCase();
-    const isStaleChunk =
-      message.includes('failed to fetch dynamically imported module') ||
-      message.includes('importing a module script failed') ||
-      message.includes('loading chunk');
-
-    if (isStaleChunk) {
-      try {
-        const key = 'punchx-vite-recovery-attempt';
-        if (sessionStorage.getItem(key) !== '1') {
-          sessionStorage.setItem(key, '1');
-          window.location.reload();
-        }
-      } catch {
-        window.location.reload();
-      }
-    }
+    // Vite's `vite:preloadError` handler in main.tsx owns stale-chunk
+    // recovery. Do not reload from this boundary as well: doing so can create
+    // a reload loop and leave users permanently stuck on a recovery screen.
   }
 
   private handleReload = () => {
     try {
       sessionStorage.removeItem('punchx-vite-recovery-attempt');
+      sessionStorage.removeItem('punchx-vite-recovery-version');
     } catch {
       // Ignore storage restrictions.
     }
@@ -61,77 +44,81 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleResetAndReload = () => {
     try {
-      // Clear only PunchX application state. Do not erase unrelated website
-      // storage or credentials belonging to other applications.
       Object.keys(localStorage)
         .filter((key) => key.startsWith('punchx_'))
         .forEach((key) => localStorage.removeItem(key));
       sessionStorage.removeItem('punchx-vite-recovery-attempt');
-    } catch (e) {
-      console.warn('PunchX storage reset notice:', e);
+      sessionStorage.removeItem('punchx-vite-recovery-version');
+    } catch (error) {
+      console.warn('PunchX storage reset notice:', error);
     }
-    window.location.href = window.location.pathname;
+    window.location.replace(window.location.pathname);
   };
 
   public render() {
-    if (this.state.hasError) {
-      return (
-        <div
-          id="punchx-error-fallback"
-          className="min-h-screen w-full bg-[#07122a] text-white flex flex-col items-center justify-center p-6 select-none font-sans"
-        >
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#c5a059]/10 rounded-full blur-3xl" />
+    if (!this.state.hasError) return this.props.children;
+
+    const errorMessage = this.state.error?.message?.trim() || 'Unknown application error';
+    const isChunkError = /failed to fetch dynamically imported module|importing a module script failed|loading chunk|chunkloaderror/i.test(errorMessage);
+
+    return (
+      <main
+        id="punchx-error-fallback"
+        className="min-h-screen w-full bg-[#f7f7fb] text-[#17191d] flex items-center justify-center p-5 font-sans"
+      >
+        <div className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-6 shadow-[0_24px_80px_rgba(30,25,55,.12)] sm:p-8">
+          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#7358d7]/15 bg-white p-2 shadow-sm">
+            <img src={PUNCHX_LOGO} alt="PunchX" className="h-full w-full object-contain" />
           </div>
 
-          <div className="relative z-10 max-w-md w-full bg-[#0a152e] border border-[#c5a059]/30 rounded-2xl p-6 md:p-8 shadow-2xl flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-white rounded-full p-2 mb-4 border border-[#c5a059]/50 shadow-lg flex items-center justify-center overflow-hidden">
-              <img src={PUNCHX_LOGO} alt="PunchX Logo" className="w-full h-full object-contain" />
-            </div>
-
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-mono font-bold mb-3">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>RECOVERY MODE</span>
-            </div>
-
-            <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
-              PunchX needs to refresh
-            </h2>
-
-            <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
-              A temporary browser or deployment issue prevented the app from loading. Your PunchX account is not deleted.
-            </p>
-
-            <div className="w-full flex flex-col gap-3">
-              <button
-                id="btn-error-reload"
-                type="button"
-                onClick={this.handleReload}
-                className="w-full py-3.5 px-4 bg-gradient-to-r from-[#c5a059] to-[#e9c176] text-black font-extrabold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer shadow-lg"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Reload PunchX</span>
-              </button>
-
-              <button
-                id="btn-error-reset"
-                type="button"
-                onClick={this.handleResetAndReload}
-                className="w-full py-3 px-4 bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-semibold text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Reset PunchX Session</span>
-              </button>
-            </div>
-
-            <div className="mt-6 text-[10px] font-mono text-zinc-500">
-              PunchX • Recovery
-            </div>
+          <div className="mb-4 flex justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {isChunkError ? 'Refreshing PunchX' : 'Temporary application error'}
+            </span>
           </div>
+
+          <h1 className="text-center text-2xl font-black tracking-tight sm:text-3xl">
+            {isChunkError ? 'PunchX needs a fresh version' : 'PunchX could not load this screen'}
+          </h1>
+          <p className="mt-3 text-center text-sm leading-6 text-[#69707d]">
+            {isChunkError
+              ? 'The browser has an older application asset. Refreshing loads the current PunchX deployment without changing your account data.'
+              : 'A screen encountered an unexpected error. Your account data is not deleted. Try again, and reset the local PunchX session only if the problem continues.'}
+          </p>
+
+          <div className="mt-6 flex flex-col gap-3">
+            <button
+              id="btn-error-reload"
+              type="button"
+              onClick={this.handleReload}
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#7358d7] px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-[#7358d7]/20 transition hover:-translate-y-0.5 hover:bg-[#654bc9] active:translate-y-0"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh PunchX
+            </button>
+            <button
+              id="btn-error-reset"
+              type="button"
+              onClick={this.handleResetAndReload}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-black/10 bg-[#f6f7f9] px-4 py-3 text-sm font-bold text-[#3f4650] transition hover:bg-[#ececf4] active:scale-[.99]"
+            >
+              <Trash2 className="h-4 w-4" />
+              Reset PunchX session
+            </button>
+          </div>
+
+          {import.meta.env.DEV && (
+            <details className="mt-6 rounded-2xl border border-black/10 bg-[#f7f8fa] p-3 text-left">
+              <summary className="cursor-pointer text-xs font-bold text-[#69707d]">Developer error details</summary>
+              <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-5 text-[#3f4650]">{errorMessage}</pre>
+              {this.state.errorInfo?.componentStack && (
+                <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap break-words text-[10px] leading-4 text-[#69707d]">{this.state.errorInfo.componentStack}</pre>
+              )}
+            </details>
+          )}
         </div>
-      );
-    }
-
-    return this.props.children;
+      </main>
+    );
   }
 }
