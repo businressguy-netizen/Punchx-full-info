@@ -6,22 +6,27 @@ import './index.css';
 import './punchx-marketplace.css';
 
 // Production-safe recovery for Vite deployment/version skew.
-// The recovery key is deployment-specific so an old browser session cannot
-// block recovery for a newer deployment.
+// Vite recommends handling preload errors by refreshing and serving the HTML
+// with no-cache headers so old HTML cannot keep referencing deleted chunks.
 if (typeof window !== 'undefined') {
-  const BUILD_MARKER = '2026-09-30-ui-recovery-v2';
+  const BUILD_MARKER = '2026-09-30-ui-recovery-v3';
   const recoveryKey = `punchx-vite-recovery:${BUILD_MARKER}`;
 
   const recoverFromStaleDeployment = () => {
     try {
-      // Remove legacy recovery flags from older builds. They can otherwise
-      // prevent the current build from performing its first recovery attempt.
-      sessionStorage.removeItem('punchx-vite-recovery-version');
-      sessionStorage.removeItem('punchx-vite-recovery-attempt');
+      // Remove recovery flags from older builds so a stale browser session
+      // cannot block the current deployment from recovering once.
+      Object.keys(sessionStorage)
+        .filter((key) => key.startsWith('punchx-vite-recovery:'))
+        .forEach((key) => sessionStorage.removeItem(key));
 
-      if (sessionStorage.getItem(recoveryKey) === '1') return;
+      if (sessionStorage.getItem(recoveryKey) === '1') {
+        // A recovery was already attempted for this build. Let the normal
+        // ErrorBoundary show a retryable error instead of creating a loop.
+        return;
+      }
+
       sessionStorage.setItem(recoveryKey, '1');
-
       const url = new URL(window.location.href);
       url.searchParams.set('__punchx_refresh', `${BUILD_MARKER}-${Date.now()}`);
       window.location.replace(url.toString());
@@ -47,17 +52,17 @@ if (typeof window !== 'undefined') {
     ) {
       event.preventDefault();
       recoverFromStaleDeployment();
-      return;
-    }
-
-    if (msg.includes('websocket') && (msg.includes('vite') || msg.includes('ws'))) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
     }
   });
 }
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error('PunchX root element was not found. Check index.html.');
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <ErrorBoundary>
       <App />
