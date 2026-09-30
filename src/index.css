@@ -7,28 +7,18 @@
   --font-mono: "Calibri", "JetBrains Mono", monospace;
 }
 
-html {
-  font-size: 16px;
-  scroll-behavior: smooth;
-}
-
-body {
-  background-color: #0d121f;
-  color: #dbdee3;
-  overflow-x: hidden;
-  font-size: 14px;
-}
-
-.gold-glow { box-shadow: 0 0 20px rgba(197, 160, 89, 0.15); }
-.gold-gradient-text { background: linear-gradient(135deg, #ffd700 0%, #c5a059 50%, #b8860b 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-.animate-spin-slow { animation: spin-slow 12s linear infinite; }
-@keyframes shimmer { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -100; } }
-.custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #c5a059; border-radius: 99px; }
+html { font-size:16px; scroll-behavior:smooth; }
+body { background-color:#0d121f; color:#dbdee3; overflow-x:hidden; font-size:14px; }
+.gold-glow { box-shadow:0 0 20px rgba(197,160,89,.15); }
+.gold-gradient-text { background:linear-gradient(135deg,#ffd700 0%,#c5a059 50%,#b8860b 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.no-scrollbar::-webkit-scrollbar { display:none; }
+.no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+@keyframes spin-slow { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.animate-spin-slow { animation:spin-slow 12s linear infinite; }
+@keyframes shimmer { 0%{stroke-dashoffset:0} 100%{stroke-dashoffset:-100} }
+.custom-scrollbar::-webkit-scrollbar { width:5px; height:5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background:transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background:#c5a059; border-radius:99px; }
 
 /* PunchX citizen experience: shared visual system for every citizen-facing screen. */
 .punchx-citizen-main { background:#f7f8fa !important; color:#17191d !important; }
@@ -49,42 +39,108 @@ body {
 @media (max-width:640px){#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container{padding-bottom:92px !important;}}
 
 /* PunchX 2026 UI polish: consistent touch targets, focus states and mobile-safe surfaces. */
-.punchx-citizen-shell button,
-.punchx-citizen-shell a { touch-action: manipulation; }
-.punchx-citizen-shell button:focus-visible,
-.punchx-citizen-shell a:focus-visible,
-.punchx-citizen-shell input:focus-visible,
-.punchx-citizen-shell textarea:focus-visible,
-.punchx-citizen-shell select:focus-visible {
-  outline: 3px solid rgba(115,88,215,.28);
-  outline-offset: 2px;
-}
+.punchx-citizen-shell button,.punchx-citizen-shell a { touch-action:manipulation; }
+.punchx-citizen-shell button:focus-visible,.punchx-citizen-shell a:focus-visible,.punchx-citizen-shell input:focus-visible,.punchx-citizen-shell textarea:focus-visible,.punchx-citizen-shell select:focus-visible { outline:3px solid rgba(115,88,215,.28); outline-offset:2px; }
 .punchx-citizen-shell img { display:block; }
 .punchx-citizen-shell input::placeholder { color:#989ca5; opacity:1; }
 .punchx-citizen-shell ::selection { background:rgba(115,88,215,.18); }
+.punchx-citizen-shell h1,.punchx-citizen-shell h2,.punchx-citizen-shell h3,.punchx-citizen-shell p,.punchx-citizen-shell span { overflow-wrap:anywhere; }
+@supports (padding-bottom:env(safe-area-inset-bottom)) { .punchx-citizen-shell nav.fixed.bottom-0 { padding-bottom:max(8px,env(safe-area-inset-bottom)); height:calc(68px + env(safe-area-inset-bottom)); } }
+@media (max-width:640px) { .punchx-citizen-shell main { padding-left:14px; padding-right:14px; } .punchx-citizen-shell header button { min-height:40px; } .punchx-citizen-shell section { scroll-margin-top:92px; } .punchx-citizen-shell h1 { font-size:clamp(28px,8vw,34px); } .punchx-citizen-shell .overflow-x-auto { scrollbar-width:none; } .punchx-citizen-shell .overflow-x-auto::-webkit-scrollbar { display:none; } }
+@media (prefers-reduced-motion:reduce) { html{scroll-behavior:auto} *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
 
-/* Prevent horizontal drift from long service names and preserve readable card layouts. */
-.punchx-citizen-shell h1,
-.punchx-citizen-shell h2,
-.punchx-citizen-shell h3,
-.punchx-citizen-shell p,
-.punchx-citizen-shell span { overflow-wrap:anywhere; }
-
-/* Keep sticky navigation clear of Android/iOS gesture areas. */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .punchx-citizen-shell nav.fixed.bottom-0 { padding-bottom: max(8px, env(safe-area-inset-bottom)); height: calc(68px + env(safe-area-inset-bottom)); }
+/* ================================================================
+   PunchX Modern UI System — shared across the entire application
+   Visual direction: light service marketplace, soft surfaces, purple
+   action color, emerald trust indicators, generous cards and motion.
+   ================================================================ */
+:root {
+  --px-bg:#f7f8fc;
+  --px-surface:#ffffff;
+  --px-surface-2:#f1f2f7;
+  --px-text:#17191d;
+  --px-muted:#69707d;
+  --px-border:rgba(25,28,35,.09);
+  --px-primary:#7358d7;
+  --px-primary-2:#8f7be6;
+  --px-success:#087f5b;
+  --px-radius:20px;
+  --px-shadow:0 14px 42px rgba(40,35,70,.08);
 }
 
-@media (max-width: 640px) {
-  .punchx-citizen-shell main { padding-left: 14px; padding-right: 14px; }
-  .punchx-citizen-shell header button { min-height: 40px; }
-  .punchx-citizen-shell section { scroll-margin-top: 92px; }
-  .punchx-citizen-shell h1 { font-size: clamp(28px, 8vw, 34px); }
-  .punchx-citizen-shell .overflow-x-auto { scrollbar-width:none; }
-  .punchx-citizen-shell .overflow-x-auto::-webkit-scrollbar { display:none; }
+#panel-select-screen {
+  min-height:100svh !important;
+  padding:clamp(22px,4vw,56px) clamp(14px,4vw,48px) !important;
+  background:
+    radial-gradient(circle at 15% 15%,rgba(115,88,215,.12),transparent 30%),
+    radial-gradient(circle at 85% 20%,rgba(15,157,117,.10),transparent 28%),
+    linear-gradient(180deg,#fbfcff 0%,#f3f5fa 100%) !important;
+  color:var(--px-text) !important;
+  font-family:Inter,system-ui,sans-serif !important;
+}
+#panel-select-screen > .max-w-4xl { max-width:1120px !important; gap:clamp(22px,4vw,40px) !important; }
+#panel-select-screen > .absolute { background:radial-gradient(circle,rgba(115,88,215,.12),transparent 68%) !important; opacity:.8; }
+#panel-select-screen img { object-fit:contain; }
+#panel-select-screen h1 { color:#17191d !important; font-size:clamp(30px,5vw,56px) !important; line-height:1.03 !important; letter-spacing:-.045em !important; }
+#panel-select-screen p { color:#69707d !important; }
+#panel-select-screen .inline-flex { background:rgba(255,255,255,.82) !important; border:1px solid rgba(115,88,215,.16) !important; color:#5b45c7 !important; box-shadow:0 8px 28px rgba(50,40,90,.06) !important; backdrop-filter:blur(12px); }
+#panel-select-screen .inline-flex svg { color:#7358d7 !important; }
+#panel-select-screen .grid { max-width:980px !important; gap:18px !important; }
+#panel-select-screen .grid > div { 
+  background:rgba(255,255,255,.9) !important;
+  border:1px solid var(--px-border) !important;
+  border-radius:28px !important;
+  box-shadow:var(--px-shadow) !important;
+  color:var(--px-text) !important;
+  min-height:360px;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s ease,border-color .28s ease !important;
+  backdrop-filter:blur(16px);
+}
+#panel-select-screen .grid > div:hover { transform:translateY(-6px) !important; box-shadow:0 22px 55px rgba(50,42,90,.13) !important; border-color:rgba(115,88,215,.22) !important; }
+#panel-select-screen .grid > div > div:first-child { background:linear-gradient(145deg,rgba(115,88,215,.10),rgba(10,128,92,.06),transparent) !important; }
+#panel-select-screen .grid > div [class*="bg-[#07122a]"] { background:#f3f2fb !important; border-color:rgba(115,88,215,.16) !important; color:#7358d7 !important; }
+#panel-select-screen .grid > div h3 { color:#17191d !important; letter-spacing:-.02em; }
+#panel-select-screen .grid > div p { color:#69707d !important; }
+#panel-select-screen .grid > div [class*="border-t"] { border-color:var(--px-border) !important; }
+#panel-select-screen .grid > div button { min-height:50px; border-radius:15px !important; font-family:Inter,system-ui,sans-serif !important; letter-spacing:0 !important; }
+#panel-select-screen .grid > div button:first-of-type { background:linear-gradient(135deg,#7358d7,#8e78e3) !important; color:#fff !important; border:0 !important; box-shadow:0 10px 24px rgba(115,88,215,.24) !important; }
+#panel-select-screen .grid > div button:first-of-type:hover { background:linear-gradient(135deg,#654bc9,#8069dc) !important; }
+#panel-select-screen .grid > div button:nth-of-type(2) { background:#f4f5f8 !important; color:#3f4650 !important; border:1px solid var(--px-border) !important; }
+#panel-select-screen .grid > div button:nth-of-type(2):hover { background:#ececf4 !important; }
+#panel-select-screen > .max-w-4xl > div:last-child { border-color:var(--px-border) !important; color:#69707d !important; }
+#panel-select-screen > .max-w-4xl > div:last-child button { color:#69707d !important; }
+
+/* Modernize legacy shared chrome without changing routes or business logic. */
+#panel-select-screen ~ * { box-sizing:border-box; }
+body:has(.punchx-citizen-shell), body:has(#providers-list-root), body:has(#provider-details-root), body:has(#booking-container), body:has(#payment-screen-container) { background:var(--px-bg); color:var(--px-text); }
+
+/* Citizen cards, service rows and interactive surfaces. */
+.punchx-citizen-shell .rounded-\[28px\],.punchx-citizen-shell .rounded-3xl,.punchx-citizen-shell .rounded-2xl { border-color:var(--px-border); }
+.punchx-citizen-shell button { transition:transform .18s ease,box-shadow .22s ease,background-color .22s ease,border-color .22s ease; }
+.punchx-citizen-shell button:hover { box-shadow:0 8px 24px rgba(50,45,80,.08); }
+.punchx-citizen-shell .bg-\[\#7358d7\] { background:#7358d7 !important; }
+.punchx-citizen-shell .text-\[\#7358d7\] { color:#7358d7 !important; }
+
+/* Smooth route entrance. App screens remain functionally unchanged. */
+@keyframes punchx-page-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+#panel-select-screen,.punchx-citizen-shell,#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container { animation:punchx-page-in .35s ease-out both; }
+
+/* Responsive breakpoints: mobile / tablet / desktop. */
+@media (max-width:767px) {
+  #panel-select-screen > .max-w-4xl { margin-top:auto; margin-bottom:auto; }
+  #panel-select-screen .grid { grid-template-columns:1fr !important; }
+  #panel-select-screen .grid > div { min-height:0; padding:22px !important; border-radius:24px !important; }
+  #panel-select-screen h1 { font-size:34px !important; }
+}
+@media (min-width:768px) and (max-width:1199px) {
+  #panel-select-screen .grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
+  #panel-select-screen .grid > div { min-height:390px; }
+}
+@media (min-width:1200px) {
+  #panel-select-screen .grid > div { min-height:420px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior:auto; }
-  *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+/* Accessibility and reduced-motion support. */
+@media (prefers-reduced-motion:reduce) {
+  #panel-select-screen,.punchx-citizen-shell,#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container { animation:none !important; }
 }
