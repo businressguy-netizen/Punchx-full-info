@@ -445,8 +445,8 @@ export default function HomeDashboard({
 
  const handleCategoryClick = (categoryName: string) => {
   onSelectCategory(categoryName);
-  setIsCategoryModalOpen(false);
-  onTransition('providers');
+  setIsCategoryModalOpen(true);
+ 
 };
  
   return (
