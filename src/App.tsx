@@ -10,6 +10,9 @@ import NotificationCenterModal from './components/NotificationCenterModal';
 import WebsiteNavbar from './components/WebsiteNavbar';
 import WebsiteFooter from './components/WebsiteFooter';
 import { AppScreen, Worker, WorkerApplication } from './types';
+import ResponsiveCustomerHome from './components/ResponsiveCustomerHome';
+import UberLiveTracking from './components/UberLiveTracking';
+import WorkerLiveLocationSync from './components/WorkerLiveLocationSync';
 import { AuthProvider, useAuth } from './lib/authContext';
 // Admin access is gated by Firebase Authentication + Firestore role === 'admin'
 import OtpVerify from './components/OtpVerify';
@@ -18,12 +21,10 @@ import { NamoIDProvider, useNamoID } from "@namoidhq/react";
 import { namoidFetcher } from './lib/namoidFetcher';
 
 // Lazy-loaded heavy screens to improve initial load time
-const HomeDashboard = lazy(() => import('./components/Home'));
 const ProvidersList = lazy(() => import('./components/ProvidersList'));
 const ProviderDetails = lazy(() => import('./components/ProviderDetails'));
 const ConfirmBooking = lazy(() => import('./components/ConfirmBooking'));
 const ChoosePayment = lazy(() => import('./components/ChoosePayment'));
-const LiveTracking = lazy(() => import('./components/LiveTracking'));
 const WorkerDashboard = lazy(() => import('./components/WorkerDashboard'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const WorkerSignup = lazy(() => import('./components/WorkerSignup'));
@@ -323,7 +324,7 @@ function AppMain() {
       )}
 
       {/* Top Global Website Navigation Bar (Shown on all pages except initial splash) */}
-      {currentScreen !== 'splash' && (
+      {currentScreen !== 'splash' && currentScreen !== 'home' && (
         <WebsiteNavbar
           currentScreen={currentScreen}
           onTransition={handleTransition}
@@ -438,7 +439,7 @@ function AppMain() {
           />
         )}
         {currentScreen === 'home' && (
-          <HomeDashboard
+          <ResponsiveCustomerHome
             onTransition={handleTransition}
             onSelectWorker={setSelectedWorker}
             onSelectCategory={setSelectedCategory}
@@ -517,16 +518,15 @@ function AppMain() {
           />
         )}
         {currentScreen === 'tracking' && (
-          <LiveTracking
-            onTransition={handleTransition}
-            bookingTime={bookingTime}
-          />
+          <UberLiveTracking onTransition={handleTransition} />
         )}
         {currentScreen === 'worker-dashboard' && (
-          <WorkerDashboard
-            onTransition={handleTransition}
+          <>
+            <WorkerLiveLocationSync />
+              onTransition={handleTransition}
             showNotification={showToast}
           />
+          </>
         )}
         {currentScreen === 'admin-dashboard' && (
           <AdminDashboard
@@ -556,7 +556,7 @@ function AppMain() {
       </main>
 
       {/* Global Website Footer (Shown on all pages except initial splash screen) */}
-      {currentScreen !== 'splash' && (
+      {currentScreen !== 'splash' && currentScreen !== 'home' && (
         <WebsiteFooter
           onTransition={handleTransition}
           onSelectCategory={setSelectedCategory}
