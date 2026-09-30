@@ -1,0 +1,137 @@
+/* PunchX Marketplace Experience
+   Reference direction: modern Indian home-services marketplace patterns.
+   Original PunchX visual language: violet actions + emerald trust + warm-white surfaces.
+*/
+:root {
+  --px-market-bg:#f7f7fb;
+  --px-market-card:#fff;
+  --px-market-text:#16181d;
+  --px-market-muted:#737781;
+  --px-market-border:rgba(20,24,32,.08);
+  --px-market-purple:#6d4ee6;
+  --px-market-purple-dark:#5636cf;
+  --px-market-lilac:#eee9ff;
+  --px-market-green:#087b5a;
+  --px-market-green-soft:#e8f7f1;
+  --px-market-shadow:0 8px 28px rgba(36,31,65,.07);
+}
+
+html,body,#root { min-height:100%; }
+body { background:var(--px-market-bg) !important; color:var(--px-market-text) !important; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif !important; }
+button,input,textarea,select { font-family:inherit; }
+button { -webkit-tap-highlight-color:transparent; }
+
+/* -------------------- Welcome / splash -------------------- */
+#splash-screen-container {
+  background:
+    radial-gradient(circle at 15% 18%,rgba(109,78,230,.13),transparent 30%),
+    radial-gradient(circle at 88% 80%,rgba(8,123,90,.10),transparent 28%),
+    linear-gradient(180deg,#ffffff 0%,#f5f6fb 100%) !important;
+  color:var(--px-market-text) !important;
+}
+#splash-screen-container::before {
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:.38;
+  background-image:linear-gradient(rgba(109,78,230,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(109,78,230,.035) 1px,transparent 1px);
+  background-size:32px 32px;
+}
+#splash-screen-container [id="splash-logo-container"] > div:first-child { background:rgba(109,78,230,.16) !important; }
+#splash-screen-container [id="splash-logo-container"] > div:last-child { border-color:rgba(109,78,230,.16) !important; box-shadow:0 24px 70px rgba(43,34,89,.12) !important; }
+#splash-screen-container #splash-brand-heading { color:#16181d !important; }
+#splash-screen-container #splash-brand-heading span { color:var(--px-market-purple) !important; }
+#splash-screen-container #splash-brand-tagline { color:var(--px-market-green) !important; }
+#splash-screen-container #splash-brand-description { color:#737781 !important; }
+#splash-screen-container #splash-loader-area { color:#737781 !important; }
+#splash-screen-container #loading-meter > div:first-child { color:var(--px-market-purple) !important; }
+#splash-screen-container #loading-bar-completion { background:linear-gradient(90deg,var(--px-market-purple),#9a82f4) !important; box-shadow:0 0 10px rgba(109,78,230,.35) !important; }
+#splash-screen-container #splash-proceed-btn { background:linear-gradient(135deg,var(--px-market-purple),#8c72ed) !important; color:#fff !important; border:0 !important; box-shadow:0 12px 30px rgba(109,78,230,.25) !important; }
+#splash-screen-container .text-zinc-500 { color:#7c818b !important; }
+#splash-screen-container .text-emerald-500 { color:var(--px-market-green) !important; }
+
+/* -------------------- Global marketplace chrome -------------------- */
+.punchx-citizen-shell { background:var(--px-market-bg) !important; color:var(--px-market-text) !important; }
+.punchx-citizen-shell header { box-shadow:0 1px 0 var(--px-market-border),0 8px 28px rgba(30,27,50,.035); }
+.punchx-citizen-shell main { padding-bottom:20px; }
+.punchx-citizen-shell section { animation:px-section-in .42s ease both; }
+@keyframes px-section-in { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.punchx-citizen-shell section:nth-child(2){animation-delay:.035s}.punchx-citizen-shell section:nth-child(3){animation-delay:.07s}.punchx-citizen-shell section:nth-child(4){animation-delay:.105s}.punchx-citizen-shell section:nth-child(5){animation-delay:.14s}
+
+/* Hero becomes a clean marketplace banner rather than a dark tech landing block. */
+.punchx-citizen-shell main > section:first-child > div {
+  position:relative; overflow:hidden;
+  background:linear-gradient(135deg,#f1edff 0%,#ffffff 52%,#eaf8f3 100%) !important;
+  color:var(--px-market-text) !important;
+  border:1px solid rgba(109,78,230,.08);
+  box-shadow:var(--px-market-shadow) !important;
+}
+.punchx-citizen-shell main > section:first-child > div::after {
+  content:""; position:absolute; right:-70px; top:-90px; width:260px; height:260px; border-radius:50%;
+  background:radial-gradient(circle,rgba(109,78,230,.15),transparent 68%); pointer-events:none;
+}
+.punchx-citizen-shell main > section:first-child .bg-white { box-shadow:0 12px 30px rgba(32,29,55,.12) !important; }
+.punchx-citizen-shell main > section:first-child h1 { color:#16181d !important; }
+.punchx-citizen-shell main > section:first-child p { color:#686e79 !important; }
+.punchx-citizen-shell main > section:first-child .border-white\/10 { border-color:rgba(109,78,230,.12) !important; background:rgba(255,255,255,.7) !important; color:#6044d0 !important; }
+.punchx-citizen-shell main > section:first-child .text-white\/80 { color:#6044d0 !important; }
+.punchx-citizen-shell main > section:first-child .bg-gradient-to-br { background:linear-gradient(145deg,#e7e0ff,#f8f7ff 55%,#dff4eb) !important; }
+.punchx-citizen-shell main > section:first-child .bg-black\/35 { background:rgba(255,255,255,.84) !important; color:#20232a !important; border-color:rgba(20,24,32,.08) !important; }
+.punchx-citizen-shell main > section:first-child .text-white\/60 { color:#727781 !important; }
+
+/* Service image rails */
+.punchx-citizen-shell section button img { transition:transform .35s cubic-bezier(.2,.8,.2,1),filter .35s ease; }
+.punchx-citizen-shell section button:hover img { transform:scale(1.045); }
+.punchx-citizen-shell section button:active { transform:scale(.985); }
+.punchx-citizen-shell section button { min-height:44px; }
+.punchx-citizen-shell section button > div.rounded-2xl,
+.punchx-citizen-shell section button > div.rounded-3xl { border:1px solid var(--px-market-border); }
+.punchx-citizen-shell section h2 { letter-spacing:-.025em; }
+
+/* Trust cards */
+.punchx-citizen-shell main > section:nth-child(3) > div > div { box-shadow:var(--px-market-shadow) !important; border-color:var(--px-market-border) !important; transition:transform .22s ease,box-shadow .22s ease; }
+.punchx-citizen-shell main > section:nth-child(3) > div > div:hover { transform:translateY(-3px); box-shadow:0 14px 34px rgba(36,31,65,.1) !important; }
+
+/* Spotlight cards: keep one signature dark tracking card and make the others marketplace-clean. */
+.punchx-citizen-shell main > section:nth-child(4) .bg-white,
+.punchx-citizen-shell main > section:nth-child(4) .bg-\[\#eee9ff\] { box-shadow:var(--px-market-shadow); }
+.punchx-citizen-shell main > section:nth-child(4) .bg-\[\#eee9ff\] { background:linear-gradient(135deg,#eee9ff,#f8f7ff) !important; }
+
+/* Catalogue cards */
+.punchx-citizen-shell main > section:nth-child(5) button { box-shadow:var(--px-market-shadow) !important; border:1px solid var(--px-market-border); }
+.punchx-citizen-shell main > section:nth-child(5) button:hover { box-shadow:0 16px 36px rgba(36,31,65,.12) !important; transform:translateY(-3px); }
+.punchx-citizen-shell main > section:nth-child(5) button > div:first-child { background:#f1f1f6; }
+
+/* Bottom navigation */
+.punchx-citizen-shell nav.fixed.bottom-0 { box-shadow:0 -10px 30px rgba(31,28,48,.08); border-color:var(--px-market-border) !important; }
+.punchx-citizen-shell nav.fixed.bottom-0 button:hover { box-shadow:none; }
+
+/* Drawers / modals */
+.punchx-citizen-shell [role="dialog"] > div { box-shadow:0 24px 80px rgba(22,20,40,.18); }
+.punchx-citizen-shell [role="dialog"] button { min-height:42px; }
+
+/* Legacy citizen screens: white marketplace surfaces, consistent purple CTAs. */
+#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container {
+  background:var(--px-market-bg) !important; color:var(--px-market-text) !important;
+}
+#providers-list-root > *,#provider-details-root > *,#booking-container > *,#payment-screen-container > * { font-family:Inter,system-ui,sans-serif; }
+#providers-list-root button[class*="bg-[#c5a059]"],#provider-details-root button[class*="bg-[#c5a059]"],#booking-container button[class*="bg-[#c5a059]"],#payment-screen-container button[class*="bg-[#c5a059]"] { background:linear-gradient(135deg,var(--px-market-purple),#8c72ed) !important; }
+
+/* Keyboard focus + touch behavior */
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible { outline:3px solid rgba(109,78,230,.24) !important; outline-offset:2px; }
+
+/* Desktop: preserve dense marketplace rhythm. Mobile: card-first and edge-to-edge rails. */
+@media (min-width:1024px) {
+  .punchx-citizen-shell main { max-width:1480px; }
+  .punchx-citizen-shell main > section:first-child > div { min-height:310px; }
+}
+@media (max-width:767px) {
+  .punchx-citizen-shell main { padding-left:12px !important; padding-right:12px !important; }
+  .punchx-citizen-shell main > section:first-child { padding-top:12px !important; }
+  .punchx-citizen-shell main > section:first-child > div { border-radius:22px !important; padding:20px !important; }
+  .punchx-citizen-shell main > section:first-child h1 { font-size:30px !important; line-height:1.06 !important; }
+  .punchx-citizen-shell main > section:first-child .hidden.md\:block { display:none !important; }
+  .punchx-citizen-shell section { padding-top:22px !important; }
+  .punchx-citizen-shell main > section:nth-child(2) .md\:grid { display:flex !important; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .punchx-citizen-shell section { animation:none !important; }
+  .punchx-citizen-shell section button,.punchx-citizen-shell section button img { transition:none !important; }
+}
