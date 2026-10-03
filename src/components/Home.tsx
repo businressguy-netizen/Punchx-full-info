@@ -1,5 +1,5 @@
 import React from 'react';
-import CitizenHomeRedesign from './CitizenHomeRedesign';
+import CitizenMarketplaceFlow from './CitizenMarketplaceFlow';
 import { AppScreen, Worker } from '../types';
 
 interface HomeProps {
@@ -24,20 +24,21 @@ interface HomeProps {
 }
 
 /**
- * Production citizen entry point.
- * The premium marketplace home is deliberately kept behind the existing
- * Home contract so the rest of the booking/auth architecture does not need
- * to know which visual home implementation is active.
+ * PunchX citizen entry point.
+ * Keeps the existing App contract while routing the customer into the
+ * complete marketplace journey: discovery → problem → service/parts → cart
+ * → nearby specialist → booking bill → secure checkout.
  */
 export default function Home(props: HomeProps) {
   return (
-    <CitizenHomeRedesign
+    <CitizenMarketplaceFlow
       onTransition={props.onTransition}
-      onSelectWorker={props.onSelectWorker}
+      selectedCategory=""
       onSelectCategory={props.onSelectCategory}
+      onSelectWorker={props.onSelectWorker}
+      showNotification={props.showNotification}
       citizenName={props.citizenName}
       citizenAddress={props.citizenAddress}
-      showNotification={props.showNotification}
       onOpenNotificationCenter={props.onOpenNotificationCenter}
       onOpenProfile={props.setIsProfileDrawerOpen ? () => props.setIsProfileDrawerOpen?.(true) : undefined}
     />
