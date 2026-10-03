@@ -26,3 +26,85 @@ img{max-width:100%}.punchx-blue-pill{background:var(--px-pale)!important;color:v
 [class*="bg-gradient-to"],[class*="bg-gradient-"]{background-image:linear-gradient(135deg,var(--px-navy),var(--px-blue))!important}
 @keyframes punchx-blue-enter{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}.punchx-citizen-main,.punchx-citizen-shell,#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container{animation:punchx-blue-enter .28s ease-out both}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ================================================================
+   PunchX Premium UX Layer
+   Goals: clear hierarchy, one obvious primary action, predictable spacing,
+   premium service-marketplace surfaces, touch-safe controls and mobile-first flow.
+   ================================================================ */
+:root{--px-radius-sm:12px;--px-radius-md:16px;--px-radius-lg:22px;--px-radius-xl:28px;--px-ease:cubic-bezier(.2,.8,.2,1);--px-focus:rgba(37,99,235,.22)}
+
+/* Global interaction rules */
+button,a,[role="button"]{touch-action:manipulation}button:not(:disabled),a,[role="button"]{cursor:pointer}button:disabled{cursor:not-allowed!important;opacity:.55!important;transform:none!important}button:active:not(:disabled),[role="button"]:active{transform:translateY(0) scale(.985)}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--px-focus)!important;outline-offset:3px}
+
+/* App shell / global navbar */
+#punchx-website-navbar{position:sticky;top:0;box-shadow:0 1px 0 rgba(33,49,69,.06),0 10px 32px rgba(33,49,69,.055)!important}
+#punchx-website-navbar button{min-height:40px}
+#punchx-website-navbar > div{gap:8px}
+#punchx-website-navbar nav button{min-height:38px;white-space:nowrap}
+#punchx-website-navbar nav button:hover{transform:translateY(-1px);box-shadow:none!important}
+#punchx-website-navbar img{filter:saturate(1.04)}
+
+/* Home: the App shell already supplies the main navbar, so remove the duplicate local header. */
+.punchx-citizen-shell > header{display:none}
+.punchx-citizen-shell{padding-bottom:max(28px,env(safe-area-inset-bottom))!important}
+.punchx-citizen-shell main{max-width:1280px!important;margin:0 auto!important}
+.punchx-citizen-shell main > section:first-child{padding-top:28px!important}
+.punchx-citizen-shell main > section:first-child > div{border-radius:28px!important;min-height:300px;box-shadow:0 20px 55px rgba(33,49,69,.10)!important}
+.punchx-citizen-shell main > section:first-child button{position:relative;z-index:2;min-height:58px;border-radius:18px!important;border:1px solid rgba(37,99,235,.12)!important}
+.punchx-citizen-shell main > section:not(:first-child){padding-top:30px!important}
+.punchx-citizen-shell main > section:not(:first-child) > div:first-child{gap:12px}
+.punchx-citizen-shell main > section button{transition:transform .2s var(--px-ease),box-shadow .2s var(--px-ease),border-color .2s ease,background-color .2s ease!important}
+.punchx-citizen-shell main > section button:hover{box-shadow:0 14px 34px rgba(33,49,69,.10)!important}
+.punchx-citizen-shell main > section:nth-of-type(2)>div{box-shadow:0 8px 26px rgba(33,49,69,.055)!important}
+
+/* Search modal: strong visual focus and comfortable mobile controls. */
+.punchx-citizen-shell .fixed.inset-0.z-\[130\]{padding:12px!important}
+.punchx-citizen-shell .fixed.inset-0.z-\[130\] > div{border-radius:24px!important;box-shadow:0 30px 100px rgba(15,23,42,.24)!important}
+.punchx-citizen-shell .fixed.inset-0.z-\[130\] input{min-height:48px;font-size:15px}
+
+/* Service discovery: cards read as tappable choices, not plain text lists. */
+#providers-list-root main{max-width:1120px!important}
+#providers-list-root article,#providers-list-root section > div > button,#provider-details-root section{border-radius:18px!important}
+#providers-list-root article{box-shadow:0 6px 22px rgba(33,49,69,.045)!important;transition:transform .18s var(--px-ease),box-shadow .18s ease,border-color .18s ease}
+#providers-list-root article:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(33,49,69,.09)!important}
+#providers-list-root button{min-height:44px}
+#providers-list-root header button:first-child,#provider-details-root header button:first-child,#booking-container header button:first-child{flex:0 0 auto}
+
+/* Booking and payment: keep the primary CTA visually dominant and above the safe-area. */
+#booking-container,#payment-screen-container{padding-bottom:110px!important}
+#booking-container section,#payment-screen-container section{border-radius:20px!important;box-shadow:0 7px 24px rgba(33,49,69,.045)!important}
+#booking-sticky-action{padding-bottom:max(12px,env(safe-area-inset-bottom))!important;backdrop-filter:blur(18px)!important}
+#booking-sticky-action button,#payment-screen-container button[class*="bg-[#2563eb]"],#payment-screen-container button[class*="bg-blue-"]{min-height:52px;border-radius:16px!important;box-shadow:0 10px 25px rgba(37,99,235,.20)!important}
+#booking-container input,#booking-container textarea,#booking-container select,#payment-screen-container input,#payment-screen-container textarea,#payment-screen-container select{min-height:48px;border-radius:14px!important}
+
+/* Provider details: visual order = trust → price → service → action. */
+#provider-details-root{padding-bottom:96px!important}
+#provider-details-root button{min-height:44px}
+#provider-details-root .fixed.bottom-0{padding-bottom:max(10px,env(safe-area-inset-bottom))!important;backdrop-filter:blur(18px)!important}
+
+/* Mobile: fewer competing elements, larger touch targets and no horizontal overflow. */
+@media(max-width:767px){
+  #punchx-website-navbar>div{height:64px!important;padding-left:12px!important;padding-right:12px!important}
+  #punchx-website-navbar nav{display:none!important}
+  .punchx-citizen-shell main{width:100%!important;padding-left:12px!important;padding-right:12px!important}
+  .punchx-citizen-shell main>section:first-child{padding-top:14px!important}
+  .punchx-citizen-shell main>section:first-child>div{border-radius:22px!important;padding:20px!important;min-height:0}
+  .punchx-citizen-shell main>section:first-child h1{font-size:clamp(28px,8.5vw,36px)!important;line-height:1.05!important}
+  .punchx-citizen-shell main>section:first-child p{max-width:95%!important}
+  .punchx-citizen-shell main>section:not(:first-child){padding-top:24px!important}
+  #providers-list-root,#provider-details-root,#booking-container,#payment-screen-container{padding-left:12px!important;padding-right:12px!important}
+  #providers-list-root header,#provider-details-root header,#booking-container header{top:0!important}
+  #providers-list-root main{padding-left:0!important;padding-right:0!important}
+  #providers-list-root article img{width:96px!important;height:96px!important}
+}
+@media(min-width:768px){
+  .punchx-citizen-shell main{padding-left:24px!important;padding-right:24px!important}
+  #providers-list-root main,#provider-details-root main,#booking-container main,#payment-screen-container main{padding-left:24px!important;padding-right:24px!important}
+}
+
+/* Reduced motion: preserve clarity without animation. */
+@media(prefers-reduced-motion:reduce){
+  .punchx-citizen-shell main>section,#providers-list-root article{animation:none!important;transition:none!important}
+}
