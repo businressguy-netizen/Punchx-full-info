@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import Splash from './components/Splash';
 import Auth from './components/Auth';
 import DragoAssistant from './components/DragoAssistant';
 import MobileQRModal from './components/MobileQRModal';
-import ModuleSwitcher from './components/ModuleSwitcher';
 import PanelSelect from './components/PanelSelect';
 import PushNotificationBanner from './components/PushNotificationBanner';
 import NotificationCenterModal from './components/NotificationCenterModal';
@@ -14,8 +13,7 @@ import { AppScreen, Worker, WorkerApplication } from './types';
 import { AuthProvider, useAuth } from './lib/authContext';
 import OtpVerify from './components/OtpVerify';
 import { Analytics } from '@vercel/analytics/react';
-import { NamoIDProvider } from '@namoidhq/react';
-import { namoidFetcher } from './lib/namoidFetcher';
+import NamoIDAuthShell from './components/NamoIDAuthShell';
 
 const HomeDashboard = lazy(() => import('./components/Home'));
 const ProvidersList = lazy(() => import('./components/ProvidersList'));
@@ -74,7 +72,6 @@ function AppMain() {
   const [activePanelRole, setActivePanelRole] = useState<'customer' | 'worker' | 'admin'>(() => {
     try { return (localStorage.getItem('punchx_auth_role') as 'customer' | 'worker' | 'admin') || 'customer'; } catch { return 'customer'; }
   });
-
   useEffect(() => { try { localStorage.setItem('punchx_auth_role', activePanelRole); } catch {} }, [activePanelRole]);
 
   const [workerApplication, setWorkerApplication] = useState<WorkerApplication | null>(null);
@@ -178,14 +175,17 @@ function AppMain() {
   const isCitizenExperience = ['home','providers','provider-details','booking','payment','tracking'].includes(currentScreen);
   const showWebsiteShell = isCitizenExperience;
   const showAssistant = isCitizenExperience || currentScreen === 'worker-dashboard' || currentScreen === 'admin-dashboard';
-  const [deviceTime, setDeviceTime] = useState('12:00');
 
   useEffect(() => {
-    const updateTime = () => { const now = new Date(); setDeviceTime(`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`); };
+    const updateTime = () => { /* Keep device time local without rendering a stale clock. */ };
     updateTime();
-    const timer = window.setInterval(updateTime, 1000);
-    return () => window.clearInterval(timer);
   }, []);
+
+  const authContent = currentScreen === 'auth'
+    ? <Auth onTransition={handleTransition} showNotification={showToast} setAuthMethodDetail={(method, target) => { setAuthMethod(method); setAuthTarget(target); }} activePanelRole={activePanelRole} />
+    : currentScreen === 'auth-callback'
+      ? <AuthCallback onTransition={handleTransition} />
+      : null;
 
   return (
     <div className="relative min-h-screen bg-[#07122a] text-[#e1e3e4] overflow-x-hidden antialiased selection:bg-[#c5a059]/30 flex flex-col">
@@ -201,13 +201,13 @@ function AppMain() {
 
       <main className={`relative z-10 w-full flex-grow flex flex-col ${isCitizenExperience ? 'punchx-citizen-main' : 'bg-[#07122a]'}`}>
         <Suspense fallback={<div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] bg-white"><div className="w-12 h-12 border-4 border-[#bfdbfe] border-t-[#2563eb] rounded-full animate-spin" /><p className="mt-4 text-sm font-semibold text-[#64748b]">Loading PunchX…</p></div>}>
-          {currentScreen === 'auth-callback' && <AuthCallback onTransition={handleTransition} />}
+          {currentScreen === 'auth-callback' && <NamoIDAuthShell>{authContent}</NamoIDAuthShell>}
           {currentScreen === 'splash' && <Splash onTransition={handleTransition} />}
           {currentScreen === 'panel-select' && <PanelSelect onSelectPanel={(panel, action) => { setActivePanelRole(panel); if (panel === 'worker' && action === 'signup') setCurrentScreen('worker-signup'); else setCurrentScreen('auth'); }} showNotification={showToast} />}
           {currentScreen === 'worker-signup' && <WorkerSignup onTransition={handleTransition} showNotification={showToast} setWorkerApplicationData={setWorkerApplication} />}
           {currentScreen === 'worker-otp-pass' && <WorkerOtpPass onTransition={handleTransition} showNotification={showToast} workerApplication={workerApplication} setWorkerApplicationData={setWorkerApplication} />}
           {currentScreen === 'worker-pending-approval' && <WorkerPendingApproval onTransition={handleTransition} showNotification={showToast} workerApplication={workerApplication} setWorkerApplicationData={setWorkerApplication} />}
-          {currentScreen === 'auth' && <Auth onTransition={handleTransition} showNotification={showToast} setAuthMethodDetail={(method, target) => { setAuthMethod(method); setAuthTarget(target); }} activePanelRole={activePanelRole} />}
+          {currentScreen === 'auth' && <NamoIDAuthShell>{authContent}</NamoIDAuthShell>}
           {currentScreen === 'otp' && <OtpVerify onTransition={handleTransition} otpCode={otpCode} setOtpCode={setOtpCode} authMethod={authMethod} authTarget={authTarget} activePanelRole={activePanelRole} />}
           {currentScreen === 'customer-setup' && <CustomerLocationSetup onTransition={handleTransition} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} showNotification={showToast} authMethod={authMethod} authTarget={authTarget} />}
           {currentScreen === 'worker-setup' && <WorkerLocationSetup onTransition={handleTransition} showNotification={showToast} authMethod={authMethod} authTarget={authTarget} workerApplication={workerApplication} setWorkerApplicationData={setWorkerApplication} />}
@@ -239,15 +239,11 @@ function AppMain() {
   );
 }
 
-const NAMOID_CLIENT_ID = import.meta.env.VITE_NAMOID_CLIENT_ID || 'namoid_client_live_6SHiIOdLuGIBZmiJjC5Iu5KCbqB2QQjd';
-
 export default function App() {
   return (
-    <NamoIDProvider clientId={NAMOID_CLIENT_ID} fetcher={namoidFetcher}>
-      <AuthProvider>
-        <AppMain />
-        <Analytics />
-      </AuthProvider>
-    </NamoIDProvider>
+    <AuthProvider>
+      <AppMain />
+      <Analytics />
+    </AuthProvider>
   );
 }
