@@ -2,10 +2,20 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Trash2, Home } from 'lucide-react';
 import PUNCHX_LOGO from '../assets/logo';
 
-interface Props { children: ReactNode; }
-interface State { hasError: boolean; error: Error | null; errorInfo: ErrorInfo | null; }
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+  name?: string;
+}
 
-const RECOVERY_KEY = 'punchx-runtime-recovery-v3';
+interface State {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
+const RECOVERY_KEY = 'punchx-runtime-recovery-v4';
+const CHUNK_ERROR_RE = /failed to fetch dynamically imported module|importing a module script failed|loading chunk|chunkloaderror|dynamically imported module/i;
 
 export class ErrorBoundary extends Component<Props, State> {
   public state: State = { hasError: false, error: null, errorInfo: null };
@@ -19,16 +29,12 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({ errorInfo });
 
     const message = error?.message || '';
-    const isChunkError = /failed to fetch dynamically imported module|importing a module script failed|loading chunk|chunkloaderror|dynamically imported module/i.test(message);
-
-    // Chunk/version errors are recoverable without deleting account data.
-    // Use a versioned key so an older deploy cannot permanently consume the retry.
-    if (isChunkError) {
+    if (CHUNK_ERROR_RE.test(message)) {
       try {
         if (sessionStorage.getItem(RECOVERY_KEY) !== '1') {
           sessionStorage.setItem(RECOVERY_KEY, '1');
           Object.keys(sessionStorage)
-            .filter((key) => key.startsWith('punchx-vite-recovery:') && !key.includes('runtime-recovery'))
+            .filter((key) => key.startsWith('punchx-vite-recovery:'))
             .forEach((key) => sessionStorage.removeItem(key));
           const url = new URL(window.location.href);
           url.searchParams.set('__punchx_runtime_refresh', `${Date.now()}`);
@@ -73,9 +79,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (!this.state.hasError) return this.props.children;
+    if (this.props.fallback) return this.props.fallback;
 
     const errorMessage = this.state.error?.message?.trim() || 'Unknown application error';
-    const isChunkError = /failed to fetch dynamically imported module|importing a module script failed|loading chunk|chunkloaderror|dynamically imported module/i.test(errorMessage);
+    const isChunkError = CHUNK_ERROR_RE.test(errorMessage);
 
     return (
       <main id="punchx-error-fallback" className="min-h-screen w-full bg-[#f7faff] text-[#0f172a] flex items-center justify-center p-5 font-sans">
