@@ -58,7 +58,7 @@ const specific: Record<string, Array<[string, LeafSeed[]]>> = {
     ['Installation / uninstallation', [['AC installation', 1599], ['AC uninstallation', 699], ['Outdoor unit reinstallation', 799], ['Drain pipe installation', 100]]]
   ],
   'cleaner-housekeeper': [
-    ['Home cleaning', [['Full home deep cleaning', 999, '180 mins'], ['Regular home cleaning', 499, '120 mins'], ['Move-in cleaning', 1499, '240 mins'], ['Move-out cleaning', 1499, '240 mins]]],
+    ['Home cleaning', [['Full home deep cleaning', 999, '180 mins'], ['Regular home cleaning', 499, '120 mins'], ['Move-in cleaning', 1499, '240 mins'], ['Move-out cleaning', 1499, '240 mins']]],
     ['Kitchen', [['Kitchen deep cleaning', 499, '90 mins'], ['Chimney cleaning', 399, '60 mins'], ['Cabinet cleaning', 299, '60 mins'], ['Kitchen appliance cleaning', 299]]],
     ['Bathroom', [['Bathroom deep cleaning', 299], ['Tile cleaning', 399], ['Toilet deep cleaning', 249], ['Grout cleaning', 399]]],
     ['Housekeeping', [['Hourly housekeeper', 299, '120 mins'], ['Dusting & mopping', 249], ['Fan & window dusting', 249], ['Post-event cleaning', 599]]]
@@ -99,11 +99,11 @@ function slug(value: string) {
 }
 
 function genericHierarchy(category: ServiceCategoryItem): Array<[string, LeafSeed[]]> {
-  return genericGroups.map(([group, actions], groupIndex) => [
+  return genericGroups.map(([group, actions]) => [
     group,
     actions.map((action, actionIndex) => [
       `${category.name} ${action}`,
-      Math.max(49, category.basePrice + (actionIndex * 50) + (groupIndex * 25)),
+      Math.max(49, category.basePrice + (actionIndex * 50) + (genericGroups.indexOf(genericGroups.find(item => item[0] === group)!) * 25)),
       actionIndex === 1 ? '60 mins' : '30 mins',
       `At-home ${category.name.toLowerCase()} ${action.toLowerCase()} service by a verified PUNCHX professional.`
     ])
