@@ -1,5 +1,5 @@
 import React from 'react';
-import CitizenHomeCatalog from './CitizenHomeCatalog';
+import CitizenHomeRedesign from './CitizenHomeRedesign';
 import { AppScreen, Worker } from '../types';
 
 interface HomeProps {
@@ -23,6 +23,23 @@ interface HomeProps {
   setIsProfileDrawerOpen?: (val: boolean) => void;
 }
 
+/**
+ * Production citizen entry point.
+ * The premium marketplace home is deliberately kept behind the existing
+ * Home contract so the rest of the booking/auth architecture does not need
+ * to know which visual home implementation is active.
+ */
 export default function Home(props: HomeProps) {
-  return <CitizenHomeCatalog onTransition={props.onTransition} onSelectWorker={props.onSelectWorker} onSelectCategory={props.onSelectCategory} citizenName={props.citizenName} citizenAddress={props.citizenAddress} onOpenProfile={props.setIsProfileDrawerOpen ? () => props.setIsProfileDrawerOpen?.(true) : undefined} />;
+  return (
+    <CitizenHomeRedesign
+      onTransition={props.onTransition}
+      onSelectWorker={props.onSelectWorker}
+      onSelectCategory={props.onSelectCategory}
+      citizenName={props.citizenName}
+      citizenAddress={props.citizenAddress}
+      showNotification={props.showNotification}
+      onOpenNotificationCenter={props.onOpenNotificationCenter}
+      onOpenProfile={props.setIsProfileDrawerOpen ? () => props.setIsProfileDrawerOpen?.(true) : undefined}
+    />
+  );
 }
