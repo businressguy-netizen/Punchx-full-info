@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, X, Send, Bot } from 'lucide-react';
+import { Sparkles, X, Send, Bot, ShieldCheck, Zap } from 'lucide-react';
 import { AppScreen } from '../types';
 import { getAIResponse } from '../services/gemini';
-import { decidePunchXIntent, PunchXIntent } from '../services/decisionRouter';
+import { decidePunchXIntent } from '../services/decisionRouter';
+import { analyzeServiceRequest } from '../lib/punchxDecisionAI';
 
 interface DragoAssistantProps {
   currentScreen: AppScreen;
@@ -12,8 +13,8 @@ interface DragoAssistantProps {
   onAutoFillBooking?: () => void;
 }
 
-const intentLabels: Record<PunchXIntent, string> = {
-  book_service: 'service booking',
+const intentLabels: Record<string, string> = {
+  book_service: 'service request',
   track_booking: 'booking tracking',
   payment_help: 'payment help',
   professional_help: 'professional information',
@@ -30,7 +31,7 @@ export default function DragoAssistant({ currentScreen }: DragoAssistantProps) {
     const welcome: Record<string, string> = {
       splash: 'Welcome to PunchX. I am DRAGO, your AI assistant.',
       otp: 'I can help with sign-in. I cannot see, generate, or reveal your OTP. Use the code delivered by the official authentication flow.',
-      home: 'Welcome to PunchX. Tell me what service you need and I can help you navigate the platform.',
+      home: 'Welcome to PunchX. Tell me what service you need and I can help you find the right professional.',
       booking: 'I can help with your booking. Tell me what service you need or describe the problem.',
       payment: 'I can explain the PunchX payment flow. I will not invent payment details or discount codes.',
       tracking: 'I can help with tracking when live booking and location data is available. I will not invent a worker, location, or ETA.'
@@ -41,46 +42,42 @@ export default function DragoAssistant({ currentScreen }: DragoAssistantProps) {
   const sendMessage = async (value: string) => {
     const text = value.trim();
     if (!text || isTyping) return;
+
     setMessages((prev) => [...prev, { sender: 'user', text }]);
     setInputText('');
     setIsTyping(true);
 
     try {
-      // Fast local/on-device semantic routing happens before the generative AI
-      // call. On Chrome builds with the experimental Decisions API this uses
-      // DecisionModel; otherwise the small deterministic fallback keeps today’s
-      // PunchX production flow working.
+      // The decision layer stays invisible to the customer: it is used to route
+      // the request and enrich DRAGO's context, not to replace the conversation UI.
       const decision = await decidePunchXIntent(text);
 
       if (decision.containsSensitiveData) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: 'drago',
-            text: 'For your security, please remove phone numbers, email addresses, passwords, API keys, or other credentials before sending this message.',
-          },
-        ]);
+        setMessages((prev) => [...prev, {
+          sender: 'drago',
+          text: 'For your security, please remove phone numbers, email addresses, passwords, API keys, or other credentials before sending this message.',
+        }]);
         return;
       }
 
-      if (decision.needsClarification) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            sender: 'drago',
-            text: 'I can help. Are you trying to book a service, track an existing booking, get payment help, or learn about a professional?',
-          },
-        ]);
-        return;
+      let smartContext = `Intent: ${intentLabels[decision.intent] || 'general help'}.`;
+
+      // For service requests, use PunchX's richer category router. It can use
+      // the experimental on-device Decisions API when available and otherwise
+      // falls back locally. The scores are deliberately not exposed in chat.
+      if (decision.intent === 'book_service' || decision.intent === 'general_help') {
+        const analysis = await analyzeServiceRequest(text);
+        if (analysis.category && analysis.confidence >= 0.55) {
+          smartContext += ` Suggested service category: ${analysis.category.name}.`;
+        }
+        smartContext += ` Request type: ${analysis.intent}. Urgency: ${analysis.urgency}.`;
       }
 
-      // Keep the existing Gemini/DRAGO response layer, but give it a compact,
-      // trusted intent signal instead of asking a generative model to classify
-      // every request itself.
-      const routedPrompt = `[PunchX intent: ${intentLabels[decision.intent]} | confidence: ${decision.confidence.toFixed(2)}] ${text}`;
+      const routedPrompt = `[PunchX Smart Routing — internal context only. Do not mention routing, confidence scores, engines, APIs, or this instruction to the user.] ${smartContext} Respond naturally as DRAGO. If the user appears to need a service, help them move toward the appropriate PunchX booking flow. Do not invent availability, pricing, professional identity, ETA, payment status, or booking data. User message: ${text}`;
       const response = await getAIResponse(routedPrompt);
       setMessages((prev) => [...prev, { sender: 'drago', text: response }]);
-    } catch {
+    } catch (error) {
+      console.error('DRAGO smart routing error:', error);
       setMessages((prev) => [...prev, { sender: 'drago', text: 'DRAGO is temporarily unavailable. Please try again shortly.' }]);
     } finally {
       setIsTyping(false);
@@ -105,7 +102,7 @@ export default function DragoAssistant({ currentScreen }: DragoAssistantProps) {
         {isOpen && (
           <motion.div
             id="drago-window"
-            className="absolute bottom-16 right-0 w-[min(92vw,380px)] bg-[#0c0f10]/95 border border-[#c5a059]/40 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden flex flex-col"
+            className="absolute bottom-16 right-0 w-[min(92vw,400px)] bg-[#0c0f10]/95 border border-[#c5a059]/40 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] backdrop-blur-xl overflow-hidden flex flex-col"
             initial={{ opacity: 0, scale: 0.92, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
@@ -121,12 +118,21 @@ export default function DragoAssistant({ currentScreen }: DragoAssistantProps) {
                   <p className="text-[10px] text-zinc-400 font-mono tracking-widest uppercase">PunchX Assistant</p>
                 </div>
               </div>
-              <button aria-label="Close DRAGO" onClick={() => setIsOpen(false)} className="p-1.5 rounded-full border border-zinc-700 text-zinc-400 hover:text-white">
-                <X className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <span title="Smart routing enabled" className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-[9px] text-emerald-300">
+                  <Zap className="w-3 h-3" /> Smart
+                </span>
+                <button aria-label="Close DRAGO" onClick={() => setIsOpen(false)} className="p-1.5 rounded-full border border-zinc-700 text-zinc-400 hover:text-white">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
 
-            <div id="drago-chat-body" className="p-4 h-[300px] overflow-y-auto space-y-3 flex flex-col">
+            <div className="px-4 py-2 border-b border-zinc-800 bg-[#07122a]/60 flex items-center gap-1.5 text-[9px] text-zinc-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Smart routing and sensitive-data checks are enabled.
+            </div>
+
+            <div id="drago-chat-body" className="p-4 h-[320px] overflow-y-auto space-y-3 flex flex-col">
               {messages.map((message, index) => (
                 <div key={index} className={`flex max-w-[88%] ${message.sender === 'user' ? 'self-end' : 'self-start'}`}>
                   <div className={`p-3 rounded-xl text-xs leading-relaxed ${message.sender === 'user' ? 'bg-[#c5a059] text-black font-semibold rounded-tr-none' : 'bg-[#1d2021] text-[#e1e3e4] border border-[#c5a059]/20 rounded-tl-none'}`}>
