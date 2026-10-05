@@ -22,7 +22,6 @@
     <meta property="og:image:alt" content="PunchX — Book trusted local professionals" />
     <meta property="og:site_name" content="PunchX" />
     <meta property="og:locale" content="en_IN" />
-
     <meta name="robots" content="index, follow, max-image-preview:large" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -39,41 +38,14 @@
           "url": "https://www.punchxapp.co.in/",
           "logo": "https://www.punchxapp.co.in/favicon.jpg",
           "description": "PunchX connects citizens with verified local professionals for home and everyday services.",
-          "founder": {
-            "@type": "Person",
-            "name": "Rimil Das",
-            "jobTitle": "Founder & COO",
-            "url": "https://www.linkedin.com/in/rimil-das-a0537a3ba/"
-          },
+          "founder": { "@type": "Person", "name": "Rimil Das", "jobTitle": "Founder & COO", "url": "https://www.linkedin.com/in/rimil-das-a0537a3ba/" },
           "member": [
-            {
-              "@type": "Person",
-              "name": "Rimil Das",
-              "jobTitle": "Founder & COO",
-              "url": "https://www.linkedin.com/in/rimil-das-a0537a3ba/"
-            },
-            {
-              "@type": "Person",
-              "name": "Abhradip Ghosh",
-              "jobTitle": "Co-Founder & CEO",
-              "url": "https://www.linkedin.com/in/abhradip-ghosh-858383404/"
-            }
+            { "@type": "Person", "name": "Rimil Das", "jobTitle": "Founder & COO", "url": "https://www.linkedin.com/in/rimil-das-a0537a3ba/" },
+            { "@type": "Person", "name": "Abhradip Ghosh", "jobTitle": "Co-Founder & CEO", "url": "https://www.linkedin.com/in/abhradip-ghosh-858383404/" }
           ],
           "contactPoint": [
-            {
-              "@type": "ContactPoint",
-              "telephone": "+91-7029828029",
-              "contactType": "customer service",
-              "areaServed": "IN",
-              "availableLanguage": ["en", "hi"]
-            },
-            {
-              "@type": "ContactPoint",
-              "telephone": "+91-9732682763",
-              "contactType": "customer service",
-              "areaServed": "IN",
-              "availableLanguage": ["en", "hi"]
-            }
+            { "@type": "ContactPoint", "telephone": "+91-7029828029", "contactType": "customer service", "areaServed": "IN", "availableLanguage": ["en", "hi"] },
+            { "@type": "ContactPoint", "telephone": "+91-9732682763", "contactType": "customer service", "areaServed": "IN", "availableLanguage": ["en", "hi"] }
           ]
         },
         {
@@ -107,67 +79,24 @@
     <link rel="manifest" href="/manifest.json" />
 
     <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        min-height: 100vh;
-        background: #f7f8fa;
-        color: #17191d;
-        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-        overflow-x: hidden;
-      }
-      #initial-loader {
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        min-height:100vh;
-        width:100%;
-        background:#f7f8fa;
-        color:#17191d;
-        text-align:center;
-        padding:20px;
-        box-sizing:border-box;
-      }
-      .initial-spinner {
-        width:42px;
-        height:42px;
-        border:3px solid rgba(115,88,215,.16);
-        border-top-color:#7358d7;
-        border-radius:50%;
-        animation:init-spin .8s linear infinite;
-        margin-bottom:18px;
-      }
+      html, body { margin:0; padding:0; width:100%; min-height:100vh; background:#f7f8fa; color:#17191d; font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; overflow-x:hidden; }
+      #initial-loader { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; width:100%; background:#f7f8fa; color:#17191d; text-align:center; padding:20px; box-sizing:border-box; }
+      .initial-spinner { width:42px; height:42px; border:3px solid rgba(115,88,215,.16); border-top-color:#7358d7; border-radius:50%; animation:init-spin .8s linear infinite; margin-bottom:18px; }
       @keyframes init-spin { to { transform:rotate(360deg); } }
     </style>
 
     <script>
       (function(l) {
-        if (l.hostname === 'punchxapp.co.in') {
-          window.location.replace('https://www.punchxapp.co.in' + l.pathname + l.search + l.hash);
-          return;
-        }
+        if (l.hostname === 'punchxapp.co.in') { window.location.replace('https://www.punchxapp.co.in' + l.pathname + l.search + l.hash); return; }
         if (l.search[1] === '/') {
-          var decoded = l.search.slice(1).split('&').map(function(s) {
-            return s.replace(/~and~/g, '&');
-          }).join('?');
+          var decoded = l.search.slice(1).split('&').map(function(s) { return s.replace(/~and~/g, '&'); }).join('?');
           window.history.replaceState(null, null, l.pathname.slice(0, -1) + decoded + l.hash);
         }
       }(window.location));
-
       (function() {
-        function isViteWsError(err) {
-          if (!err) return false;
-          var msg = (err.message || err.reason || err.stack || String(err)).toLowerCase();
-          return msg.includes('websocket') || msg.includes('vite') || msg.includes('ws');
-        }
-        window.addEventListener('unhandledrejection', function(event) {
-          if (isViteWsError(event.reason)) event.preventDefault();
-        }, true);
-        window.addEventListener('error', function(event) {
-          if (isViteWsError(event.error) || isViteWsError(event.message)) event.preventDefault();
-        }, true);
+        function isViteWsError(err) { if (!err) return false; var msg=(err.message||err.reason||err.stack||String(err)).toLowerCase(); return msg.includes('websocket')||msg.includes('vite')||msg.includes('ws'); }
+        window.addEventListener('unhandledrejection', function(event) { if (isViteWsError(event.reason)) event.preventDefault(); }, true);
+        window.addEventListener('error', function(event) { if (isViteWsError(event.error)||isViteWsError(event.message)) event.preventDefault(); }, true);
       })();
     </script>
   </head>
@@ -188,7 +117,6 @@
       </main>
     </noscript>
     <div id="recaptcha-container"></div>
-    <script type="module" src="/src/punchxDecisionBootstrap.ts"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
