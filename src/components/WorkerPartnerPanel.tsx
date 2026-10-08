@@ -266,7 +266,20 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
    },function(){setApplication(null);});
  },[uid]);
 
- const source:any={...(application||{}),...p};
+ const source:any={
+   ...(application||{}),
+   ...p,
+   name:p.name||application?.legalName||'',
+   phone:p.phone||application?.phone||'',
+   email:p.email||application?.email||'',
+   address:p.address||application?.address||'',
+   landmark:p.landmark||application?.landmark||'',
+   area:p.area||application?.area||'',
+   sector:p.sector||application?.sector||'',
+   workerSkill:p.workerSkill||application?.skill||'',
+   workerExperience:p.workerExperience||application?.experienceYears||'',
+   workerCategories:categories.length?categories:(Array.isArray(application?.categories)?application.categories:[])
+ };
  const initials=String(source.name||'P').trim().slice(0,2).toUpperCase();
 
  const readPhoto=function(file:File){
