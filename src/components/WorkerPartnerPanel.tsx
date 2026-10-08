@@ -343,12 +343,12 @@ function OrdersView({filtered,filter,setFilter,query,setQuery,onOpen}:any){
   </div>;
 }
 
-function EarningsView({orders,todayEarn,reportPeriod,setReportPeriod}:{orders:Order[];todayEarn:number|null;reportPeriod:ReportPeriod;setReportPeriod:(v:ReportPeriod)=>void}){
+function EarningsView({orders,reportPeriod,setReportPeriod}:{orders:Order[];reportPeriod:ReportPeriod;setReportPeriod:(v:ReportPeriod)=>void}){
  const completed=orders.filter(o=>o.status==='COMPLETED');
  return <div className="wx-stack">
   <div className="wx-page-intro"><div><span className="wx-section-label">FINANCIAL PERFORMANCE</span><h2>Income & earnings report</h2><p>Choose a period to understand your real PunchX income, completed work and payout history.</p></div><button className="wx-secondary" onClick={()=>downloadWorkerReport(orders,reportPeriod,'income')}><Save size={15}/> Export report</button></div>
   <ReportPeriodPicker value={reportPeriod} onChange={setReportPeriod}/>
-  <WorkerAnalyticsReport orders={orders} period={reportPeriod} mode="income"/>
+  <WorkerAnalyticsReport orders={orders} period={reportPeriod}/>
   <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">PAYOUT HISTORY</span><h3>Verified professional payouts</h3></div><span className="wx-muted">{completed.length} completed bookings loaded</span></div>
    {completed.filter(o=>o.earning!==null).sort((a,b)=>(recordDate(b)?.getTime()||0)-(recordDate(a)?.getTime()||0)).slice(0,50).map(o=><div className="wx-inventory-row" key={o.id}><Banknote/><div><b>#{o.id} · {o.service}</b><span>{o.date} · {o.customer}</span></div><strong className="good">{money(o.earning as number)}</strong></div>)}
    {!completed.some(o=>o.earning!==null)&&<div className="wx-empty"><Banknote/><b>No verified payout records</b><span>PunchX will display income only when a professional payout is recorded against a completed booking.</span></div>}
@@ -364,7 +364,7 @@ function PerformanceView({orders,userProfile,reportPeriod,setReportPeriod}:{orde
   <div className="wx-page-intro"><div><span className="wx-section-label">PERFORMANCE & GROWTH</span><h2>Performance analytics</h2><p>Measure your progress across real PunchX work history and verified customer feedback.</p></div><button className="wx-secondary" onClick={()=>downloadWorkerReport(orders,reportPeriod,'performance')}><Save size={15}/> Export report</button></div>
   <ReportPeriodPicker value={reportPeriod} onChange={setReportPeriod}/>
   <div className="wx-stats"><Stat label="Customer rating" value={rating?rating.toFixed(1)+' / 5':(userProfile?.workerRating?Number(userProfile.workerRating).toFixed(1)+' / 5':'—')} icon={Star}/><Stat label="Completion rate" value={completed.length+cancelled.length?(Math.round(completed.length/(completed.length+cancelled.length)*100)+'%'):'—'} icon={CheckCircle2}/><Stat label="Completed jobs" value={completed.length} icon={UserRound}/><Stat label="Cancelled jobs" value={cancelled.length} icon={CircleAlert}/><Stat label="Verified reviews" value={ratings.length||'—'} icon={Star}/></div>
-  <WorkerAnalyticsReport orders={orders} period={reportPeriod} mode="performance"/>
+  <WorkerAnalyticsReport orders={orders} period={reportPeriod}/>
   <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">CUSTOMER FEEDBACK</span><h3>Verified service feedback</h3></div><Star size={18}/></div>
    {completed.filter(o=>safeNumber(o.raw?.userRating)>0||o.raw?.arrivalQuality?.comment).slice(0,20).map(o=><div className="wx-feedback-row" key={o.id}><div className="wx-feedback-rating"><Star size={13}/><b>{safeNumber(o.raw?.userRating)>0?safeNumber(o.raw?.userRating).toFixed(1):'—'}</b></div><div><b>#{o.id} · {o.service}</b><span>{o.raw?.arrivalQuality?.comment||'No written feedback recorded.'}</span></div><small>{o.date}</small></div>)}
    {!completed.some(o=>safeNumber(o.raw?.userRating)>0||o.raw?.arrivalQuality?.comment)&&<div className="wx-empty"><Star/><b>No verified feedback records yet</b><span>Customer ratings and feedback will appear here when PunchX records them.</span></div>}
@@ -374,7 +374,7 @@ function PerformanceView({orders,userProfile,reportPeriod,setReportPeriod}:{orde
 function ReportPeriodPicker({value,onChange}:{value:ReportPeriod;onChange:(v:ReportPeriod)=>void}){
  return <section className="wx-card wx-period-card"><div><span className="wx-section-label">REPORT PERIOD</span><h3>Choose your analysis window</h3><p>All figures update from the selected period.</p></div><div className="wx-period-tabs">{REPORT_PERIODS.map(function(days){return <button key={days} className={value===days?'active':''} onClick={()=>onChange(days)}>{reportLabel(days)}</button>})}</div></section>;
 }
-function WorkerAnalyticsReport({orders,period,mode}:{orders:Order[];period:ReportPeriod;mode:'income'|'performance'}){
+function WorkerAnalyticsReport({orders,period}:{orders:Order[];period:ReportPeriod}){
  const now=new Date(); const start=new Date(now); start.setHours(0,0,0,0); start.setDate(start.getDate()-period+1); const previousStart=new Date(start); previousStart.setDate(previousStart.getDate()-period);
  const inRange=orders.filter(function(o){const d=recordDate(o);return !!d&&d>=start&&d<=now;}); const previous=orders.filter(function(o){const d=recordDate(o);return !!d&&d>=previousStart&&d<start;});
  const completed=inRange.filter(o=>o.status==='COMPLETED'); const cancelled=inRange.filter(o=>o.status==='CANCELLED'); const payoutRows=completed.filter(o=>o.earning!==null);
