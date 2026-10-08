@@ -108,10 +108,10 @@ export default function WorkerLocationSetup({
       });
 
       if (resp && resp.success) {
-        setResolvedSector(resp.sector || 'Sector 2 (Indiranagar)');
-        setResolvedArea(resp.area || 'Indiranagar');
-        setResolvedCity(resp.city || 'Kolkata');
-        setCoverageMessage(resp.coverageMessage || `Service partner visibility active for ${resp.sector}`);
+        setResolvedSector(resp.sector || '');
+        setResolvedArea(resp.area || '');
+        setResolvedCity(resp.city || '');
+        setCoverageMessage(resp.coverageMessage || (resp.sector ? `Service partner visibility active for ${resp.sector}` : 'Operational location resolved from your submitted details.'));
         if (resp.lat && resp.lng) {
           setCoords({ lat: resp.lat, lng: resp.lng });
         }
@@ -121,7 +121,7 @@ export default function WorkerLocationSetup({
     } finally {
       setIsResolvingBackend(false);
     }
-  }, [address, landmark, coords.lat, coords.lng]);
+  }, [address, landmark, coords]);
 
   // Initial lookup only when real address data is available.
   useEffect(() => {
@@ -196,11 +196,10 @@ export default function WorkerLocationSetup({
       localStorage.setItem('punchx_worker_address', finalFormattedAddress);
       localStorage.setItem('punchx_worker_landmark', landmark.trim());
       localStorage.setItem('punchx_worker_sector', resolvedSector);
-      localStorage.setItem('punchx_worker_skill', selectedCategories.join(', ') || 'AC Technician');
+      localStorage.setItem('punchx_worker_skill', selectedCategories.join(', '));
       localStorage.setItem('punchx_worker_categories', JSON.stringify(selectedCategories));
       localStorage.setItem('punchx_worker_location', JSON.stringify({
-        lat: coords.lat,
-        lng: coords.lng,
+        ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
         address: finalFormattedAddress,
         area: resolvedArea,
         city: resolvedCity,
