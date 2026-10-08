@@ -10,13 +10,6 @@ type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inven
 type Status = 'NEW'|'ACCEPTED'|'TRAVELLING'|'ARRIVED'|'SERVICE_STARTED'|'COMPLETED'|'CANCELLED';
 type Order = { id:string; customer:string; service:string; address:string; distance:number|null; time:string; date:string; duration:string; price:number; earning:number; status:Status; payment:string; avatar:string; raw?:OrderRecord };
 
-const seed:Order[] = [
- {id:'PX10245',customer:'Amit Sharma',service:'AC Repair',address:'Salt Lake, Kolkata',distance:3.2,time:'3:30 PM',date:'Today',duration:'1h 30m',price:600,earning:450,status:'NEW',payment:'Paid',avatar:'AS'},
- {id:'PX10246',customer:'Rahul Sen',service:'Plumbing Repair',address:'New Town, Kolkata',distance:5.1,time:'5:00 PM',date:'Today',duration:'1h',price:500,earning:350,status:'ACCEPTED',payment:'Paid',avatar:'RS'},
- {id:'PX10247',customer:'Priya Roy',service:'Home Cleaning',address:'Rajarhat, Kolkata',distance:7.4,time:'7:00 PM',date:'Today',duration:'2h',price:800,earning:600,status:'COMPLETED',payment:'Paid',avatar:'PR'},
- {id:'PX10248',customer:'Sneha Das',service:'Electrical Repair',address:'Bidhannagar, Kolkata',distance:4.3,time:'10:00 AM',date:'Tomorrow',duration:'1h',price:450,earning:300,status:'NEW',payment:'Pending',avatar:'SD'}
-];
-
 const labels:Record<Status,string> = {NEW:'New',ACCEPTED:'Accepted',TRAVELLING:'Travelling',ARRIVED:'Arrived',SERVICE_STARTED:'Service started',COMPLETED:'Completed',CANCELLED:'Cancelled'};
 const pending=(s?:string)=>!s || ['Pending','PAID','DISPATCHING'].includes(s);
 const money=(n:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(n);
