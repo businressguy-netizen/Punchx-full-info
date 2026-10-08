@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
@@ -178,7 +178,7 @@ async function generateWithGemini(prompt: string, context: string): Promise<stri
         config: {
           systemInstruction: DRAGO_SYSTEM_INSTRUCTION,
           maxOutputTokens: 700,
-          thinkingConfig: { thinkingLevel: 'low' },
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         },
       });
 
@@ -219,7 +219,7 @@ async function streamWithGemini(prompt: string, context: string, res: VercelResp
         config: {
           systemInstruction: DRAGO_SYSTEM_INSTRUCTION,
           maxOutputTokens: 700,
-          thinkingConfig: { thinkingLevel: 'low' },
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
         },
       });
 
