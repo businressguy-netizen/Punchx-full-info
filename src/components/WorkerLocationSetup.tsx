@@ -67,7 +67,7 @@ export default function WorkerLocationSetup({
     if (workerApplication?.skill) {
       return [workerApplication.skill];
     }
-    return ['AC Technician'];
+    return [];
   });
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -77,11 +77,11 @@ export default function WorkerLocationSetup({
   const [errorMessage, setErrorMessage] = useState('');
 
   // Location resolution state from backend
-  const [resolvedSector, setResolvedSector] = useState('Sector 2 (Indiranagar)');
-  const [resolvedArea, setResolvedArea] = useState('Indiranagar');
-  const [resolvedCity, setResolvedCity] = useState('Kolkata');
-  const [coverageMessage, setCoverageMessage] = useState('Connecting to location dispatch server...');
-  const [coords, setCoords] = useState<{ lat: number; lng: number }>({ lat: 12.9716, lng: 77.5946 });
+  const [resolvedSector, setResolvedSector] = useState('');
+  const [resolvedArea, setResolvedArea] = useState('');
+  const [resolvedCity, setResolvedCity] = useState('');
+  const [coverageMessage, setCoverageMessage] = useState('Location will be resolved from your real address or GPS.');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const quickCategories = [
     'Electrician',
@@ -102,10 +102,9 @@ export default function WorkerLocationSetup({
     setIsResolvingBackend(true);
     try {
       const resp = await fetchRegisteredCustomersForWorkerLocation({
-        address: targetAddress || address || 'Indiranagar 100ft Road, Kolkata',
+        address: targetAddress || address,
         landmark: targetLandmark || landmark,
-        lat: lat || coords.lat,
-        lng: lng || coords.lng
+        ...(lat != null && lng != null ? { lat, lng } : coords ? { lat: coords.lat, lng: coords.lng } : {})
       });
 
       if (resp && resp.success) {
@@ -124,9 +123,9 @@ export default function WorkerLocationSetup({
     }
   }, [address, landmark, coords.lat, coords.lng]);
 
-  // Initial lookup on mount
+  // Initial lookup only when real address data is available.
   useEffect(() => {
-    resolveWorkerLocationFromBackend(address || 'Indiranagar 100ft Road, Kolkata', landmark);
+    if (address.trim()) resolveWorkerLocationFromBackend(address, landmark);
   }, []);
 
   // Debounced lookup when worker types address or landmark manually
@@ -186,9 +185,9 @@ export default function WorkerLocationSetup({
     }
 
     setIsSubmitting(true);
-    const finalFormattedAddress = landmark.trim() 
-      ? `${address.trim()}, Near ${landmark.trim()}, ${resolvedCity}`
-      : `${address.trim()}, ${resolvedCity}`;
+    const finalFormattedAddress = landmark.trim()
+      ? `${address.trim()}, Near ${landmark.trim()}${resolvedCity ? `, ${resolvedCity}` : ''}`
+      : `${address.trim()}${resolvedCity ? `, ${resolvedCity}` : ''}`;
 
     // Save to LocalStorage
     try {
@@ -214,22 +213,26 @@ export default function WorkerLocationSetup({
     }
 
     // Save/Update in Firestore with PENDING status for Admin Approval
-    const activeUid = currentUser?.sub || `worker_${Date.now()}`;
+    const activeUid = auth.currentUser?.uid || currentUser?.sub || currentUser?.id || currentUser?.user_id || '';
     const generatedAppId = workerApplication?.id || `APP-${Date.now().toString().slice(-6)}`;
+    if (!activeUid) { setIsSubmitting(false); setErrorMessage('Your authenticated account ID is unavailable. Please sign in again.'); return; }
 
     const appData: WorkerApplication = {
       id: generatedAppId,
       uid: activeUid,
       legalName: legalName.trim(),
+      dob: dob.trim(),
       address: finalFormattedAddress,
-      area: resolvedArea,
-      sector: resolvedSector,
-      skill: selectedCategories.join(', ') || 'AC Technician',
+      area: resolvedArea || undefined,
+      city: resolvedCity || undefined,
+      landmark: landmark.trim() || undefined,
+      sector: resolvedSector || undefined,
+      skill: selectedCategories.join(', '),
       categories: selectedCategories,
-      experienceYears: workerApplication?.experienceYears || '3-5 Years',
+      experienceYears: workerApplication?.experienceYears || '',
       phone: authMethod === 'phone' ? authTarget : (workerApplication?.phone || currentUser?.phone_number || ''),
-      email: authMethod === 'gmail' ? authTarget : (workerApplication?.email || currentUser?.email || 'partner@punchx.com'),
-      visitingFee: workerApplication?.visitingFee || 199,
+      email: authMethod === 'gmail' ? authTarget : (workerApplication?.email || currentUser?.email || ''),
+      visitingFee: workerApplication?.visitingFee,
       termsAccepted: true,
       status: 'PENDING',
       appliedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ', Today'
@@ -247,10 +250,14 @@ export default function WorkerLocationSetup({
         area: resolvedArea,
         city: resolvedCity,
         sector: resolvedSector,
-        workerSkill: selectedCategories.join(', ') || 'AC Technician',
+        workerSkill: selectedCategories.join(', '),
         categories: selectedCategories,
+        workerCategories: selectedCategories,
+        experienceYears: appData.experienceYears,
+        visitingFee: appData.visitingFee,
+        customSkill: workerApplication?.customSkill || '',
         skill: selectedCategories[0] || 'AC Technician',
-        location: { lat: coords.lat, lng: coords.lng },
+        ...(coords ? { location: { lat: coords.lat, lng: coords.lng } } : {}),
         role: 'worker',
         phone: appData.phone,
         email: appData.email,
