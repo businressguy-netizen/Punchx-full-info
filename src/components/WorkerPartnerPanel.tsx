@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X, MapPin, Phone, Navigation, CheckCircle2, Clock3, CircleAlert, TrendingUp, CalendarDays, Star, ShieldCheck, Gift, LifeBuoy, ChevronRight, Search, Banknote, BriefcaseBusiness, Zap, MoreHorizontal, SlidersHorizontal, Route, MessageCircle, GraduationCap, Plus, Timer, Package, Camera, Pencil, Save, Loader2, BarChart3, LineChart } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
-import { db } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { OrderRecord } from '../types';
 import { collection, doc, onSnapshot, runTransaction, updateDoc, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
@@ -536,7 +536,32 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
        photoURL:photoPreview||'',
        updatedAt:new Date().toISOString()
      };
-     await setDoc(doc(db,'users',uid),payload,{merge:true});
+     let backendSaved=false;
+     try{
+       const token=auth.currentUser?await auth.currentUser.getIdToken():null;
+       if(token){
+         const backendBase=import.meta.env.VITE_BACKEND_URL||'';
+         const response=await fetch(backendBase+'/api/worker/profile',{
+           method:'POST',
+           headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
+           body:JSON.stringify(payload)
+         });
+         if(!response.ok){
+           let message='Worker profile API rejected the update';
+           try{const data=await response.json();message=data?.error||message;}catch{}
+           throw new Error(message);
+         }
+         backendSaved=true;
+       }
+     }catch(backendError){
+       console.warn('Worker profile API save notice; trying Firestore owner write:',backendError);
+     }
+
+     if(!backendSaved){
+       if(!auth.currentUser) throw new Error('Your authenticated session is unavailable. Please sign in again.');
+       await setDoc(doc(db,'users',uid),payload,{merge:true});
+     }
+
      try{await refreshProfile?.();}catch(refreshError){console.warn('Profile refresh notice after successful save:',refreshError);}
      setEditing(false);
      showNotification?.('✓ Profile saved to PunchX securely.');
