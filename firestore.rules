@@ -104,6 +104,8 @@ service cloud.firestore {
               'isOnline',
               'workerStatus',
               'workerSkill',
+              'workerCategories',
+              'customSkill',
               'workerExperience',
               'workerAvailability',
               'categories',
