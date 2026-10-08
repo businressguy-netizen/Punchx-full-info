@@ -294,6 +294,22 @@ function HomeView(p:any){
  var active=p.today.find(function(o:Order){return o.status!=='COMPLETED'&&o.status!=='CANCELLED'});
  return <div className="wx-stack">
   <div className="wx-hero"><div><span className="wx-pill"><i></i>{p.online?'Ready for orders':'Offline'}</span><h2>{p.online?'You’re online and ready for today’s work.':'You’re currently offline.'}</h2><p>{new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} · {p.area||"Service area unavailable"}</p></div><div className="wx-hero-earn"><span>Today’s earnings</span><strong>{p.todayEarn!==null?money(p.todayEarn):'Unavailable'}</strong><small>Based on completed PunchX bookings</small></div></div>
+  <section className="wx-geofence-card">
+   <div className="wx-geofence-main">
+    <div className="wx-geofence-icon"><MapPin size={20}/></div>
+    <div className="wx-geofence-copy">
+     <span className="wx-section-label">LIVE GEOFENCING</span>
+     <h3>{p.geo?.area||p.area||'Service zone unavailable'}</h3>
+     <p>{p.geo?.city||'Location not resolved'}{p.geo?.sector?' · '+p.geo.sector:''} · {GEOFENCE_RADIUS_KM} km service radius</p>
+     <small>{p.geoLoading?'Detecting your live location…':p.geoError||'Your current GPS position determines the active service zone.'}</small>
+    </div>
+   </div>
+   <div className="wx-geofence-actions">
+    <span className={'wx-live-location '+(p.geo?'ready':'')}>{p.geo?'LIVE':'LOCATION NEEDED'}</span>
+    <button className={'wx-online-toggle '+(p.online?'online':'offline')} onClick={p.toggleOnline}><i></i>{p.online?'Go offline':'Come online'}</button>
+    <small>{p.online?'Online: eligible for instant / SOS requests.':'Offline: instant / SOS requests are not offered; later bookings remain visible.'}</small>
+   </div>
+  </section>
   <div className="wx-stats"><Stat label="Today’s orders" value={p.today.length} icon={ClipboardList}/><Stat label="Completed" value={p.completed} icon={CheckCircle2}/><Stat label="Pending" value={p.pending} icon={Clock3}/><Stat label="Cancelled" value={p.cancelled} icon={CircleAlert}/><Stat label="Working hours" value="—" icon={BriefcaseBusiness}/><Stat label="Avg. order" value={p.today.filter((o:any)=>o.earning!==null).length?money(p.today.filter((o:any)=>o.earning!==null).reduce((s:number,o:any)=>s+(o.earning||0),0)/p.today.filter((o:any)=>o.earning!==null).length):"—"} icon={TrendingUp}/></div>
   <div className="wx-grid-main">
    <section className="wx-card wx-active-card"><div className="wx-card-head"><div><span className="wx-section-label">PRIORITY</span><h3>Active order</h3></div>{active&&<span className={'wx-badge '+active.status.toLowerCase()}>{labels[active.status]}</span>}</div>{active?<OrderCompact order={active} open={()=>p.open(active)} advance={()=>p.advance(active)} action={p.action(active.status)}/>:<div className="wx-empty"><CheckCircle2 size={32}/><b>No active orders</b><span>You’re all caught up. Check upcoming bookings for your next visit.</span><button onClick={()=>p.nav('orders')}>View orders <ChevronRight size={15}/></button></div>}</section>
