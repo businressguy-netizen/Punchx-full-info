@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, Home, MapPin, Plus, ShoppingBag, Trash2, UserRound, Wallet, X } from 'lucide-react';
 import { AppScreen, Worker } from '../types';
+import { calculateDistanceKm } from '../lib/location';
 import { calculatePunchXPricing, formatINR } from '../config/punchxCommerce';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
 import { fetchApprovedProfessionals } from '../services/professionalDirectory';
@@ -20,7 +21,7 @@ interface ConfirmBookingProps {
   setCitizenAddress: (val: string) => void;
 }
 
-type CartItem = { id:string; serviceId?:string; serviceName:string; category:string; subcategory?:string; description?:string; price:number; duration?:string; image?:string };
+type CartItem = { id:string; serviceId?:string; serviceName:string; category:string; subcategory?:string; description?:string; price:number; duration?:string; image?:string; bookingTiming?:'instant'|'later' };
 type Address = { house:string; street:string; landmark:string; villageArea:string; city:string; district:string; state:string; pinCode:string };
 const EMPTY:Address={house:'',street:'',landmark:'',villageArea:'',city:'',district:'',state:'',pinCode:''};
 const DEMO_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_PROFESSIONALS === 'true';
@@ -38,6 +39,8 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const [warranty,setWarranty]=useState(false);
   const [note,setNote]=useState('');
 
+  const customerGeo = useMemo(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } }, []);
+
   useEffect(() => {
     const pending = loadJSON<any>('punchx_pending_booking', null);
     if (!cart.length && pending?.serviceName) {
@@ -45,7 +48,16 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
     }
     let active = true;
     void fetchApprovedProfessionals().then(approved => {
-      if (active) setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...approved] : approved);
+      if (!active) return;
+      const timing = (cart[0]?.bookingTiming || pending?.bookingTiming || 'later') as 'instant'|'later';
+      const area = String(customerGeo?.area || customerGeo?.city || '').toLowerCase();
+      const visible = approved.filter(worker => {
+        if (timing === 'instant' && worker.isOnline !== true) return false;
+        if (customerGeo && worker.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, worker.location.lat, worker.location.lng) <= 15;
+        const workerArea = String(worker.area || worker.sector || worker.address || '').toLowerCase();
+        return Boolean(area && workerArea && (workerArea.includes(area) || area.includes(workerArea)));
+      });
+      setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...visible] : visible);
     }).catch(() => {
       if (active) setWorkers(DEMO_ENABLED ? DEMO_PROFESSIONALS : []);
     });
@@ -66,7 +78,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
     setCitizenAddress(addressText);setBookingDate(date);setBookingTime(time);
     saveJSON('punchx_residential_address',address);localStorage.setItem('punchx_residential_address_label',addressText);
     const selected=customWorker||selectedWorker;
-    saveJSON('punchx_pending_booking',{cart,serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
+    saveJSON('punchx_pending_booking',{cart,bookingTiming:cart[0]?.bookingTiming||'later',serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
     onTransition('payment');
   };
 
