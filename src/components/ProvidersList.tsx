@@ -62,11 +62,14 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const chooseCategory = (value: ServiceCategory) => { setCategory(value); setSubcategory(null); setSelectedService(null); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage(''); setSearch(''); setStep('subcategories'); onSelectCategory?.(value.name); };
   const chooseSubcategory = (value: ServicesSubcategory) => { setSubcategory(value); setSelectedService(null); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage(''); setSearch(''); setStep('services'); };
 
-  const checkAvailability = (service: ServiceItem) => {
+  const checkAvailability = async (service: ServiceItem) => {
     setSelectedService(service); setChecking(true); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage('Checking verified professionals in your service area…');
-    window.setTimeout(() => {
+    try {
+      const freshWorkers = await fetchApprovedProfessionals();
+      setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers);
+      const sourceWorkers = DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers;
       const area = norm(`${geo?.area || ''} ${geo?.city || ''}`);
-      const found = workers.filter(worker => {
+      const found = sourceWorkers.filter(worker => {
         if (worker.available === false || !category) return false;
         if (!isCategoryMatching(worker.categories || worker.category, category.name) && !isCategoryMatching(worker.categories || worker.category, category.id)) return false;
         if (DEMO_ENABLED && worker.id.startsWith('demo-')) return true;
@@ -76,8 +79,12 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
         const workerArea = norm(`${worker.area || ''} ${worker.sector || ''} ${worker.address || ''}`);
         return Boolean(area && workerArea && (workerArea.includes(area) || area.includes(workerArea)));
       });
-      setMatchingWorkers(found); setAvailable(found.length > 0); setAvailabilityMessage(found.length ? `${found.length} verified professional${found.length===1?'':'s'} available` : 'Service is not available on your area.'); setChecking(false);
-    }, 250);
+      setMatchingWorkers(found); setAvailable(found.length > 0); setAvailabilityMessage(found.length ? `${found.length} verified professional${found.length===1?'':'s'} available` : 'No registered professional is currently available in your service zone.');
+    } catch (error) {
+      setAvailabilityMessage('Professional availability could not be verified right now.');
+    } finally {
+      setChecking(false);
+    }
   };
 
   const addToCart = () => {
