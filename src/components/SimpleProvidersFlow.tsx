@@ -6,6 +6,7 @@ import { AppScreen, Worker } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
 import { PUNCHX_COMMERCE, formatINR } from '../config/punchxCommerce';
+import { calculateDistanceKm } from '../lib/location';
 
 type Service = {
   id: string; name: string; category: string; subcategory: string; description: string;
@@ -41,6 +42,7 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
   const [selected, setSelected] = useState<Service | null>(null); const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [dispatchMode, setDispatchMode] = useState<'AUTO_MATCH'|'PERSONAL_SELECT'>('AUTO_MATCH'); const [bookingTiming, setBookingTiming] = useState<'instant'|'later'>('instant'); const [completedWithSelectedWorker, setCompletedWithSelectedWorker] = useState(0); const [countLoading, setCountLoading] = useState(false);
   const [address, setAddress] = useState(citizenAddress || ''); const [date, setDate] = useState(''); const [time, setTime] = useState('');
+  const [customerGeo] = useState<{lat:number;lng:number;area?:string;city?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
   useEffect(() => setAddress(citizenAddress || ''), [citizenAddress]);
 
   useEffect(() => { const unsub = onSnapshot(collection(db, 'services'), snapshot => { const next = snapshot.docs.map(doc => normalize(doc.id, doc.data())).filter(Boolean) as Service[]; setServices(next.filter(s => (s as any).active !== false)); setLoading(false); }, error => { console.warn('PUNCHX service catalogue:', error); setServices([]); setLoading(false); }); return () => unsub(); }, []);
@@ -65,7 +67,7 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
 
   const category = selectedCategory || 'All Services';
   const categoryServices = useMemo(() => { const matches = services.filter(s => category.toLowerCase() === 'all services' || category.toLowerCase() === 'all' || s.category.toLowerCase() === category.toLowerCase() || isCategoryMatching(s.category, category)).filter(s => `${s.name} ${s.description} ${s.subcategory}`.toLowerCase().includes(queryText.toLowerCase().trim())); if (DEMO_PROFESSIONALS_ENABLED && matches.length === 0) return DEMO_SERVICES.filter(s => category.toLowerCase() === 'all services' || category.toLowerCase() === 'all' || s.category.toLowerCase() === category.toLowerCase() || isCategoryMatching(s.category, category)).filter(s => `${s.name} ${s.description} ${s.subcategory}`.toLowerCase().includes(queryText.toLowerCase().trim())); return matches; }, [services, category, queryText]);
-  const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => (isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase()) && w.available !== false && (bookingTiming === 'later' || w.isOnline === true)).sort((a,b) => b.rating-a.rating), [workers, selected, bookingTiming]);
+  const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => { if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false; if (bookingTiming === 'instant' && w.isOnline !== true) return false; if (customerGeo && w.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, w.location.lat, w.location.lng) <= 15; const area = String(customerGeo?.area || customerGeo?.city || '').toLowerCase(); const workerArea = String(w.area || w.sector || w.address || '').toLowerCase(); return Boolean(area && workerArea && (workerArea.includes(area) || area.includes(workerArea))); }).sort((a,b) => b.rating-a.rating), [workers, selected, bookingTiming, customerGeo]);
   const personalSelectionFeeRate = dispatchMode === 'PERSONAL_SELECT' && completedWithSelectedWorker >= PUNCHX_COMMERCE.personalSelection.freeCompletedBookings ? PUNCHX_COMMERCE.personalSelection.feeRateAfterFreeBookings : 0;
   const personalSelectionFee = Math.round(Number(selected?.price || 0) * personalSelectionFeeRate * 100) / 100;
 
