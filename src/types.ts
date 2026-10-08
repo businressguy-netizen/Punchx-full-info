@@ -27,13 +27,17 @@ export interface WorkerApplication {
   id: string;
   uid: string;
   legalName: string;
+  dob?: string;
   address: string;
   area?: string;
+  city?: string;
   sector?: string;
+  landmark?: string;
   skill: string;
   categories?: string[];
   customSkill?: string;
   experienceYears: string;
+  visitingFee?: number;
   phone: string;
   email: string;
   visitingFee?: number;
