@@ -21,18 +21,20 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function approvedWorkerApplication(appId) {
+      return appId != null
+        && exists(/databases/$(database)/documents/workerApplications/$(appId))
+        && get(/databases/$(database)/documents/workerApplications/$(appId)).data.uid == request.auth.uid
+        && get(/databases/$(database)/documents/workerApplications/$(appId)).data.status == 'APPROVED';
+    }
+
     function isApprovedWorker() {
       return signedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'worker'
         && (
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'APPROVED'
-          || (
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.applicationId != null
-            && exists(/databases/$(database)/documents/workerApplications/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.applicationId))
-            && get(/databases/$(database)/documents/workerApplications/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.applicationId)).data.uid == request.auth.uid
-            && get(/databases/$(database)/documents/workerApplications/$(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.applicationId)).data.status == 'APPROVED'
-          )
+          || approvedWorkerApplication(get(/databases/$(database)/documents/users/$(request.auth.uid)).data.applicationId)
         );
     }
 
