@@ -3,8 +3,9 @@ import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X
 import { useAuth } from '../lib/authContext';
 import { db } from '../lib/firebase';
 import { OrderRecord } from '../types';
-import { collection, doc, onSnapshot, runTransaction, updateDoc, query as firestoreQuery, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, updateDoc, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
+import { calculateDistanceKm, getAccurateCurrentPosition, reverseGeocodeCoords } from '../lib/location';
 import './worker-partner-panel.css';
 
 type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
@@ -32,8 +33,41 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const [filter,setFilter]=useState('ALL');
  const [mobile,setMobile]=useState(false);
  const [loggingOut,setLoggingOut]=useState(false);
+ const [geo,setGeo]=useState<{lat:number;lng:number;area:string;city:string;sector:string;updatedAt:string}|null>(()=>{
+   const loc=userProfile?.location;
+   return loc&&typeof loc.lat==='number'&&typeof loc.lng==='number'?{lat:loc.lat,lng:loc.lng,area:String(userProfile?.geofenceArea||userProfile?.area||'Service area unavailable'),city:String(userProfile?.city||''),sector:String(userProfile?.sector||''),updatedAt:String(userProfile?.geofenceUpdatedAt||userProfile?.updatedAt||'')}:null;
+ });
+ const [geoLoading,setGeoLoading]=useState(false);
+ const [geoError,setGeoError]=useState('');
  const name=userProfile?.name||'Professional';
  useEffect(function(){if(typeof userProfile?.workerAvailability==='boolean')setOnline(userProfile.workerAvailability);},[userProfile?.workerAvailability]);
+ useEffect(function(){
+   if(!uid||typeof navigator==='undefined'||!navigator.geolocation)return;
+   let cancelled=false; let watchId:number|null=null; let lastReverse=0;
+   const applyPosition=async function(lat:number,lng:number){
+     if(cancelled)return;
+     try{
+       const resolved=await reverseGeocodeCoords(lat,lng);
+       if(cancelled)return;
+       const next={lat,lng,area:resolved.area||'Local area',city:resolved.city||'',sector:resolved.sector||'',updatedAt:new Date().toISOString()};
+       setGeo(next);setGeoError('');
+       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,sector:next.sector,geofenceArea:next.area,geofenceRadiusKm:GEOFENCE_RADIUS_KM,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
+       await setDoc(doc(db,'users',uid),payload,{merge:true});
+       await setDoc(doc(db,'workerApplications',uid),payload,{merge:true});
+     }catch(error){if(!cancelled)setGeoError('Live location could not be resolved right now.');}
+   };
+   const detect=async function(){
+     setGeoLoading(true);setGeoError('');
+     try{const pos=await getAccurateCurrentPosition(true);await applyPosition(pos.lat,pos.lng);}catch(error){if(!cancelled)setGeoError('Location permission is required to detect your service zone.');}finally{if(!cancelled)setGeoLoading(false);}
+   };
+   void detect();
+   watchId=navigator.geolocation.watchPosition(function(pos){
+     const now=Date.now();
+     if(now-lastReverse<30000)return;
+     lastReverse=now;void applyPosition(pos.coords.latitude,pos.coords.longitude);
+   },function(){if(!cancelled)setGeoError('Live location permission is unavailable.');},{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+   return function(){cancelled=true;if(watchId!==null)navigator.geolocation.clearWatch(watchId);};
+ },[uid]);
  const workerCategories=useMemo(function(){
    const raw=userProfile?.workerCategories || userProfile?.categories || [];
    return Array.from(new Set([...(Array.isArray(raw)?raw:[]),userProfile?.workerSkill,userProfile?.skill].map(normalise).filter(Boolean)));
@@ -64,12 +98,15 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
      [...assigned,...available].forEach(function(o){map.set(o.id,o);});
      const nextOrders=Array.from(map.values()).filter(function(o){
        if(o.workerId===uid)return true;
-       if(!online)return false;
        if(o.workerId || !pending(o.status))return false;
+       const instantOrder=isInstantOrderRecord(o);
+       if(instantOrder&&!online)return false;
        if(o.isPersonalSelection || o.dispatchMode==='PERSONAL_SELECT')return false;
        const cat=normalise(o.category);
        const catOk=!workerCategories.length || workerCategories.some(function(x){return cat.includes(x)||x.includes(cat)});
        if(!catOk)return false;
+       const customerLoc=o.customerLocation;
+       if(customerLoc&&geo){return calculateDistanceKm(geo.lat,geo.lng,customerLoc.lat,customerLoc.lng)<=GEOFENCE_RADIUS_KM;}
        const oa=normalise(o.area), os=normalise(o.sector);
        if(oa||os)return (!workerArea || !oa || oa===workerArea) || (!!workerSector && !!os && workerSector===os);
        return true;
@@ -94,7 +131,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    },function(){availableReady=true;publish();showNotification?.('Unable to sync available jobs right now.');});
 
    return function(){unsubAssigned();unsubAvailable();};
- },[uid,workerCategories.join('|'),workerArea,workerSector,online]);
+ },[uid,workerCategories.join('|'),workerArea,workerSector,online,geo?.lat,geo?.lng]);
  const today=orders.filter(function(o){return isToday(o.date)||isToday(o.raw?.createdAt)});
  const completed=today.filter(function(o){return o.status==='COMPLETED'}).length;
  const pendingCount=today.filter(function(o){return o.status!=='COMPLETED'&&o.status!=='CANCELLED'}).length;
@@ -184,7 +221,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
   <div className="wx-main">
    <header className="wx-header"><div className="wx-header-left"><button className="wx-menu" onClick={()=>setMobile(true)} aria-label="Open partner menu"><Menu/></button><div className="wx-mobile-brand"><img src={PUNCHX_LOGO} alt="PUNCHX" /><span>PUNCHX</span></div></div><div className="wx-header-title"><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={()=>persistAvailability(!online)}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')} aria-label="Open profile"><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
    <main className="wx-content">
-    {tab==='home'&&<HomeView area={userProfile?.area||workerArea} online={online} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
+    {tab==='home'&&<HomeView area={geo?.area||userProfile?.area||workerArea} geo={geo} geoLoading={geoLoading} geoError={geoError} online={online} toggleOnline={()=>persistAvailability(!online)} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
     {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} todayEarn={todayEarn}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
     {tab==='profile'&&<ProfileView userProfile={userProfile} uid={uid} refreshProfile={refreshProfile} showNotification={showNotification}/>}
