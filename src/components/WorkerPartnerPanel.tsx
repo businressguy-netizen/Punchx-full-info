@@ -240,22 +240,22 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
  const [saving,setSaving]=useState(false);
  const [photoBusy,setPhotoBusy]=useState(false);
  const [draft,setDraft]=useState<any>({});
- const [photoPreview,setPhotoPreview]=useState<string>(p.photoURL||'');
+ const [photoPreview,setPhotoPreview]=useState<string>(p.photoURL||application?.photoURL||'');
 
  useEffect(function(){
-   setPhotoPreview(p.photoURL||'');
+   setPhotoPreview(p.photoURL||application?.photoURL||'');
    setDraft({
-     name:p.name||'',
-     phone:p.phone||'',
-     address:p.address||'',
-     landmark:p.landmark||'',
-     area:p.area||'',
-     sector:p.sector||'',
-     workerSkill:p.workerSkill||'',
-     workerExperience:p.workerExperience||'',
-     bio:p.bio||''
+     name:p.name||application?.legalName||'',
+     phone:p.phone||application?.phone||'',
+     address:p.address||application?.address||'',
+     landmark:p.landmark||application?.landmark||'',
+     area:p.area||application?.area||'',
+     sector:p.sector||application?.sector||'',
+     workerSkill:p.workerSkill||application?.skill||'',
+     workerExperience:p.workerExperience||application?.experienceYears||'',
+     bio:p.bio||application?.bio||''
    });
- },[p.name,p.phone,p.address,p.landmark,p.area,p.sector,p.workerSkill,p.workerExperience,p.bio,p.photoURL]);
+ },[p.name,p.phone,p.address,p.landmark,p.area,p.sector,p.workerSkill,p.workerExperience,p.bio,p.photoURL,application]);
 
  useEffect(function(){
    if(!uid)return;
