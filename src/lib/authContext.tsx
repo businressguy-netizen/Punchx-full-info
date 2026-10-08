@@ -259,18 +259,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
   };
 
   const logout = async () => {
+    let signOutError: unknown = null;
     try {
       if (auth) {
         await firebaseSignOut(auth);
       }
+    } catch (error) {
+      signOutError = error;
+      console.error('Error signing out from Firebase:', error);
+    } finally {
+      // Always clear the local PunchX session and notify the app so the user
+      // cannot remain visually logged in when the provider sign-out fails.
       setCurrentUser(null);
       setUserProfile(null);
       localStorage.removeItem('punchx_namoid_identity');
       localStorage.removeItem('punchx_namoid_profile');
       localStorage.removeItem('punchx_auth_role');
       window.dispatchEvent(new CustomEvent('punchx_logout'));
-    } catch (error) {
-      console.error('Error signing out:', error);
+    }
+    if (signOutError) {
+      throw signOutError;
     }
   };
 
