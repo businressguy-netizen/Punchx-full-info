@@ -201,3 +201,21 @@
  .wx-geofence-actions{grid-template-columns:1fr 1fr}
  .wx-online-toggle{padding:10px 8px}
 }
+
+/* Mobile header: keep branding and controls on one clean row. */
+@media(max-width:820px){
+  .wx-header-title{display:none!important}
+  .wx-header{display:flex;align-items:center;justify-content:flex-start;min-width:0}
+  .wx-header-left{display:flex!important;align-items:center;flex:0 0 auto!important;min-width:0!important;gap:8px}
+  .wx-mobile-brand{display:flex!important;align-items:center;justify-content:center;margin:0!important;width:72px;height:34px;flex:0 0 72px;overflow:hidden}
+  .wx-mobile-brand img{display:block;width:72px;height:34px;max-width:72px;object-fit:contain}
+  .wx-head-actions{display:flex;align-items:center;margin-left:auto!important;flex:0 0 auto}
+}
+@media(max-width:380px){
+  .wx-header{padding-left:9px;padding-right:9px;gap:5px}
+  .wx-header-left{gap:5px}
+  .wx-mobile-brand{width:62px;height:30px;flex-basis:62px}
+  .wx-mobile-brand img{width:62px;height:30px;max-width:62px}
+  .wx-head-actions{gap:3px}
+  .wx-head-actions .wx-status{padding:6px 6px;font-size:7px}
+}
