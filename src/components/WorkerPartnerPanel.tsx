@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X, MapPin, Phone, Navigation, CheckCircle2, Clock3, CircleAlert, TrendingUp, CalendarDays, Star, ShieldCheck, Gift, LifeBuoy, ChevronRight, Search, Banknote, BriefcaseBusiness, Zap, MoreHorizontal, SlidersHorizontal, Route, MessageCircle, GraduationCap, Plus, Timer, Package } from 'lucide-react';
+import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X, MapPin, Phone, Navigation, CheckCircle2, Clock3, CircleAlert, TrendingUp, CalendarDays, Star, ShieldCheck, Gift, LifeBuoy, ChevronRight, Search, Banknote, BriefcaseBusiness, Zap, MoreHorizontal, SlidersHorizontal, Route, MessageCircle, GraduationCap, Plus, Timer, Package, Camera, Pencil, Save, Loader2 } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { db } from '../lib/firebase';
 import { OrderRecord } from '../types';
-import { collection, doc, onSnapshot, runTransaction, updateDoc } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, updateDoc, query, where } from 'firebase/firestore';
 import './worker-partner-panel.css';
 
 type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
@@ -21,7 +21,7 @@ const isWithinDays=(value:unknown,days:number)=>{const d=parseDate(value);if(!d)
 const safeNumber=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)?n:0;};
 
 export default function WorkerPartnerPanel({onTransition,showNotification}:{onTransition?:(s:any)=>void;showNotification?:(m:string)=>void}) {
- const {currentUser,userProfile}=useAuth() as any;
+ const {currentUser,userProfile,refreshProfile}=useAuth() as any;
  const uid=currentUser?.uid || userProfile?.uid || '';
  const [tab,setTab]=useState<Tab>('home');
  const [online,setOnline]=useState(false);
@@ -30,7 +30,6 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const [query,setQuery]=useState('');
  const [filter,setFilter]=useState('ALL');
  const [mobile,setMobile]=useState(false);
- const [loading,setLoading]=useState(true);
  const name=userProfile?.name||'Professional';
  useEffect(function(){if(typeof userProfile?.workerAvailability==='boolean')setOnline(userProfile.workerAvailability);},[userProfile?.workerAvailability]);
  const workerCategories=useMemo(function(){
@@ -49,7 +48,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    return 'NEW';
  };
  useEffect(function(){
-   if(!uid){setLoading(false);return;}
+   if(!uid){return;}
    const unsub=onSnapshot(collection(db,'orders'),function(snap){
      const nextOrders=snap.docs.map(function(d){return {id:d.id,...d.data()} as OrderRecord}).filter(function(o){
        if(o.workerId===uid) return true;
@@ -69,8 +68,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        return {id:o.id,customer:o.customerName||'Customer',service:o.category||'Service',address:o.customerAddress||o.area||o.sector||'Location available in details',distance:Number.isFinite(Number((o as any).distanceKm))&&Number((o as any).distanceKm)>0?Number((o as any).distanceKm):null,time:o.time||'Time unavailable',date:o.date||'Upcoming',duration:o.emergencyETA?'Emergency':'Scheduled',price:o.totalAmountToPay!=null||o.price!=null?Number(o.totalAmountToPay??o.price):null,earning:o.professionalPayout!=null?Number(o.professionalPayout):null,status:mapStatus(o.status),payment:o.paymentStatus||o.paymentMethod||'Payment status unavailable',avatar:(o.customerName||'CU').slice(0,2).toUpperCase(),raw:o};
      });
      setOrders(nextOrders);
-     setLoading(false);
-   },function(){setLoading(false);showNotification?.('Unable to sync live jobs right now.');});
+   },function(){showNotification?.('Unable to sync live jobs right now.');});
    return function(){unsub();};
  },[uid,workerCategories.join('|'),workerArea,workerSector]);
  const today=orders.filter(function(o){return isToday(o.date)||isToday(o.raw?.createdAt)});
@@ -119,7 +117,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        const backendStatus:any=o.status==='ACCEPTED'?'EN_ROUTE':o.status==='TRAVELLING'?'ARRIVED':o.status==='ARRIVED'?'IN_SERVICE':o.status==='SERVICE_STARTED'?'Done':null;
        if(!backendStatus) return;
        await updateDoc(doc(db,'orders',raw.id),{status:backendStatus,updatedAt:new Date().toISOString(),...(backendStatus==='Done'?{completedAt:new Date().toISOString(),workerOutForWork:false}:{})});
-       showNotification?.(backendStatus==='Done'?'✅ Service completed and recorded.':'Order '+o.id+' updated to '+statusText(backendStatus)+'.');
+       showNotification?.(backendStatus==='Done'?'✅ Service completed and recorded.':'Order '+o.id+' updated to '+(labels[mapStatus(backendStatus)]||backendStatus)+'.');
      }
      setSelected(null);
    }catch(e:any){showNotification?.('⚠️ '+(e?.message||'Could not update this booking.'));}
@@ -135,7 +133,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    <button className="wx-logout" onClick={()=>onTransition?.('panel-select')}><LogOut size={18}/> Logout</button>
   </aside>
   <div className="wx-main">
-   <header className="wx-header"><button className="wx-menu" onClick={()=>setMobile(true)}><Menu/></button><div><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={async()=>{const nextOnline=!online;setOnline(nextOnline);try{if(uid)await updateDoc(doc(db,'users',uid),{workerAvailability:nextOnline,updatedAt:new Date().toISOString()});showNotification?.(nextOnline?'You are now online and eligible for new orders':'You are now offline and will not receive new jobs');}catch(e){setOnline(!nextOnline);showNotification?.('Unable to save availability. Please try again.');}}}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')}><Bell size={20}/><b>3</b></button><button className="wx-profile-chip" onClick={()=>nav('profile')}><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
+   <header className="wx-header"><button className="wx-menu" onClick={()=>setMobile(true)}><Menu/></button><div><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={async()=>{const nextOnline=!online;setOnline(nextOnline);try{if(uid)await updateDoc(doc(db,'users',uid),{workerAvailability:nextOnline,isOnline:nextOnline,workerStatus:nextOnline?'ONLINE':'OFFLINE',updatedAt:new Date().toISOString()});showNotification?.(nextOnline?'You are now online and eligible for new orders':'You are now offline and will not receive new jobs');}catch(e){setOnline(!nextOnline);showNotification?.('Unable to save availability. Please try again.');}}}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')}><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
    <main className="wx-content">
     {tab==='home'&&<HomeView area={userProfile?.area||workerArea} online={online} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
@@ -161,7 +159,7 @@ function HomeView(p:any){
   <div className="wx-stats"><Stat label="Today’s orders" value={p.today.length} icon={ClipboardList}/><Stat label="Completed" value={p.completed} icon={CheckCircle2}/><Stat label="Pending" value={p.pending} icon={Clock3}/><Stat label="Cancelled" value={p.cancelled} icon={CircleAlert}/><Stat label="Working hours" value="—" icon={BriefcaseBusiness}/><Stat label="Avg. order" value={p.today.filter((o:any)=>o.earning!==null).length?money(p.today.filter((o:any)=>o.earning!==null).reduce((s:number,o:any)=>s+(o.earning||0),0)/p.today.filter((o:any)=>o.earning!==null).length):"—"} icon={TrendingUp}/></div>
   <div className="wx-grid-main">
    <section className="wx-card wx-active-card"><div className="wx-card-head"><div><span className="wx-section-label">PRIORITY</span><h3>Active order</h3></div>{active&&<span className={'wx-badge '+active.status.toLowerCase()}>{labels[active.status]}</span>}</div>{active?<OrderCompact order={active} open={()=>p.open(active)} advance={()=>p.advance(active)} action={p.action(active.status)}/>:<div className="wx-empty"><CheckCircle2 size={32}/><b>No active orders</b><span>You’re all caught up. Check upcoming bookings for your next visit.</span><button onClick={()=>p.nav('orders')}>View orders <ChevronRight size={15}/></button></div>}</section>
-   <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">PERFORMANCE</span><h3>Performance score</h3></div><span className="wx-score-number">92/100</span></div><div className="wx-score-row"><div className="wx-ring"><strong>92</strong><span>Excellent</span></div><div><p>Keep response and arrival times high to unlock peak-hour incentives.</p><div className="wx-progress-row"><span>Completion</span><b>95%</b><div><i style={{width:'95%'}}/></div></div><div className="wx-progress-row"><span>On-time arrival</span><b>91%</b><div><i style={{width:'91%'}}/></div></div></div></div></section>
+   <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">PERFORMANCE</span><h3>Performance score</h3></div><span className="wx-score-number">Unavailable</span></div><div className="wx-performance-unavailable"><TrendingUp size={28}/><b>No verified performance score yet</b><span>PunchX will show a score only when a real performance record is available for this partner.</span><button onClick={()=>p.nav('performance')}>Open performance <ChevronRight size={14}/></button></div></section>
   </div>
   <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">SCHEDULE</span><h3>Today’s orders</h3></div><button className="wx-link" onClick={()=>p.nav('orders')}>View all <ChevronRight size={14}/></button></div><div className="wx-timeline">{p.orders.filter(function(o:Order){return isToday(o.date)||isToday(o.raw?.createdAt)}).map(function(o:Order){return <button className="wx-time-row" key={o.id} onClick={()=>p.open(o)}><time>{o.time}</time><span className={'wx-dot '+o.status.toLowerCase()}></span><div><b>{o.service}</b><small>{o.customer} · {o.address}</small></div><strong>{o.earning!==null?money(o.earning):'Payout unavailable'}</strong><span className={'wx-mini-status '+o.status.toLowerCase()}>{labels[o.status]}</span><ChevronRight size={15}/></button>})}</div></section>
   <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">UPCOMING</span><h3>Next bookings</h3></div><CalendarDays size={19}/></div>{p.orders.filter(function(o:Order){return o.date!=='Today'}).map(function(o:Order){return <button className="wx-upcoming-row" key={o.id} onClick={()=>p.open(o)}><div className="wx-date-box"><b>{o.time.split(' ')[0]}</b><span>{o.time.split(' ')[1]}</span></div><div><b>{o.service}</b><span>{o.customer} · {o.address}</span></div><strong>{o.earning!==null?money(o.earning):'Payout unavailable'}</strong><ChevronRight size={15}/></button>})}</section>
@@ -200,8 +198,183 @@ function ScheduleView(){return <div className="wx-stack"><div className="wx-page
 function PerformanceView({orders,userProfile}:{orders:Order[];userProfile:any}){const completed=orders.filter(o=>o.status==='COMPLETED');const cancelled=orders.filter(o=>o.status==='CANCELLED');const den=completed.length+cancelled.length;const completion=den?Math.round(completed.length/den*100):null;const ratings=completed.map(o=>safeNumber(o.raw?.userRating)).filter(n=>n>0);const rating=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">QUALITY SCORE</span><h2>Performance & growth</h2><p>Calculated from real PunchX booking records only.</p></div></div><div className="wx-stats"><Stat label="Customer rating" value={rating?rating.toFixed(1)+' / 5':(userProfile?.workerRating?Number(userProfile.workerRating).toFixed(1)+' / 5':'—')} icon={Star}/><Stat label="Completion rate" value={completion!==null?completion+'%':'—'} icon={CheckCircle2}/><Stat label="On-time arrival" value="—" icon={Timer}/><Stat label="Response rate" value="—" icon={MessageCircle}/><Stat label="Completed jobs" value={completed.length} icon={UserRound}/><Stat label="Partner level" value="—" icon={ShieldCheck}/></div><section className="wx-card"><div className="wx-empty"><TrendingUp/><b>Detailed quality metrics unavailable</b><span>On-time, response, repeat-customer and level data require verified PunchX records.</span></div></section></div>}
 function TrainingView({userProfile}:{userProfile:any}){const courses=Array.isArray(userProfile?.trainingCourses)?userProfile.trainingCourses:[];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">SKILLS & CERTIFICATION</span><h2>Training center</h2><p>Only verified PunchX training records are displayed.</p></div></div><section className="wx-card">{courses.length?courses.map((x:any)=><div className="wx-inventory-row" key={x.id||x.name}><GraduationCap/><div><b>{x.name||'Training'}</b><span>{x.status||'Recorded by PunchX'}</span></div></div>):<div className="wx-empty"><GraduationCap/><b>No training records</b><span>No verified PunchX training course or certification is stored.</span></div>}</section></div>}
 function InventoryView({userProfile}:{userProfile:any}){const items=Array.isArray(userProfile?.inventory)?userProfile.inventory:[];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">TOOLS & MATERIALS</span><h2>Inventory & work kit</h2><p>Only verified inventory records are displayed.</p></div></div><section className="wx-card">{items.length?items.map((x:any)=><div className="wx-inventory-row" key={x.id||x.name}><Package/><div><b>{x.name||'Item'}</b><span>{x.status||'Recorded'}</span></div><strong>{x.quantity??'—'}</strong></div>):<div className="wx-empty"><Package/><b>No inventory records</b><span>No verified PunchX inventory or material records are available.</span></div>}</section></div>}
-function ProfileView({userProfile}:{userProfile:any}){const p=userProfile||{};const categories=Array.isArray(p.workerCategories)?p.workerCategories.filter(Boolean):[];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">PARTNER PROFILE</span><h2>My profile</h2><p>Verified account information from PunchX.</p></div></div><section className="wx-profile-hero wx-card"><div className="wx-avatar xl">{String(p.name||'P').slice(0,2).toUpperCase()}</div><div><h2>{p.name||'Name unavailable'}</h2><p>{p.workerSkill||categories.join(', ')||'Professional service not configured'} · {p.uid||'Partner ID unavailable'}</p><div className="wx-profile-meta"><span><Star size={15} fill="currentColor"/> {p.workerRating?Number(p.workerRating).toFixed(1):'—'}</span><span>{p.workerCompletedJobs??'—'} completed jobs</span><span>{p.workerExperience||'Experience unavailable'}</span><span className="wx-verified"><ShieldCheck size={15}/> {p.status==='APPROVED'?'Verified Partner':'Verification status unavailable'}</span></div></div></section><section className="wx-card"><h3>Account information</h3><div className="wx-detail-list"><span>Name <b>{p.name||'—'}</b></span><span>Phone <b>{p.phone||'—'}</b></span><span>Email <b>{p.email||'—'}</b></span><span>Address <b>{p.address||'—'}</b></span><span>Area <b>{p.area||'—'}</b></span><span>Sector <b>{p.sector||'—'}</b></span><span>Primary service <b>{p.workerSkill||'—'}</b></span><span>Experience <b>{p.workerExperience||'—'}</b></span><span>Verification <b>{p.status||'—'}</b></span></div></section></div>}
+function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProfile:any;uid:string;refreshProfile?:()=>Promise<void>;showNotification?:(m:string)=>void}){
+ const p=userProfile||{};
+ const categories=Array.isArray(p.workerCategories)?p.workerCategories.filter(Boolean):[];
+ const [application,setApplication]=useState<any>(null);
+ const [editing,setEditing]=useState(false);
+ const [saving,setSaving]=useState(false);
+ const [photoBusy,setPhotoBusy]=useState(false);
+ const [draft,setDraft]=useState<any>({});
+ const [photoPreview,setPhotoPreview]=useState<string>(p.photoURL||'');
 
+ useEffect(function(){
+   setPhotoPreview(p.photoURL||'');
+   setDraft({
+     name:p.name||'',
+     phone:p.phone||'',
+     address:p.address||'',
+     landmark:p.landmark||'',
+     area:p.area||'',
+     sector:p.sector||'',
+     workerSkill:p.workerSkill||'',
+     workerExperience:p.workerExperience||'',
+     bio:p.bio||''
+   });
+ },[p.name,p.phone,p.address,p.landmark,p.area,p.sector,p.workerSkill,p.workerExperience,p.bio,p.photoURL]);
+
+ useEffect(function(){
+   if(!uid)return;
+   const q=query(collection(db,'workerApplications'),where('uid','==',uid));
+   return onSnapshot(q,function(snap){
+     const first=snap.docs[0];
+     setApplication(first?{id:first.id,...first.data()}:null);
+   },function(){setApplication(null);});
+ },[uid]);
+
+ const source:any={...(application||{}),...p};
+ const initials=String(source.name||'P').trim().slice(0,2).toUpperCase();
+
+ const readPhoto=function(file:File){
+   return new Promise<string>(function(resolve,reject){
+     const reader=new FileReader();
+     reader.onerror=function(){reject(new Error('Could not read this photo.'));};
+     reader.onload=function(){
+       const img=new Image();
+       img.onerror=function(){reject(new Error('This image could not be processed.'));};
+       img.onload=function(){
+         const max=512;
+         const scale=Math.min(1,max/Math.max(img.width,img.height));
+         const canvas=document.createElement('canvas');
+         canvas.width=Math.max(1,Math.round(img.width*scale));
+         canvas.height=Math.max(1,Math.round(img.height*scale));
+         const ctx=canvas.getContext('2d');
+         if(!ctx){reject(new Error('Image processing is unavailable on this device.'));return;}
+         ctx.drawImage(img,0,0,canvas.width,canvas.height);
+         resolve(canvas.toDataURL('image/jpeg',0.82));
+       };
+       img.src=String(reader.result||'');
+     };
+     reader.readAsDataURL(file);
+   });
+ };
+
+ const choosePhoto=async function(e:React.ChangeEvent<HTMLInputElement>){
+   const file=e.target.files?.[0];
+   e.target.value='';
+   if(!file)return;
+   if(!file.type.startsWith('image/')){showNotification?.('Please choose a real image file.');return;}
+   if(file.size>8*1024*1024){showNotification?.('Photo is too large. Please choose an image under 8 MB.');return;}
+   setPhotoBusy(true);
+   try{
+     const data=await readPhoto(file);
+     if(data.length>900000){showNotification?.('Photo is still too large after compression. Please choose a smaller image.');return;}
+     setPhotoPreview(data);
+   }catch(err:any){
+     showNotification?.('⚠️ '+(err?.message||'Could not process the photo.'));
+   }finally{setPhotoBusy(false);}
+ };
+
+ const save=async function(){
+   if(!uid){showNotification?.('Your account ID is unavailable. Please sign in again.');return;}
+   if(!draft.name.trim()){showNotification?.('Full name is required.');return;}
+   setSaving(true);
+   try{
+     const payload:any={
+       name:draft.name.trim(),
+       phone:draft.phone.trim(),
+       address:draft.address.trim(),
+       landmark:draft.landmark.trim(),
+       area:draft.area.trim(),
+       sector:draft.sector.trim(),
+       workerSkill:draft.workerSkill.trim(),
+       workerExperience:draft.workerExperience.trim(),
+       bio:draft.bio.trim(),
+       photoURL:photoPreview||'',
+       updatedAt:new Date().toISOString()
+     };
+     await updateDoc(doc(db,'users',uid),payload);
+     await refreshProfile?.();
+     setEditing(false);
+     showNotification?.('✓ Profile updated successfully.');
+   }catch(err:any){
+     showNotification?.('⚠️ Could not save your profile. Please try again.');
+   }finally{setSaving(false);}
+ };
+
+ return <div className="wx-stack">
+   <div className="wx-page-intro">
+     <div><span className="wx-section-label">PARTNER PROFILE</span><h2>My profile</h2><p>Your verified PunchX account and professional details.</p></div>
+     <button className="wx-primary" onClick={()=>setEditing(true)}><Pencil size={15}/> Edit profile</button>
+   </div>
+
+   <section className="wx-profile-hero wx-card">
+     <div className="wx-profile-photo-wrap">
+       {source.photoURL?<img className="wx-profile-photo" src={source.photoURL} alt="Your PunchX profile" />:<div className="wx-avatar xl">{initials}</div>}
+       <button className="wx-photo-camera" onClick={()=>setEditing(true)} aria-label="Add or change profile photo"><Camera size={15}/></button>
+     </div>
+     <div className="wx-profile-hero-copy">
+       <h2>{source.name||'Name unavailable'}</h2>
+       <p>{source.workerSkill||categories.join(', ')||application?.skill||'Professional service not configured'} · Partner ID {source.uid||'unavailable'}</p>
+       <div className="wx-profile-meta">
+         <span><Star size={15} fill="currentColor"/> {source.workerRating?Number(source.workerRating).toFixed(1):'—'}</span>
+         <span>{source.workerCompletedJobs??application?.completedJobs??'—'} completed jobs</span>
+         <span>{source.workerExperience||application?.experienceYears||'Experience unavailable'}</span>
+         <span className="wx-verified"><ShieldCheck size={15}/> {source.status==='APPROVED'||application?.status==='APPROVED'?'Verified Partner':'Verification status unavailable'}</span>
+       </div>
+     </div>
+   </section>
+
+   <section className="wx-card">
+     <div className="wx-card-head"><div><span className="wx-section-label">ACCOUNT</span><h3>Account information</h3></div><button className="wx-secondary" onClick={()=>setEditing(true)}><Pencil size={14}/> Edit</button></div>
+     <div className="wx-detail-list wx-profile-details">
+       <span>Full name <b>{source.name||'—'}</b></span>
+       <span>Phone <b>{source.phone||application?.phone||'—'}</b></span>
+       <span>Email <b>{source.email||application?.email||'—'}</b></span>
+       <span>Address <b>{source.address||application?.address||'—'}</b></span>
+       <span>Landmark <b>{source.landmark||'—'}</b></span>
+       <span>Area <b>{source.area||application?.area||'—'}</b></span>
+       <span>Sector <b>{source.sector||application?.sector||'—'}</b></span>
+       <span>Primary service <b>{source.workerSkill||application?.skill||'—'}</b></span>
+       <span>Service categories <b>{categories.length?categories.join(', '):(Array.isArray(application?.categories)?application.categories.join(', '):'—')}</b></span>
+       <span>Experience <b>{source.workerExperience||application?.experienceYears||'—'}</b></span>
+       <span>Partner status <b>{source.status||application?.status||'—'}</b></span>
+       <span>Application ID <b>{source.applicationId||application?.id||'—'}</b></span>
+       <span>Account created <b>{source.createdAt?new Date(source.createdAt).toLocaleDateString('en-IN'):'—'}</b></span>
+       <span>Profile photo <b>{source.photoURL?'Added':'Not added'}</b></span>
+     </div>
+   </section>
+
+   {source.bio&&<section className="wx-card"><span className="wx-section-label">ABOUT</span><h3>Professional bio</h3><p className="wx-profile-bio">{source.bio}</p></section>}
+
+   <section className="wx-card wx-profile-note"><ShieldCheck size={18}/><div><b>Protected professional fields</b><span>Verification status, ratings, completed jobs and payout records are controlled by PunchX. They cannot be fabricated or edited from this panel.</span></div></section>
+
+   {editing&&<div className="wx-overlay">
+     <div className="wx-modal wx-profile-modal">
+       <button className="wx-modal-x" onClick={()=>!saving&&setEditing(false)}><X/></button>
+       <div className="wx-modal-icon"><UserRound/></div>
+       <h2>Edit your profile</h2>
+       <p>Update your personal and contact information. Verification and earnings data remain protected.</p>
+       <div className="wx-profile-edit-photo">
+         {photoPreview?<img src={photoPreview} alt="Profile preview"/>:<div className="wx-avatar xl">{initials}</div>}
+         <div><label className="wx-upload-btn">{photoBusy?<Loader2 className="wx-spin"/>:<Camera size={16}/>} {photoBusy?'Processing…':photoPreview?'Change genuine photo':'Add genuine photo'}<input type="file" accept="image/*" onChange={choosePhoto} disabled={saving||photoBusy}/></label><small>Use a clear photo of yourself. PunchX stores the image with your account.</small></div>
+       </div>
+       <div className="wx-profile-edit-grid">
+         <label>Full name<input value={draft.name||''} onChange={e=>setDraft({...draft,name:e.target.value})} /></label>
+         <label>Phone<input value={draft.phone||''} onChange={e=>setDraft({...draft,phone:e.target.value})} inputMode="tel" /></label>
+         <label>Address<input value={draft.address||''} onChange={e=>setDraft({...draft,address:e.target.value})} /></label>
+         <label>Landmark<input value={draft.landmark||''} onChange={e=>setDraft({...draft,landmark:e.target.value})} /></label>
+         <label>Area<input value={draft.area||''} onChange={e=>setDraft({...draft,area:e.target.value})} /></label>
+         <label>Sector<input value={draft.sector||''} onChange={e=>setDraft({...draft,sector:e.target.value})} /></label>
+         <label>Primary service<input value={draft.workerSkill||''} onChange={e=>setDraft({...draft,workerSkill:e.target.value})} /></label>
+         <label>Experience<input value={draft.workerExperience||''} onChange={e=>setDraft({...draft,workerExperience:e.target.value})} /></label>
+         <label className="wx-profile-edit-wide">Professional bio<textarea value={draft.bio||''} onChange={e=>setDraft({...draft,bio:e.target.value})} rows={4}/></label>
+       </div>
+       <div className="wx-modal-actions"><button className="wx-secondary" onClick={()=>setEditing(false)} disabled={saving}>Cancel</button><button className="wx-primary" onClick={save} disabled={saving||photoBusy}>{saving?<Loader2 className="wx-spin"/>:<Save size={16}/>} {saving?'Saving…':'Save changes'}</button></div>
+     </div>
+   </div>}
+ </div>
+}
 function NotificationsView({orders}:{orders:Order[]}){const recent=orders.slice(0,20);return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">UPDATES</span><h2>Notifications</h2><p>Only live booking events are shown here.</p></div></div><section className="wx-card wx-notes">{recent.map(o=><div key={o.id}><div className="wx-note-icon"><ClipboardList/></div><div><b>Booking #{o.id}</b><p>{o.service} · {statusLabel[o.status]||o.status} · {o.customer}</p><small>{o.date}{o.time?' · '+o.time:''}</small></div><ChevronRight/></div>)}{!recent.length&&<div className="wx-empty"><Bell/><b>No notifications</b><span>New PunchX booking events will appear here.</span></div>}</section></div>}
 function IncentivesView(){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">EARN MORE</span><h2>Incentives & bonuses</h2><p>Only verified PunchX campaigns are displayed.</p></div></div><section className="wx-card"><div className="wx-empty"><Gift/><b>No active incentives available</b><span>No verified incentive campaign is available for this account.</span></div></section></div>}
 function SupportView(){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">PARTNER CARE</span><h2>Help & support</h2><p>Order, payment, customer and technical support.</p></div><a className="wx-primary" href="mailto:punchxservice@gmail.com"><LifeBuoy size={16}/> Contact support</a></div><div className="wx-support-grid">{[['Order issue','Report an order problem',ClipboardList],['Payment issue','Missing or incorrect earnings',Banknote],['Customer report','Safety or customer concern',CircleAlert],['Technical issue','App or location problem',Settings],['Email support','punchxservice@gmail.com',MessageCircle],['Emergency assistance','Use verified PunchX support channels',LifeBuoy]].map(function(x:any){var I=x[2];return <button className="wx-card wx-support-card" key={x[0]}><I/><div><b>{x[0]}</b><span>{x[1]}</span></div><ChevronRight/></button>})}</div></div>}
