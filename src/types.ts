@@ -82,6 +82,7 @@ export interface UserProfile {
 
 export interface Worker {
   id: string;
+  uid?: string;
   name: string;
   category: string;
   categories?: string[];
