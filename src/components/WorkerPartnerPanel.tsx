@@ -25,7 +25,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const {currentUser,userProfile}=useAuth() as any;
  const uid=currentUser?.uid || userProfile?.uid || '';
  const [tab,setTab]=useState<Tab>('home');
- const [online,setOnline]=useState(true);
+ const [online,setOnline]=useState(false);
  const [orders,setOrders]=useState<Order[]>([]);
  const [selected,setSelected]=useState<Order|null>(null);
  const [query,setQuery]=useState('');
@@ -33,6 +33,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const [mobile,setMobile]=useState(false);
  const [loading,setLoading]=useState(true);
  const name=userProfile?.name||'Professional';
+ useEffect(function(){if(typeof userProfile?.workerAvailability==='boolean')setOnline(userProfile.workerAvailability);},[userProfile?.workerAvailability]);
  const workerCategories=useMemo(function(){
    const raw=userProfile?.workerCategories || userProfile?.categories || [];
    return Array.from(new Set([...(Array.isArray(raw)?raw:[]),userProfile?.workerSkill,userProfile?.skill].map(normalise).filter(Boolean)));
@@ -137,7 +138,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
   <div className="wx-main">
    <header className="wx-header"><button className="wx-menu" onClick={()=>setMobile(true)}><Menu/></button><div><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={async()=>{const nextOnline=!online;setOnline(nextOnline);try{if(uid)await updateDoc(doc(db,'users',uid),{workerAvailability:nextOnline,updatedAt:new Date().toISOString()});showNotification?.(nextOnline?'You are now online and eligible for new orders':'You are now offline and will not receive new jobs');}catch(e){setOnline(!nextOnline);showNotification?.('Unable to save availability. Please try again.');}}}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')}><Bell size={20}/><b>3</b></button><button className="wx-profile-chip" onClick={()=>nav('profile')}><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
    <main className="wx-content">
-    {tab==='home'&&<HomeView area={workerArea} online={online} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
+    {tab==='home'&&<HomeView area={userProfile?.area||workerArea} online={online} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
     {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} todayEarn={todayEarn}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
     {tab==='profile'&&<ProfileView userProfile={userProfile}/>}
