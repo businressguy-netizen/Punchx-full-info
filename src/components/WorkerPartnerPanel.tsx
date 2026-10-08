@@ -290,7 +290,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
        const img=new Image();
        img.onerror=function(){reject(new Error('This image could not be processed.'));};
        img.onload=function(){
-         const max=512;
+         const max=384;
          const scale=Math.min(1,max/Math.max(img.width,img.height));
          const canvas=document.createElement('canvas');
          canvas.width=Math.max(1,Math.round(img.width*scale));
@@ -298,7 +298,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
          const ctx=canvas.getContext('2d');
          if(!ctx){reject(new Error('Image processing is unavailable on this device.'));return;}
          ctx.drawImage(img,0,0,canvas.width,canvas.height);
-         resolve(canvas.toDataURL('image/jpeg',0.82));
+         resolve(canvas.toDataURL('image/jpeg',0.72));
        };
        img.src=String(reader.result||'');
      };
@@ -315,7 +315,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
    setPhotoBusy(true);
    try{
      const data=await readPhoto(file);
-     if(data.length>900000){showNotification?.('Photo is still too large after compression. Please choose a smaller image.');return;}
+     if(data.length>450000){showNotification?.('Photo is still too large after compression. Please choose a smaller image.');return;}
      setPhotoPreview(data);
    }catch(err:any){
      showNotification?.('⚠️ '+(err?.message||'Could not process the photo.'));
