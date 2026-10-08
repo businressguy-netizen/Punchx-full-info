@@ -21,6 +21,8 @@ const parseDate=(value:unknown):Date|null=>{const s=String(value??'').trim();if(
 const isToday=(value:unknown)=>{const s=String(value??'').trim().toLowerCase();if(s==='today')return true;const d=parseDate(value);if(!d)return false;const n=new Date();return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate();};
 const isWithinDays=(value:unknown,days:number)=>{const d=parseDate(value);if(!d)return false;const diff=Date.now()-d.getTime();return diff>=0&&diff<=days*86400000;};
 const safeNumber=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)?n:0;};
+const GEOFENCE_RADIUS_KM=15;
+const isInstantOrderRecord=(o:OrderRecord)=>Boolean(o.isInstantOrder)||o.bookingType==='INSTANT'||Boolean(o.emergencyETA)||Number(o.emergencySurcharge||0)>0||['instant','sos','emergency'].includes(normalise((o as any).orderType||(o as any).priority));
 
 export default function WorkerPartnerPanel({onTransition,showNotification}:{onTransition?:(s:any)=>void;showNotification?:(m:string)=>void}) {
  const {currentUser,userProfile,refreshProfile,logout}=useAuth() as any;
