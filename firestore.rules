@@ -21,6 +21,13 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function isApprovedWorker() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'worker'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'APPROVED';
+    }
+
 
     // =====================================================
     // SYSTEM CONFIG
@@ -87,6 +94,7 @@ service cloud.firestore {
               'isOnline',
               'workerStatus',
               'workerSkill',
+              'workerAvailability',
               'categories',
               'skill',
               'isProfileCompleted',
@@ -176,7 +184,8 @@ service cloud.firestore {
       // BE-06 FIX: Field-level restrictions for updates.
       // Admins can update any field.
       // Customers can only update limited feedback/status fields.
-      // Workers can only update limited operational fields.
+      // Approved workers can claim an unassigned job and then update
+      // only operational fields belonging to that job.
       allow update: if signedIn() && (
         isAdmin()
         || (
@@ -209,18 +218,39 @@ service cloud.firestore {
           )
         )
         || (
-          resource.data.workerId == request.auth.uid
+          isApprovedWorker()
+          && resource.data.workerId == null
+          && request.resource.data.workerId == request.auth.uid
+          && request.resource.data.customerId == resource.data.customerId
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'workerId',
+              'workerName',
+              'workerPhone',
+              'status',
+              'acceptedAt',
+              'updatedAt',
+              'workerOutForWork'
+            ])
+          && request.resource.data.status in ['ACCEPTED', 'In-Progress', 'In Progress']
+        )
+        || (
+          isApprovedWorker()
+          && resource.data.workerId == request.auth.uid
           && request.resource.data.workerId == resource.data.workerId
           && request.resource.data.customerId == resource.data.customerId
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly([
               'status',
               'completedAt',
-              'photoProof'
+              'photoProof',
+              'workerLocation',
+              'workerOutForWork',
+              'updatedAt'
             ])
           && (
             !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])
-            || request.resource.data.status in ['Accepted', 'Enroute', 'Arrived', 'Completed']
+            || request.resource.data.status in ['ACCEPTED', 'In-Progress', 'In Progress', 'EN_ROUTE', 'Enroute', 'ARRIVED', 'Arrived', 'IN_SERVICE', 'SERVICE_STARTED', 'Completed', 'COMPLETED', 'Done']
           )
         )
       );
