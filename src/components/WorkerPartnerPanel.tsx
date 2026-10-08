@@ -356,7 +356,7 @@ function TrainingView({userProfile}:{userProfile:any}){const courses=Array.isArr
 function InventoryView({userProfile}:{userProfile:any}){const items=Array.isArray(userProfile?.inventory)?userProfile.inventory:[];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">TOOLS & MATERIALS</span><h2>Inventory & work kit</h2><p>Only verified inventory records are displayed.</p></div></div><section className="wx-card">{items.length?items.map((x:any)=><div className="wx-inventory-row" key={x.id||x.name}><Package/><div><b>{x.name||'Item'}</b><span>{x.status||'Recorded'}</span></div><strong>{x.quantity??'—'}</strong></div>):<div className="wx-empty"><Package/><b>No inventory records</b><span>No verified PunchX inventory or material records are available.</span></div>}</section></div>}
 function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProfile:any;uid:string;refreshProfile?:()=>Promise<void>;showNotification?:(m:string)=>void}){
  const p=userProfile||{};
- const categories=Array.isArray(p.workerCategories)?p.workerCategories.filter(Boolean):[];
+ const categories=Array.isArray(p.workerCategories)?p.workerCategories.filter(Boolean):(Array.isArray(p.categories)?p.categories.filter(Boolean):(Array.isArray(p.serviceCategories)?p.serviceCategories.filter(Boolean):[]));
  const [application,setApplication]=useState<any>(null);
  const [editing,setEditing]=useState(false);
  const [saving,setSaving]=useState(false);
@@ -382,11 +382,24 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
  useEffect(function(){
    if(!uid)return;
    const workerApplicationQuery=firestoreQuery(collection(db,'workerApplications'),where('uid','==',uid));
-   return onSnapshot(workerApplicationQuery,function(snap){
+   let byUid:any=null;
+   let byId:any=null;
+   const publish=function(){
+     const next=byId||byUid;
+     setApplication(next);
+   };
+   const unsubQuery=onSnapshot(workerApplicationQuery,function(snap){
      const first=snap.docs[0];
-     setApplication(first?{id:first.id,...first.data()}:null);
-   },function(){setApplication(null);});
- },[uid]);
+     byUid=first?{id:first.id,...first.data()}:null;
+     publish();
+   },function(){publish();});
+   const appId=String(p.applicationId||'').trim();
+   const unsubId=appId?onSnapshot(doc(db,'workerApplications',appId),function(snap){
+     byId=snap.exists()?{id:snap.id,...snap.data()}:null;
+     publish();
+   },function(){publish();}):function(){};
+   return function(){unsubQuery();unsubId();};
+ },[uid,p.applicationId]);
 
  const source:any={
    ...(application||{}),
@@ -400,7 +413,15 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
    sector:p.sector||application?.sector||'',
    workerSkill:p.workerSkill||application?.skill||'',
    workerExperience:p.workerExperience||application?.experienceYears||'',
-   workerCategories:categories.length?categories:(Array.isArray(application?.categories)?application.categories:[])
+   workerCategories:categories.length?categories:(Array.isArray(application?.categories)?application.categories:[]),
+   categories:categories.length?categories:(Array.isArray(application?.categories)?application.categories:[]),
+   dob:p.dob||p.birthdate||application?.dob||application?.birthdate||'',
+   city:p.city||application?.city||'',
+   streetAddress:p.streetAddress||application?.streetAddress||'',
+   customSkill:p.customSkill||application?.customSkill||'',
+   visitingFee:p.visitingFee??application?.visitingFee,
+   termsAccepted:p.termsAccepted??application?.termsAccepted,
+   appliedAt:p.appliedAt||application?.appliedAt||''
  };
  const initials=String(source.name||'P').trim().slice(0,2).toUpperCase();
 
@@ -458,6 +479,11 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
        sector:draft.sector.trim(),
        workerSkill:draft.workerSkill.trim(),
        workerExperience:draft.workerExperience.trim(),
+       workerCategories:Array.isArray(source.workerCategories)?source.workerCategories:[],
+       categories:Array.isArray(source.workerCategories)?source.workerCategories:[],
+       customSkill:source.customSkill||'',
+       dob:source.dob||'',
+       birthdate:source.dob||'',
        bio:draft.bio.trim(),
        photoURL:photoPreview||'',
        updatedAt:new Date().toISOString()
@@ -498,19 +524,27 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
      <div className="wx-card-head"><div><span className="wx-section-label">ACCOUNT</span><h3>Account information</h3></div><button className="wx-secondary" onClick={()=>setEditing(true)}><Pencil size={14}/> Edit</button></div>
      <div className="wx-detail-list wx-profile-details">
        <span>Full name <b>{source.name||'—'}</b></span>
-       <span>Phone <b>{source.phone||application?.phone||'—'}</b></span>
-       <span>Email <b>{source.email||application?.email||'—'}</b></span>
-       <span>Address <b>{source.address||application?.address||'—'}</b></span>
+       <span>Date of birth <b>{source.dob||'—'}</b></span>
+       <span>Phone <b>{source.phone||'—'}</b></span>
+       <span>Email <b>{source.email||'—'}</b></span>
+       <span>Full address <b>{source.address||'—'}</b></span>
+       <span>Street / house address <b>{source.streetAddress||'—'}</b></span>
        <span>Landmark <b>{source.landmark||'—'}</b></span>
-       <span>Area <b>{source.area||application?.area||'—'}</b></span>
-       <span>Sector <b>{source.sector||application?.sector||'—'}</b></span>
-       <span>Primary service <b>{source.workerSkill||application?.skill||'—'}</b></span>
-       <span>Service categories <b>{categories.length?categories.join(', '):(Array.isArray(application?.categories)?application.categories.join(', '):'—')}</b></span>
-       <span>Experience <b>{source.workerExperience||application?.experienceYears||'—'}</b></span>
-       <span>Partner status <b>{source.status||application?.status||'—'}</b></span>
+       <span>Area <b>{source.area||'—'}</b></span>
+       <span>City <b>{source.city||'—'}</b></span>
+       <span>Sector <b>{source.sector||'—'}</b></span>
+       <span>Primary service <b>{source.workerSkill||'—'}</b></span>
+       <span>Service categories <b>{source.workerCategories?.length?source.workerCategories.join(', '):'—'}</b></span>
+       <span>Custom skill <b>{source.customSkill||'—'}</b></span>
+       <span>Experience <b>{source.workerExperience||'—'}</b></span>
+       <span>Visiting / inspection fee <b>{source.visitingFee!=null?money(Number(source.visitingFee)):'—'}</b></span>
+       <span>Partner status <b>{source.status||'—'}</b></span>
        <span>Application ID <b>{source.applicationId||application?.id||'—'}</b></span>
+       <span>Terms accepted <b>{source.termsAccepted===true?'Yes':source.termsAccepted===false?'No':'—'}</b></span>
+       <span>Application submitted <b>{source.appliedAt||'—'}</b></span>
        <span>Account created <b>{source.createdAt?new Date(source.createdAt).toLocaleDateString('en-IN'):'—'}</b></span>
        <span>Profile photo <b>{source.photoURL?'Added':'Not added'}</b></span>
+       <span>GPS location <b>{source.location?.lat!=null&&source.location?.lng!=null?`${Number(source.location.lat).toFixed(5)}, ${Number(source.location.lng).toFixed(5)}`:'—'}</b></span>
      </div>
    </section>
 
@@ -537,6 +571,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
          <label>Sector<input value={draft.sector||''} onChange={e=>setDraft({...draft,sector:e.target.value})} /></label>
          <label>Primary service<input value={draft.workerSkill||''} onChange={e=>setDraft({...draft,workerSkill:e.target.value})} /></label>
          <label>Experience<input value={draft.workerExperience||''} onChange={e=>setDraft({...draft,workerExperience:e.target.value})} /></label>
+         <label>City<input value={draft.city||source.city||''} onChange={e=>setDraft({...draft,city:e.target.value})} /></label>
          <label className="wx-profile-edit-wide">Professional bio<textarea value={draft.bio||''} onChange={e=>setDraft({...draft,bio:e.target.value})} rows={4}/></label>
        </div>
        <div className="wx-modal-actions"><button className="wx-secondary" onClick={()=>setEditing(false)} disabled={saving}>Cancel</button><button className="wx-primary" onClick={save} disabled={saving||photoBusy}>{saving?<Loader2 className="wx-spin"/>:<Save size={16}/>} {saving?'Saving…':'Save changes'}</button></div>
