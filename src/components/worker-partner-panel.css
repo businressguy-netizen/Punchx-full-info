@@ -448,3 +448,49 @@
 @keyframes wx-chart-fade{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .wx-profile-modal .wx-modal-actions button{transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease}
 .wx-profile-modal .wx-modal-actions button:not(:disabled):active{transform:scale(.985)}
+
+/* Multi-period professional analytics */
+.wx-period-card{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.wx-period-card h3{margin:3px 0 2px}
+.wx-period-card p{margin:0;color:#64748b;font-size:10px}
+.wx-period-tabs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.wx-period-tabs button{border:1px solid #e2e8f0;background:#fff;border-radius:9px;padding:8px 12px;font-size:10px;font-weight:800;color:#64748b;cursor:pointer;transition:.18s ease}
+.wx-period-tabs button:hover{transform:translateY(-1px);border-color:#cbd5e1}
+.wx-period-tabs button.active{background:#0f172a;color:#fff;border-color:#0f172a}
+.wx-report-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.wx-analytics-chart{overflow:hidden}
+.wx-report-line{padding:10px 4px 0}
+.wx-report-line svg{width:100%;height:220px;color:#2563eb;overflow:visible}
+.wx-report-axis{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:2px;margin-top:4px}
+.wx-report-axis span{text-align:center;font-size:7px;color:#94a3b8;white-space:nowrap;overflow:hidden}
+.wx-report-bars{height:190px;display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:6px;align-items:end;padding:10px 4px 0}
+.wx-report-bar-col{height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;min-width:0}
+.wx-report-bar-pair{height:145px;display:flex;align-items:flex-end;justify-content:center;gap:3px}
+.wx-report-bar-pair i,.wx-report-bar-pair b{width:7px;min-height:4px;border-radius:4px 4px 2px 2px;display:block;transform-origin:bottom;animation:wx-chart-rise .45s cubic-bezier(.22,1,.36,1) both}
+.wx-report-bar-pair i{background:#2563eb}
+.wx-report-bar-pair b{background:#cbd5e1}
+.wx-report-bar-col small{font-size:7px;color:#94a3b8;white-space:nowrap}
+.wx-growth-card{background:linear-gradient(180deg,#fff,#f8fbff)}
+.wx-growth-card p{margin:0;line-height:1.6;color:#475569;font-size:12px}
+.wx-growth-metrics{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid #eef2f7}
+.wx-growth-metrics span{font-size:9px;color:#64748b}
+.wx-growth-metrics b{color:#0f172a;margin-left:4px}
+.wx-report-note{display:flex;gap:12px;align-items:flex-start}
+.wx-report-note>svg{flex:none;color:#2563eb}
+.wx-report-note b,.wx-report-note span{display:block}
+.wx-report-note span{margin-top:3px;font-size:10px;color:#64748b;line-height:1.5}
+@media(max-width:900px){
+ .wx-report-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .wx-period-card{align-items:flex-start;flex-direction:column}
+ .wx-period-tabs{justify-content:flex-start}
+}
+@media(max-width:560px){
+ .wx-report-summary{grid-template-columns:1fr}
+ .wx-period-tabs{width:100%;display:grid;grid-template-columns:repeat(3,1fr)}
+ .wx-period-tabs button{padding:9px 5px}
+ .wx-report-axis{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .wx-report-axis span:nth-child(even){display:none}
+ .wx-report-bars{grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+ .wx-report-bar-col:nth-child(-n+4){display:none}
+ .wx-report-bar-pair i,.wx-report-bar-pair b{width:6px}
+}
