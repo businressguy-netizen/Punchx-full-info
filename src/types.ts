@@ -49,6 +49,7 @@ export interface UserProfile {
   name: string;
   email: string;
   photoURL?: string;
+  avatar?: string;
   role: UserRole;
   dob?: string;
   birthdate?: string;
@@ -58,6 +59,12 @@ export interface UserProfile {
   area?: string;
   sector?: string;
   phone?: string;
+  landmark?: string;
+  city?: string;
+  bio?: string;
+  workerAvailability?: boolean;
+  isOnline?: boolean;
+  workerStatus?: 'ONLINE' | 'OFFLINE';
   visitingFee?: number;
   workerSkill?: string;
   workerCategories?: string[];
