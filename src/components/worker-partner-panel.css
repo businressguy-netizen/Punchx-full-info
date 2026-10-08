@@ -219,3 +219,27 @@
   .wx-head-actions{gap:3px}
   .wx-head-actions .wx-status{padding:6px 6px;font-size:7px}
 }
+
+/* Touch-device fallback: Android browsers can use a desktop layout viewport even on phones. */
+@media (pointer: coarse) and (hover: none) and (max-width: 1100px){
+  .wx-header{height:68px;padding:0 14px;display:flex;align-items:center;gap:8px;overflow:hidden}
+  .wx-header-left{display:flex!important;align-items:center;flex:0 0 auto!important;min-width:0!important;width:auto!important;gap:8px}
+  .wx-menu{display:grid!important;place-items:center;width:42px;height:42px;padding:7px;flex:none}
+  .wx-mobile-brand{display:flex!important;align-items:center;justify-content:center;width:72px;height:38px;flex:0 0 72px;margin:0!important;overflow:hidden}
+  .wx-mobile-brand img{display:block;width:72px;height:38px;max-width:72px;object-fit:contain}
+  .wx-header-title{display:none!important}
+  .wx-head-actions{display:flex!important;align-items:center;gap:7px;margin-left:auto!important;flex:0 0 auto}
+  .wx-head-actions .wx-status{display:flex!important;padding:8px 9px;font-size:9px}
+  .wx-head-actions .wx-bell{display:grid!important;width:38px;height:38px}
+  .wx-head-actions .wx-profile-chip{display:flex!important;width:38px;padding:4px;justify-content:center}
+  .wx-head-actions .wx-profile-chip strong{display:none!important}
+}
+@media (pointer: coarse) and (hover: none) and (max-width: 560px){
+  .wx-header{padding:0 10px;gap:5px}
+  .wx-header-left{gap:5px}
+  .wx-menu{width:40px;height:40px}
+  .wx-mobile-brand{width:64px;height:34px;flex-basis:64px}
+  .wx-mobile-brand img{width:64px;height:34px;max-width:64px}
+  .wx-head-actions{gap:4px}
+  .wx-head-actions .wx-status{padding:7px 7px;font-size:8px}
+}
