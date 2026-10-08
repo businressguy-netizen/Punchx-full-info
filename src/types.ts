@@ -63,6 +63,10 @@ export interface UserProfile {
   bio?: string;
   workerAvailability?: boolean;
   isOnline?: boolean;
+  location?: { lat: number; lng: number };
+  geofenceRadiusKm?: number;
+  geofenceArea?: string;
+  geofenceUpdatedAt?: string;
   workerStatus?: 'ONLINE' | 'OFFLINE';
   visitingFee?: number;
   workerSkill?: string;
@@ -88,6 +92,7 @@ export interface Worker {
   price: number;
   visitingFee?: number;
   available?: boolean;
+  isOnline?: boolean;
   phone?: string;
   address?: string;
   area?: string;
