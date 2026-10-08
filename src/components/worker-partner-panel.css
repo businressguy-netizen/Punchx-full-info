@@ -438,3 +438,13 @@
   .wx-chart-total{display:block}
   .wx-chart-total strong{display:block;margin-top:4px;text-align:left}
 }
+
+.wx-chart-card{transition:transform .2s ease,box-shadow .2s ease}
+.wx-chart-card:hover{transform:translateY(-1px);box-shadow:0 9px 24px rgba(15,23,42,.06)}
+.wx-bars-pair i,.wx-bars-pair b{transform-origin:bottom;animation:wx-chart-rise .55s cubic-bezier(.22,1,.36,1) both}
+.wx-bars-pair b{animation-delay:.08s}
+.wx-line-chart svg{animation:wx-chart-fade .5s ease both}
+@keyframes wx-chart-rise{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes wx-chart-fade{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.wx-profile-modal .wx-modal-actions button{transition:transform .15s ease,box-shadow .15s ease,opacity .15s ease}
+.wx-profile-modal .wx-modal-actions button:not(:disabled):active{transform:scale(.985)}
