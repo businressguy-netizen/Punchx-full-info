@@ -48,17 +48,28 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    return 'NEW';
  };
  useEffect(function(){
-   if(!uid){return;}
-   const unsub=onSnapshot(collection(db,'orders'),function(snap){
-     const nextOrders=snap.docs.map(function(d){return {id:d.id,...d.data()} as OrderRecord}).filter(function(o){
-       if(o.workerId===uid) return true;
-       if(o.workerId || !pending(o.status)) return false;
-       if(o.isPersonalSelection || o.dispatchMode==='PERSONAL_SELECT') return false;
+   if(!uid){setOrders([]);return;}
+   const assignedQuery=query(collection(db,'orders'),where('workerId','==',uid));
+   const availableQuery=query(collection(db,'orders'),where('workerId','==',null),where('status','in',['Pending','PAID','DISPATCHING']));
+   let assigned:OrderRecord[]=[];
+   let available:OrderRecord[]=[];
+   let assignedReady=false;
+   let availableReady=false;
+
+   const publish=function(){
+     if(!assignedReady&&!availableReady)return;
+     const map=new Map<string,OrderRecord>();
+     [...assigned,...available].forEach(function(o){map.set(o.id,o);});
+     const nextOrders=Array.from(map.values()).filter(function(o){
+       if(o.workerId===uid)return true;
+       if(!online)return false;
+       if(o.workerId || !pending(o.status))return false;
+       if(o.isPersonalSelection || o.dispatchMode==='PERSONAL_SELECT')return false;
        const cat=normalise(o.category);
        const catOk=!workerCategories.length || workerCategories.some(function(x){return cat.includes(x)||x.includes(cat)});
-       if(!catOk) return false;
+       if(!catOk)return false;
        const oa=normalise(o.area), os=normalise(o.sector);
-       if(oa||os) return (!workerArea || !oa || oa===workerArea) || (!!workerSector && !!os && workerSector===os);
+       if(oa||os)return (!workerArea || !oa || oa===workerArea) || (!!workerSector && !!os && workerSector===os);
        return true;
      }).sort(function(a,b){
        const at=new Date(a.createdAt||'').getTime() || a.createdTimestamp || 0;
@@ -68,9 +79,20 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        return {id:o.id,customer:o.customerName||'Customer',service:o.category||'Service',address:o.customerAddress||o.area||o.sector||'Location available in details',distance:Number.isFinite(Number((o as any).distanceKm))&&Number((o as any).distanceKm)>0?Number((o as any).distanceKm):null,time:o.time||'Time unavailable',date:o.date||'Upcoming',duration:o.emergencyETA?'Emergency':'Scheduled',price:o.totalAmountToPay!=null||o.price!=null?Number(o.totalAmountToPay??o.price):null,earning:o.professionalPayout!=null?Number(o.professionalPayout):null,status:mapStatus(o.status),payment:o.paymentStatus||o.paymentMethod||'Payment status unavailable',avatar:(o.customerName||'CU').slice(0,2).toUpperCase(),raw:o};
      });
      setOrders(nextOrders);
-   },function(){showNotification?.('Unable to sync live jobs right now.');});
-   return function(){unsub();};
- },[uid,workerCategories.join('|'),workerArea,workerSector]);
+   };
+
+   const unsubAssigned=onSnapshot(assignedQuery,function(snap){
+     assigned=snap.docs.map(function(d){return {id:d.id,...d.data()} as OrderRecord});
+     assignedReady=true;publish();
+   },function(){assignedReady=true;publish();showNotification?.('Unable to sync your assigned jobs right now.');});
+
+   const unsubAvailable=onSnapshot(availableQuery,function(snap){
+     available=snap.docs.map(function(d){return {id:d.id,...d.data()} as OrderRecord});
+     availableReady=true;publish();
+   },function(){availableReady=true;publish();showNotification?.('Unable to sync available jobs right now.');});
+
+   return function(){unsubAssigned();unsubAvailable();};
+ },[uid,workerCategories.join('|'),workerArea,workerSector,online]);
  const today=orders.filter(function(o){return isToday(o.date)||isToday(o.raw?.createdAt)});
  const completed=today.filter(function(o){return o.status==='COMPLETED'}).length;
  const pendingCount=today.filter(function(o){return o.status!=='COMPLETED'&&o.status!=='CANCELLED'}).length;
@@ -78,6 +100,18 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const todayPayouts=today.filter(function(o){return o.status==='COMPLETED'&&o.earning!==null});
  const todayEarn=todayPayouts.length?todayPayouts.reduce(function(s,o){return s+(o.earning||0)},0):null;
  const filtered=useMemo(function(){return orders.filter(function(o){return (filter==='ALL'||(filter==='NEW'&&o.status==='NEW')||(filter==='ACCEPTED'&&o.status==='ACCEPTED')||(filter==='TRAVELLING'&&o.status==='TRAVELLING')||(filter==='ARRIVED'&&o.status==='ARRIVED')||(filter==='SERVICE_STARTED'&&o.status==='SERVICE_STARTED')||(filter==='COMPLETED'&&o.status==='COMPLETED')||(filter==='CANCELLED'&&o.status==='CANCELLED'))&&(o.id+' '+o.customer+' '+o.service+' '+o.address).toLowerCase().includes(query.toLowerCase())})},[orders,filter,query]);
+ const persistAvailability=async function(nextOnline:boolean){
+   const previous=online;
+   setOnline(nextOnline);
+   try{
+     if(!uid)throw new Error('Account ID unavailable.');
+     await updateDoc(doc(db,'users',uid),{workerAvailability:nextOnline,isOnline:nextOnline,workerStatus:nextOnline?'ONLINE':'OFFLINE',updatedAt:new Date().toISOString()});
+     showNotification?.(nextOnline?'You are now online and eligible for new orders':'You are now offline and will not receive new jobs');
+   }catch(e){
+     setOnline(previous);
+     showNotification?.('Unable to save availability. Please try again.');
+   }
+ };
  const nav=function(t:Tab){setTab(t);setSelected(null);setMobile(false)};
  const locationWatch=useRef<number|null>(null);
  useEffect(function(){
@@ -133,7 +167,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    <button className="wx-logout" onClick={()=>onTransition?.('panel-select')}><LogOut size={18}/> Logout</button>
   </aside>
   <div className="wx-main">
-   <header className="wx-header"><button className="wx-menu" onClick={()=>setMobile(true)}><Menu/></button><div><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={async()=>{const nextOnline=!online;setOnline(nextOnline);try{if(uid)await updateDoc(doc(db,'users',uid),{workerAvailability:nextOnline,isOnline:nextOnline,workerStatus:nextOnline?'ONLINE':'OFFLINE',updatedAt:new Date().toISOString()});showNotification?.(nextOnline?'You are now online and eligible for new orders':'You are now offline and will not receive new jobs');}catch(e){setOnline(!nextOnline);showNotification?.('Unable to save availability. Please try again.');}}}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')}><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
+   <header className="wx-header"><button className="wx-menu" onClick={()=>setMobile(true)}><Menu/></button><div><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={()=>persistAvailability(!online)}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')}><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
    <main className="wx-content">
     {tab==='home'&&<HomeView area={userProfile?.area||workerArea} online={online} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
@@ -142,7 +176,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
     {tab==='notifications'&&<NotificationsView orders={orders}/>}
     {tab==='incentives'&&<IncentivesView/>}
     {tab==='support'&&<SupportView/>}
-    {tab==='settings'&&<SettingsView online={online} setOnline={setOnline}/>}
+    {tab==='settings'&&<SettingsView online={online} setOnline={setOnline} persistAvailability={persistAvailability}/>}
    </main>
    <footer className="wx-mobile-nav">{menu.slice(0,5).map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={19}/><span>{m[1]}</span></button>})}</footer>
   </div>
@@ -378,6 +412,6 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
 function NotificationsView({orders}:{orders:Order[]}){const recent=orders.slice(0,20);return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">UPDATES</span><h2>Notifications</h2><p>Only live booking events are shown here.</p></div></div><section className="wx-card wx-notes">{recent.map(o=><div key={o.id}><div className="wx-note-icon"><ClipboardList/></div><div><b>Booking #{o.id}</b><p>{o.service} · {statusLabel[o.status]||o.status} · {o.customer}</p><small>{o.date}{o.time?' · '+o.time:''}</small></div><ChevronRight/></div>)}{!recent.length&&<div className="wx-empty"><Bell/><b>No notifications</b><span>New PunchX booking events will appear here.</span></div>}</section></div>}
 function IncentivesView(){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">EARN MORE</span><h2>Incentives & bonuses</h2><p>Only verified PunchX campaigns are displayed.</p></div></div><section className="wx-card"><div className="wx-empty"><Gift/><b>No active incentives available</b><span>No verified incentive campaign is available for this account.</span></div></section></div>}
 function SupportView(){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">PARTNER CARE</span><h2>Help & support</h2><p>Order, payment, customer and technical support.</p></div><a className="wx-primary" href="mailto:punchxservice@gmail.com"><LifeBuoy size={16}/> Contact support</a></div><div className="wx-support-grid">{[['Order issue','Report an order problem',ClipboardList],['Payment issue','Missing or incorrect earnings',Banknote],['Customer report','Safety or customer concern',CircleAlert],['Technical issue','App or location problem',Settings],['Email support','punchxservice@gmail.com',MessageCircle],['Emergency assistance','Use verified PunchX support channels',LifeBuoy]].map(function(x:any){var I=x[2];return <button className="wx-card wx-support-card" key={x[0]}><I/><div><b>{x[0]}</b><span>{x[1]}</span></div><ChevronRight/></button>})}</div></div>}
-function SettingsView(p:any){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">CONTROL CENTER</span><h2>Settings</h2><p>Account, notifications, privacy and availability.</p></div></div>{['Account','Notifications','Privacy & location','App preferences','Account status'].map(function(x,i){return <section className="wx-card wx-setting" key={x}><div><b>{x}</b><span>{i===0?'Edit profile · Change password · Login security':i===1?'Order alerts · Payment alerts · Promotions':i===2?'Location permission · Data settings':i===3?'Language · Theme · Terms & Privacy':'Deactivate account · Logout'}</span></div>{i===2?<button className="wx-secondary">Manage</button>:i===4?<button className="wx-danger">Deactivate</button>:<ChevronRight/>}</section>})}<section className="wx-card wx-setting"><div><b>Availability</b><span>{p.online?'Online — eligible for new orders':'Offline — no new orders'}</span></div><button className={'wx-toggle-btn '+(p.online?'on':'')} onClick={()=>p.setOnline(!p.online)}>{p.online?'ONLINE':'OFFLINE'}</button></section></div>}
+function SettingsView(p:any){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">CONTROL CENTER</span><h2>Settings</h2><p>Account, notifications, privacy and availability.</p></div></div>{['Account','Notifications','Privacy & location','App preferences','Account status'].map(function(x,i){return <section className="wx-card wx-setting" key={x}><div><b>{x}</b><span>{i===0?'Edit profile · Change password · Login security':i===1?'Order alerts · Payment alerts · Promotions':i===2?'Location permission · Data settings':i===3?'Language · Theme · Terms & Privacy':'Deactivate account · Logout'}</span></div>{i===2?<button className="wx-secondary">Manage</button>:i===4?<button className="wx-danger">Deactivate</button>:<ChevronRight/>}</section>})}<section className="wx-card wx-setting"><div><b>Availability</b><span>{p.online?'Online — eligible for new orders':'Offline — no new orders'}</span></div><button className={'wx-toggle-btn '+(p.online?'on':'')} onClick={()=>p.persistAvailability(!p.online)}>{p.online?'ONLINE':'OFFLINE'}</button></section></div>}
 
 function OrderModal(p:any){var o=p.order;return <div className="wx-overlay"><div className="wx-modal wx-order-modal"><button className="wx-modal-x" onClick={p.close}><X/></button><div className="wx-modal-top"><span className={'wx-badge '+o.status.toLowerCase()}>{labels[o.status]}</span><span>ORDER #{o.id}</span></div><div className="wx-customer"><div className="wx-avatar large">{o.avatar}</div><div><h2>{o.customer}</h2><p>{o.service}</p></div></div><div className="wx-modal-grid"><div><MapPin/><span>Address</span><b>{o.address}</b><small>{o.distance!==null?o.distance+" km away":"Distance unavailable"}</small></div><div><CalendarDays/><span>Booking</span><b>{o.date} · {o.time}</b><small>{o.duration}</small></div><div><Banknote/><span>Customer total</span><b>{o.price!==null?money(o.price):'Unavailable'}</b><small>Payment: {o.payment}</small></div><div><Wallet/><span>Your earning</span><b>{o.earning!==null?money(o.earning):'Payout unavailable'}</b><small>Verified professional payout only</small></div></div><div className="wx-status-line">{['ACCEPTED','TRAVELLING','ARRIVED','SERVICE_STARTED','COMPLETED'].map(function(s,i){return <React.Fragment key={s}><span className={['ACCEPTED','TRAVELLING','ARRIVED','SERVICE_STARTED','COMPLETED'].indexOf(o.status)>=i?'done':''}>{i+1}</span>{i<4&&<i/>}</React.Fragment>})}</div><div className="wx-status-labels"><span>Accepted</span><span>Travel</span><span>Arrived</span><span>Service</span><span>Done</span></div><div className="wx-modal-actions"><button className="wx-secondary" onClick={()=>{const phone=o.raw?.customerPhone;if(phone)window.location.href="tel:"+phone;else alert("Customer phone number is not available in this booking.");}}><Phone size={16}/> Contact</button><button className="wx-secondary" onClick={()=>{const loc=o.raw?.customerLocation;if(loc)window.open("https://www.google.com/maps/dir/?api=1&destination="+loc.lat+","+loc.lng,"_blank","noopener,noreferrer");else if(o.address&&o.address!=="Location available in details")window.open("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(o.address),"_blank","noopener,noreferrer");else alert("Customer location is not available in this booking.");}}><Navigation size={16}/> Navigate</button>{o.status!=='COMPLETED'&&<button className="wx-primary" onClick={p.advance}>{p.action}<ChevronRight size={16}/></button>}</div></div></div>}
