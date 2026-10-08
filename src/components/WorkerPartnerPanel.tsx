@@ -510,6 +510,8 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
    setSaving(true);
    try{
      const payload:any={
+       uid:uid,
+       role:'worker',
        name:draft.name.trim(),
        phone:draft.phone.trim(),
        address:draft.address.trim(),
@@ -529,17 +531,6 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
        updatedAt:new Date().toISOString()
      };
      await setDoc(doc(db,'users',uid),payload,{merge:true});
-     const applicationId=String(application?.id||'').trim();
-     if(applicationId){
-       try{
-         await setDoc(doc(db,'workerApplications',applicationId),{
-         legalName:payload.name,phone:payload.phone,address:payload.address,streetAddress:payload.streetAddress,
-         landmark:payload.landmark,area:payload.area,city:payload.city,sector:payload.sector,
-         skill:payload.workerSkill,categories:payload.workerCategories,customSkill:payload.customSkill,
-         experienceYears:payload.workerExperience,visitingFee:payload.visitingFee,updatedAt:payload.updatedAt
-         },{merge:true});
-       }catch(applicationSyncError){ console.warn('Worker application sync notice after profile save:',applicationSyncError); }
-     }
      try{await refreshProfile?.();}catch(refreshError){console.warn('Profile refresh notice after successful save:',refreshError);}
      setEditing(false);
      showNotification?.('✓ Profile saved to PunchX securely.');
