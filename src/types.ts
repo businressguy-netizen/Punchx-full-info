@@ -59,7 +59,6 @@ export interface UserProfile {
   area?: string;
   sector?: string;
   phone?: string;
-  landmark?: string;
   city?: string;
   bio?: string;
   workerAvailability?: boolean;
