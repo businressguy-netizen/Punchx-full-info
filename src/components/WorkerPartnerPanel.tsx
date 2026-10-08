@@ -10,6 +10,9 @@ import './worker-partner-panel.css';
 
 type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
 type Status = 'NEW'|'ACCEPTED'|'TRAVELLING'|'ARRIVED'|'SERVICE_STARTED'|'COMPLETED'|'CANCELLED';
+type ReportPeriod = 7|30|60|90|365;
+const REPORT_PERIODS:ReportPeriod[]=[7,30,60,90,365];
+const reportLabel=(days:ReportPeriod)=>days===365?'1 year':String(days)+' days';
 type Order = { id:string; customer:string; service:string; address:string; distance:number|null; time:string; date:string; duration:string; price:number|null; earning:number|null; status:Status; payment:string; avatar:string; raw?:OrderRecord };
 
 const labels:Record<Status,string> = {NEW:'New',ACCEPTED:'Accepted',TRAVELLING:'Travelling',ARRIVED:'Arrived',SERVICE_STARTED:'Service started',COMPLETED:'Completed',CANCELLED:'Cancelled'};
@@ -30,6 +33,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const {currentUser,userProfile,refreshProfile,logout}=useAuth() as any;
  const uid=currentUser?.uid || userProfile?.uid || '';
  const [tab,setTab]=useState<Tab>('home');
+ const [reportPeriod,setReportPeriod]=useState<ReportPeriod>(7);
  const [online,setOnline]=useState(false);
  const [orders,setOrders]=useState<Order[]>([]);
  const [selected,setSelected]=useState<Order|null>(null);
@@ -339,53 +343,65 @@ function OrdersView({filtered,filter,setFilter,query,setQuery,onOpen}:any){
   </div>;
 }
 
-function EarningsView({orders,todayEarn}:{orders:Order[];todayEarn:number|null}){
+function EarningsView({orders,todayEarn,reportPeriod,setReportPeriod}:{orders:Order[];todayEarn:number|null;reportPeriod:ReportPeriod;setReportPeriod:(v:ReportPeriod)=>void}){
  const completed=orders.filter(o=>o.status==='COMPLETED');
- const weekOrders=completed.filter(o=>isWithinDays(o.raw?.completedAt||o.raw?.createdAt,7));
- const monthOrders=completed.filter(o=>isWithinDays(o.raw?.completedAt||o.raw?.createdAt,31));
- const payoutOrders=completed.filter(o=>o.earning!==null);
- const total=payoutOrders.reduce((s,o)=>s+(o.earning||0),0);
- const weekTotal=weekOrders.filter(o=>o.earning!==null).reduce((s,o)=>s+(o.earning||0),0);
- const monthTotal=monthOrders.filter(o=>o.earning!==null).reduce((s,o)=>s+(o.earning||0),0);
- return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">FINANCIALS</span><h2>My earnings</h2><p>Calculated only from completed PunchX bookings.</p></div></div>
- <div className="wx-stats"><Stat label="Today" value={todayEarn!==null?money(todayEarn):"Unavailable"} icon={Banknote}/><Stat label="Last 7 days" value={weekOrders.some(o=>o.earning!==null)?money(weekTotal):"Unavailable"} icon={TrendingUp}/><Stat label="Last 31 days" value={monthOrders.some(o=>o.earning!==null)?money(monthTotal):"Unavailable"} icon={CalendarDays}/><Stat label="Lifetime completed" value={payoutOrders.length?money(total):"Unavailable"} icon={Wallet}/><Stat label="Completed jobs" value={completed.length} icon={CheckCircle2}/></div>
- <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">COMPLETED BOOKINGS</span><h3>Real payout records</h3></div></div>{completed.slice(0,20).map(o=><div className="wx-inventory-row" key={o.id}><Banknote/><div><b>#{o.id} · {o.service}</b><span>{o.date} · {o.customer}</span></div><strong className="good">{o.earning!==null?money(o.earning):'Payout unavailable'}</strong></div>)}{!completed.length&&<div className="wx-empty"><Banknote/><b>No completed earnings yet</b><span>Completed PunchX bookings will appear here.</span></div>}</section>
- <section className="wx-card"><div className="wx-breakdown"><span>Completed jobs <b>{completed.length}</b></span><span>Professional payout total <b>{payoutOrders.length?money(total):"Unavailable"}</b></span><span>Wallet balance <b>Unavailable</b></span></div><p className="wx-muted">Wallet and withdrawal data are hidden until PunchX provides a verified wallet record.</p></section></div>;
-}
-function ScheduleView(){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">WORK CALENDAR</span><h2>Schedule & availability</h2><p>Only a verified stored schedule will be shown.</p></div></div><section className="wx-card"><div className="wx-empty"><CalendarDays/><b>No verified schedule configured</b><span>No stored weekly working hours are available for this professional.</span></div></section><section className="wx-card"><div className="wx-control-grid"><button disabled><Clock3/><b>Breaks</b><span>Not configured</span></button><button disabled><Route/><b>Service radius</b><span>Not configured</span></button><button disabled><CalendarDays/><b>Time off</b><span>Not configured</span></button><button disabled><CircleAlert/><b>Emergency pass</b><span>Not configured</span></button></div></section></div>}
-function PerformanceView({orders,userProfile}:{orders:Order[];userProfile:any}){const completed=orders.filter(o=>o.status==='COMPLETED');const cancelled=orders.filter(o=>o.status==='CANCELLED');const den=completed.length+cancelled.length;const completion=den?Math.round(completed.length/den*100):null;const ratings=completed.map(o=>safeNumber(o.raw?.userRating)).filter(n=>n>0);const rating=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">QUALITY SCORE & ANALYTICS</span><h2>Performance & growth</h2><p>All metrics and charts are calculated from verified PunchX records.</p></div></div><div className="wx-stats"><Stat label="Customer rating" value={rating?rating.toFixed(1)+' / 5':(userProfile?.workerRating?Number(userProfile.workerRating).toFixed(1)+' / 5':'—')} icon={Star}/><Stat label="Completion rate" value={completion!==null?completion+'%':'—'} icon={CheckCircle2}/><Stat label="On-time arrival" value="—" icon={Timer}/><Stat label="Response rate" value="—" icon={MessageCircle}/><Stat label="Completed jobs" value={completed.length} icon={UserRound}/><Stat label="Partner level" value="—" icon={ShieldCheck}/></div><RealWorkerAnalytics orders={orders}/></div>}
-
-function RealWorkerAnalytics({orders}:{orders:Order[]}){
- const days=Array.from({length:7},function(_,i){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(6-i));return d;});
- const metrics=days.map(function(day){
-   const next=new Date(day);next.setDate(next.getDate()+1);
-   const dayOrders=orders.filter(function(o){const d=recordDate(o);return !!d&&d>=day&&d<next;});
-   const completed=dayOrders.filter(function(o){return o.status==='COMPLETED';});
-   const cancelled=dayOrders.filter(function(o){return o.status==='CANCELLED';});
-   const payout=completed.filter(function(o){return o.earning!==null;}).reduce(function(s,o){return s+(o.earning||0);},0);
-   return {day:day,completed:completed.length,cancelled:cancelled.length,payout:payout};
- });
- const usable=metrics.some(function(m){return m.completed>0||m.cancelled>0||m.payout>0;});
- if(!usable)return <section className="wx-card"><div className="wx-empty"><BarChart3/><b>No chartable booking history yet</b><span>Only real PunchX records are plotted. No estimated or placeholder values are used.</span></div></section>;
- const maxCount=Math.max(1,...metrics.map(function(m){return Math.max(m.completed,m.cancelled);}));
- const maxPayout=Math.max(1,...metrics.map(function(m){return m.payout;}));
- const payoutPoints=metrics.map(function(m,i){const x=10+(i*180/6);const y=122-(m.payout/maxPayout)*96;return x+','+Math.max(18,y);}).join(' ');
- const totalCompleted=metrics.reduce(function(s,m){return s+m.completed;},0);
- const totalCancelled=metrics.reduce(function(s,m){return s+m.cancelled;},0);
- const totalPayout=metrics.reduce(function(s,m){return s+m.payout;},0);
- return <div className="wx-analytics-grid">
-  <section className="wx-card wx-chart-card">
-   <div className="wx-card-head"><div><span className="wx-section-label">7-DAY ANALYSIS</span><h3>Completed vs cancelled jobs</h3></div><BarChart3 size={18}/></div>
-   <div className="wx-bar-chart">{metrics.map(function(m){const completedHeight=Math.max(4,Math.round((m.completed/maxCount)*110));const cancelledHeight=Math.max(4,Math.round((m.cancelled/maxCount)*110));return <div className="wx-chart-col" key={m.day.toISOString()}><div className="wx-bars-pair"><i style={{height:completedHeight}} title={m.completed+' completed'}></i><b style={{height:cancelledHeight}} title={m.cancelled+' cancelled'}></b></div><small>{m.day.toLocaleDateString('en-IN',{weekday:'short'}).slice(0,3)}</small></div>;})}</div>
-   <div className="wx-chart-legend"><span><i className="done"></i>Completed: {totalCompleted}</span><span><i className="cancelled"></i>Cancelled: {totalCancelled}</span></div>
+ return <div className="wx-stack">
+  <div className="wx-page-intro"><div><span className="wx-section-label">FINANCIAL PERFORMANCE</span><h2>Income & earnings report</h2><p>Choose a period to understand your real PunchX income, completed work and payout history.</p></div><button className="wx-secondary" onClick={()=>downloadWorkerReport(orders,reportPeriod,'income')}><Save size={15}/> Export report</button></div>
+  <ReportPeriodPicker value={reportPeriod} onChange={setReportPeriod}/>
+  <WorkerAnalyticsReport orders={orders} period={reportPeriod} mode="income"/>
+  <section className="wx-card"><div className="wx-card-head"><div><span className="wx-section-label">PAYOUT HISTORY</span><h3>Verified professional payouts</h3></div><span className="wx-muted">{completed.length} completed bookings loaded</span></div>
+   {completed.filter(o=>o.earning!==null).sort((a,b)=>(recordDate(b)?.getTime()||0)-(recordDate(a)?.getTime()||0)).slice(0,50).map(o=><div className="wx-inventory-row" key={o.id}><Banknote/><div><b>#{o.id} · {o.service}</b><span>{o.date} · {o.customer}</span></div><strong className="good">{money(o.earning as number)}</strong></div>)}
+   {!completed.some(o=>o.earning!==null)&&<div className="wx-empty"><Banknote/><b>No verified payout records</b><span>PunchX will display income only when a professional payout is recorded against a completed booking.</span></div>}
   </section>
-  <section className="wx-card wx-chart-card">
-   <div className="wx-card-head"><div><span className="wx-section-label">7-DAY PAYOUT TREND</span><h3>Verified professional payout</h3></div><LineChart size={18}/></div>
-   <div className="wx-line-chart"><svg viewBox="0 0 200 140" role="img" aria-label="Seven day verified payout trend"><polyline points={payoutPoints} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>{metrics.map(function(m,i){const x=10+(i*180/6);const y=122-(m.payout/maxPayout)*96;return <circle key={m.day.toISOString()} cx={x} cy={Math.max(18,y)} r="3.5" fill="currentColor"/>;})}</svg><div className="wx-line-labels">{metrics.map(function(m){return <span key={m.day.toISOString()}>{m.day.toLocaleDateString('en-IN',{day:'2-digit',month:'short'})}</span>;})}</div></div>
-   <div className="wx-chart-total">7-day verified payout <strong>{totalPayout?money(totalPayout):'No verified payout recorded'}</strong></div>
-  </section>
+  <section className="wx-card wx-report-note"><ShieldCheck size={18}/><div><b>Income transparency</b><span>Customer prices are never treated as worker income. This report uses only the professional payout stored on completed PunchX bookings.</span></div></section>
  </div>;
 }
+function ScheduleView(){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">WORK CALENDAR</span><h2>Schedule & availability</h2><p>Only a verified stored schedule will be shown.</p></div></div><section className="wx-card"><div className="wx-empty"><CalendarDays/><b>No verified schedule configured</b><span>No stored weekly working hours are available for this professional.</span></div></section><section className="wx-card"><div className="wx-control-grid"><button disabled><Clock3/><b>Breaks</b><span>Not configured</span></button><button disabled><Route/><b>Service radius</b><span>Not configured</span></button><button disabled><CalendarDays/><b>Time off</b><span>Not configured</span></button><button disabled><CircleAlert/><b>Emergency pass</b><span>Not configured</span></button></div></section></div>}
+function PerformanceView({orders,userProfile,reportPeriod,setReportPeriod}:{orders:Order[];userProfile:any;reportPeriod:ReportPeriod;setReportPeriod:(v:ReportPeriod)=>void}){
+ const completed=orders.filter(o=>o.status==='COMPLETED'); const cancelled=orders.filter(o=>o.status==='CANCELLED');
+ const ratings=completed.map(o=>safeNumber(o.raw?.userRating)).filter(n=>n>0); const rating=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;
+ return <div className="wx-stack">
+  <div className="wx-page-intro"><div><span className="wx-section-label">PERFORMANCE & GROWTH</span><h2>Performance analytics</h2><p>Measure your progress across real PunchX work history and verified customer feedback.</p></div><button className="wx-secondary" onClick={()=>downloadWorkerReport(orders,reportPeriod,'performance')}><Save size={15}/> Export report</button></div>
+  <ReportPeriodPicker value={reportPeriod} onChange={setReportPeriod}/>
+  <div className="wx-stats"><Stat label="Customer rating" value={rating?rating.toFixed(1)+' / 5':(userProfile?.workerRating?Number(userProfile.workerRating).toFixed(1)+' / 5':'—')} icon={Star}/><Stat label="Completion rate" value={completed.length+cancelled.length?(Math.round(completed.length/(completed.length+cancelled.length)*100)+'%'):'—'} icon={CheckCircle2}/><Stat label="Completed jobs" value={completed.length} icon={UserRound}/><Stat label="Cancelled jobs" value={cancelled.length} icon={CircleAlert}/><Stat label="Verified reviews" value={ratings.length||'—'} icon={Star}/></div>
+  <WorkerAnalyticsReport orders={orders} period={reportPeriod} mode="performance"/>
+ </div>;
+}
+function ReportPeriodPicker({value,onChange}:{value:ReportPeriod;onChange:(v:ReportPeriod)=>void}){
+ return <section className="wx-card wx-period-card"><div><span className="wx-section-label">REPORT PERIOD</span><h3>Choose your analysis window</h3><p>All figures update from the selected period.</p></div><div className="wx-period-tabs">{REPORT_PERIODS.map(function(days){return <button key={days} className={value===days?'active':''} onClick={()=>onChange(days)}>{reportLabel(days)}</button>})}</div></section>;
+}
+function WorkerAnalyticsReport({orders,period,mode}:{orders:Order[];period:ReportPeriod;mode:'income'|'performance'}){
+ const now=new Date(); const start=new Date(now); start.setHours(0,0,0,0); start.setDate(start.getDate()-period+1); const previousStart=new Date(start); previousStart.setDate(previousStart.getDate()-period);
+ const inRange=orders.filter(function(o){const d=recordDate(o);return !!d&&d>=start&&d<=now;}); const previous=orders.filter(function(o){const d=recordDate(o);return !!d&&d>=previousStart&&d<start;});
+ const completed=inRange.filter(o=>o.status==='COMPLETED'); const cancelled=inRange.filter(o=>o.status==='CANCELLED'); const payoutRows=completed.filter(o=>o.earning!==null);
+ const income=payoutRows.reduce((s,o)=>s+(o.earning||0),0); const previousIncome=previous.filter(o=>o.status==='COMPLETED'&&o.earning!==null).reduce((s,o)=>s+(o.earning||0),0);
+ const avgJob=payoutRows.length?income/payoutRows.length:null; const den=completed.length+cancelled.length; const completion=den?completed.length/den*100:null;
+ const ratings=completed.map(o=>safeNumber(o.raw?.userRating)).filter(n=>n>0); const rating=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;
+ const activeDays=new Set(payoutRows.map(o=>recordDate(o)?.toISOString().slice(0,10)).filter(Boolean)).size; const delta=previousIncome>0?((income-previousIncome)/previousIncome)*100:null;
+ const actionable=cancelled.length>0?'Reduce avoidable cancellations to protect your completed-job rate.':rating!==null&&rating<4.5?'Review customer feedback and complete relevant training to improve service quality.':completion!==null&&completion<90?'Focus on accepting and completing suitable jobs consistently.':payoutRows.length>0?'Your verified activity is building a measurable income history. Keep consistency and monitor the next period.':'Complete PunchX jobs with recorded professional payouts to unlock this analysis.';
+ const chartRows=buildPeriodChartRows(inRange,period); const hasChartData=chartRows.some(r=>r.income>0||r.completed>0||r.cancelled>0);
+ return <div className="wx-stack wx-analytics-report">
+  <div className="wx-report-summary"><Stat label="Verified income" value={payoutRows.length?money(income):'Unavailable'} icon={Banknote} trend={delta!==null?(delta>=0?'+'+delta.toFixed(1)+'% vs previous period':delta.toFixed(1)+'% vs previous period'):undefined}/><Stat label="Completed jobs" value={completed.length} icon={CheckCircle2}/><Stat label="Average payout / job" value={avgJob!==null?money(avgJob):'—'} icon={TrendingUp}/><Stat label="Active work days" value={activeDays||'—'} icon={CalendarDays}/></div>
+  {hasChartData?<><section className="wx-card wx-analytics-chart"><div className="wx-card-head"><div><span className="wx-section-label">{reportLabel(period).toUpperCase()} INCOME TREND</span><h3>Verified professional income</h3></div><LineChart size={18}/></div><div className="wx-report-line"><svg viewBox="0 0 700 220" role="img" aria-label={reportLabel(period)+' verified income trend'}>{buildSvgLine(chartRows,'income',700,220)}</svg><div className="wx-report-axis">{chartRows.map(r=><span key={r.key}>{r.label}</span>)}</div></div><div className="wx-chart-total"><span>Period income</span><strong>{income?money(income):'No verified payout recorded'}</strong></div></section>
+  <section className="wx-card wx-analytics-chart"><div className="wx-card-head"><div><span className="wx-section-label">{reportLabel(period).toUpperCase()} WORK OUTPUT</span><h3>Completed vs cancelled jobs</h3></div><BarChart3 size={18}/></div><div className="wx-report-bars">{chartRows.map(r=><div className="wx-report-bar-col" key={r.key}><div className="wx-report-bar-pair"><i style={{height:Math.max(4,r.completed*18)}} title={r.completed+' completed'}></i><b style={{height:Math.max(4,r.cancelled*18)}} title={r.cancelled+' cancelled'}></div><small>{r.label}</small></div>)}</div><div className="wx-chart-legend"><span><i className="done"></i>Completed: {completed.length}</span><span><i className="cancelled"></i>Cancelled: {cancelled.length}</span><span>Completion: {completion!==null?completion.toFixed(1)+'%':'—'}</span></div></section></>:<section className="wx-card"><div className="wx-empty"><BarChart3/><b>No chartable records for {reportLabel(period)}</b><span>Charts use only real PunchX bookings with usable dates and recorded status or professional payout.</span></div></section>}
+  <section className="wx-card wx-growth-card"><div className="wx-card-head"><div><span className="wx-section-label">PERSONAL GROWTH SIGNAL</span><h3>What to improve next</h3></div><TrendingUp size={18}/></div><p>{actionable}</p><div className="wx-growth-metrics"><span>Customer rating <b>{rating!==null?rating.toFixed(1)+'/5':'—'}</b></span><span>Completion rate <b>{completion!==null?completion.toFixed(1)+'%':'—'}</b></span><span>Verified reviews <b>{ratings.length||'—'}</b></span></div></section>
+ </div>;
+}
+function buildPeriodChartRows(orders:Order[],period:ReportPeriod){
+ const bucketCount=period<=30?Math.min(15,period):period<=90?15:12; const bucketDays=Math.max(1,Math.ceil(period/bucketCount)); const rows:any[]=[]; const end=new Date(); end.setHours(23,59,59,999);
+ for(let i=bucketCount-1;i>=0;i--){const from=new Date(end);from.setDate(from.getDate()-(i+1)*bucketDays+1);from.setHours(0,0,0,0);const to=new Date(from);to.setDate(to.getDate()+bucketDays);const items=orders.filter(o=>{const d=recordDate(o);return !!d&&d>=from&&d<to;});const completed=items.filter(o=>o.status==='COMPLETED');const cancelled=items.filter(o=>o.status==='CANCELLED');const income=completed.filter(o=>o.earning!==null).reduce((s,o)=>s+(o.earning||0),0);rows.push({key:from.toISOString(),label:from.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}),income,completed:completed.length,cancelled:cancelled.length});}
+ return rows;
+}
+function buildSvgLine(rows:any[],key:string,w:number,h:number){
+ const max=Math.max(1,...rows.map(r=>r[key]||0)); const padX=24,padY=18; const points=rows.map((r,i)=>{const x=padX+(i*Math.max(1,w-padX*2)/(Math.max(1,rows.length-1)));const y=h-padY-(r[key]/max)*(h-padY*2);return {x,y};});
+ return <>{points.length>1&&<polyline points={points.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')} fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>}{points.map((p,i)=><circle key={i} cx={p.x} cy={p.y} r="4" fill="currentColor"/>)}<text x="8" y="18" fontSize="10" fill="currentColor">{money(max)}</text></>;
+}
+function downloadWorkerReport(orders:Order[],period:ReportPeriod,kind:'income'|'performance'){
+ const now=new Date(); const start=new Date(now);start.setHours(0,0,0,0);start.setDate(start.getDate()-period+1); const rows=orders.filter(o=>{const d=recordDate(o);return !!d&&d>=start&&d<=now;});
+ const header=['Order ID','Date','Service','Status','Professional Payout','Customer Rating']; const body=rows.map(o=>[o.id,o.date,o.service,o.status,o.earning==null?'':String(o.earning),o.raw?.userRating==null?'':String(o.raw.userRating)]);
+ const csv=[header,...body].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='punchx-'+kind+'-report-'+period+'days.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+
 function TrainingView({userProfile}:{userProfile:any}){const courses=Array.isArray(userProfile?.trainingCourses)?userProfile.trainingCourses:[];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">SKILLS & CERTIFICATION</span><h2>Training center</h2><p>Only verified PunchX training records are displayed.</p></div></div><section className="wx-card">{courses.length?courses.map((x:any)=><div className="wx-inventory-row" key={x.id||x.name}><GraduationCap/><div><b>{x.name||'Training'}</b><span>{x.status||'Recorded by PunchX'}</span></div></div>):<div className="wx-empty"><GraduationCap/><b>No training records</b><span>No verified PunchX training course or certification is stored.</span></div>}</section></div>}
 function InventoryView({userProfile}:{userProfile:any}){const items=Array.isArray(userProfile?.inventory)?userProfile.inventory:[];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">TOOLS & MATERIALS</span><h2>Inventory & work kit</h2><p>Only verified inventory records are displayed.</p></div></div><section className="wx-card">{items.length?items.map((x:any)=><div className="wx-inventory-row" key={x.id||x.name}><Package/><div><b>{x.name||'Item'}</b><span>{x.status||'Recorded'}</span></div><strong>{x.quantity??'—'}</strong></div>):<div className="wx-empty"><Package/><b>No inventory records</b><span>No verified PunchX inventory or material records are available.</span></div>}</section></div>}
 function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProfile:any;uid:string;refreshProfile?:()=>Promise<void>;showNotification?:(m:string)=>void}){
