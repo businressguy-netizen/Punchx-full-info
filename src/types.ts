@@ -40,7 +40,6 @@ export interface WorkerApplication {
   visitingFee?: number;
   phone: string;
   email: string;
-  visitingFee?: number;
   termsAccepted: boolean;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   appliedAt: string;
