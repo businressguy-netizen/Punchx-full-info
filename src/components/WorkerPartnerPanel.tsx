@@ -3,7 +3,7 @@ import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X
 import { useAuth } from '../lib/authContext';
 import { db } from '../lib/firebase';
 import { OrderRecord } from '../types';
-import { collection, doc, onSnapshot, runTransaction, updateDoc, query, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, updateDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
 import './worker-partner-panel.css';
 
@@ -51,8 +51,8 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  };
  useEffect(function(){
    if(!uid){setOrders([]);return;}
-   const assignedQuery=query(collection(db,'orders'),where('workerId','==',uid));
-   const availableQuery=query(collection(db,'orders'),where('workerId','==',null),where('status','in',['Pending','PAID','DISPATCHING']));
+   const assignedQuery=firestoreQuery(collection(db,'orders'),where('workerId','==',uid));
+   const availableQuery=firestoreQuery(collection(db,'orders'),where('workerId','==',null),where('status','in',['Pending','PAID','DISPATCHING']));
    let assigned:OrderRecord[]=[];
    let available:OrderRecord[]=[];
    let assignedReady=false;
