@@ -193,14 +193,14 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
     {tab==='support'&&<SupportView/>}
     {tab==='settings'&&<SettingsView online={online} setOnline={setOnline} persistAvailability={persistAvailability}/>}
    </main>
-   <WorkerWebsiteFooter tab={tab} nav={nav} onTransition={onTransition} showNotification={showNotification} />
+   <WorkerWebsiteFooter tab={tab} nav={nav} onTransition={onTransition} onLogout={handleLogout} loggingOut={loggingOut} />
    <footer className="wx-mobile-nav">{menu.slice(0,5).map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={19}/><span>{m[1]}</span></button>})}</footer>
   </div>
   {selected&&<OrderModal order={selected} close={()=>setSelected(null)} advance={()=>advance(selected)} action={action(selected.status)}/>}
  </div>
 }
 
-function WorkerWebsiteFooter({tab,nav,onTransition,showNotification}:{tab:Tab;nav:(t:Tab)=>void;onTransition?:(s:any)=>void;showNotification?:(m:string)=>void}){
+function WorkerWebsiteFooter({tab,nav,onTransition,onLogout,loggingOut}:{tab:Tab;nav:(t:Tab)=>void;onTransition?:(s:any)=>void;onLogout:()=>Promise<void>;loggingOut:boolean}){
  return <footer className="wx-site-footer">
   <div className="wx-site-footer-glow wx-site-footer-glow-right"></div>
   <div className="wx-site-footer-glow wx-site-footer-glow-left"></div>
@@ -240,7 +240,7 @@ function WorkerWebsiteFooter({tab,nav,onTransition,showNotification}:{tab:Tab;na
      <span>For account, booking, payment or technical issues.</span>
      <a href="mailto:punchxservice@gmail.com"><MessageCircle/> punchxservice@gmail.com</a>
      <button onClick={()=>nav('support')}><LifeBuoy/> Open support <ChevronRight/></button>
-     <button className="wx-footer-logout" onClick={handleLogout} disabled={loggingOut}><LogOut/>{loggingOut?'Logging out…':'Logout'}</button>
+     <button className="wx-footer-logout" onClick={onLogout} disabled={loggingOut}><LogOut/>{loggingOut?'Logging out…':'Logout'}</button>
     </div>
    </div>
    <div className="wx-footer-bottom">
