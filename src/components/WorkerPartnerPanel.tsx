@@ -4,6 +4,7 @@ import { useAuth } from '../lib/authContext';
 import { db } from '../lib/firebase';
 import { OrderRecord } from '../types';
 import { collection, doc, onSnapshot, runTransaction, updateDoc, query, where } from 'firebase/firestore';
+import PUNCHX_LOGO from '../assets/logo';
 import './worker-partner-panel.css';
 
 type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
@@ -21,7 +22,7 @@ const isWithinDays=(value:unknown,days:number)=>{const d=parseDate(value);if(!d)
 const safeNumber=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)?n:0;};
 
 export default function WorkerPartnerPanel({onTransition,showNotification}:{onTransition?:(s:any)=>void;showNotification?:(m:string)=>void}) {
- const {currentUser,userProfile,refreshProfile}=useAuth() as any;
+ const {currentUser,userProfile,refreshProfile,logout}=useAuth() as any;
  const uid=currentUser?.uid || userProfile?.uid || '';
  const [tab,setTab]=useState<Tab>('home');
  const [online,setOnline]=useState(false);
@@ -30,6 +31,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const [query,setQuery]=useState('');
  const [filter,setFilter]=useState('ALL');
  const [mobile,setMobile]=useState(false);
+ const [loggingOut,setLoggingOut]=useState(false);
  const name=userProfile?.name||'Professional';
  useEffect(function(){if(typeof userProfile?.workerAvailability==='boolean')setOnline(userProfile.workerAvailability);},[userProfile?.workerAvailability]);
  const workerCategories=useMemo(function(){
@@ -112,7 +114,20 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
      showNotification?.('Unable to save availability. Please try again.');
    }
  };
- const nav=function(t:Tab){setTab(t);setSelected(null);setMobile(false)};
+ const nav=function(t:Tab){setTab(t);setSelected(null);setMobile(false);window.scrollTo({top:0,behavior:'smooth'});};
+ const handleLogout=async function(){
+   if(loggingOut)return;
+   setLoggingOut(true);
+   try{
+     setMobile(false);
+     setSelected(null);
+     await logout();
+   }catch(error){
+     console.error('Worker logout error:',error);
+     showNotification?.('Unable to log out right now. Please try again.');
+     setLoggingOut(false);
+   }
+ };
  const locationWatch=useRef<number|null>(null);
  useEffect(function(){
    const activeOrder=orders.find(function(o){return o.raw && ['TRAVELLING','ARRIVED','SERVICE_STARTED'].includes(o.status)});
@@ -164,10 +179,10 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    <div className="wx-worker-mini"><div className="wx-avatar">{String(name||"P").slice(0,2).toUpperCase()}</div><div><b>{name}</b><span>{userProfile?.uid||"Partner ID unavailable"}</span></div><i className={online?'online':''}></i></div>
    
    <nav>{menu.map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={19}/><span>{m[1]}</span>{}</button>})}</nav>
-   <button className="wx-logout" onClick={()=>onTransition?.('panel-select')}><LogOut size={18}/> Logout</button>
+   <button className="wx-logout" onClick={handleLogout} disabled={loggingOut} aria-busy={loggingOut}><LogOut size={18}/>{loggingOut?'Logging out…':'Logout'}</button>
   </aside>
   <div className="wx-main">
-   <header className="wx-header"><button className="wx-menu" onClick={()=>setMobile(true)}><Menu/></button><div><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={()=>persistAvailability(!online)}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')}><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
+   <header className="wx-header"><button className="wx-menu" onClick={()=>setMobile(true)} aria-label="Open partner menu"><Menu/></button><div className="wx-mobile-brand"><img src={PUNCHX_LOGO} alt="PunchX" /><span>PunchX</span></div><div><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={()=>persistAvailability(!online)}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')}><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
    <main className="wx-content">
     {tab==='home'&&<HomeView area={userProfile?.area||workerArea} online={online} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
@@ -178,10 +193,62 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
     {tab==='support'&&<SupportView/>}
     {tab==='settings'&&<SettingsView online={online} setOnline={setOnline} persistAvailability={persistAvailability}/>}
    </main>
+   <WorkerWebsiteFooter tab={tab} nav={nav} onTransition={onTransition} showNotification={showNotification} />
    <footer className="wx-mobile-nav">{menu.slice(0,5).map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={19}/><span>{m[1]}</span></button>})}</footer>
   </div>
   {selected&&<OrderModal order={selected} close={()=>setSelected(null)} advance={()=>advance(selected)} action={action(selected.status)}/>}
  </div>
+}
+
+function WorkerWebsiteFooter({tab,nav,onTransition,showNotification}:{tab:Tab;nav:(t:Tab)=>void;onTransition?:(s:any)=>void;showNotification?:(m:string)=>void}){
+ return <footer className="wx-site-footer">
+  <div className="wx-site-footer-glow wx-site-footer-glow-right"></div>
+  <div className="wx-site-footer-glow wx-site-footer-glow-left"></div>
+  <div className="wx-site-footer-inner">
+   <div className="wx-footer-trust">
+    {[
+      [ShieldCheck,'Verified partner operations','Your work status, bookings and professional records come from PunchX account data.'],
+      [ClipboardList,'Live booking workflow','Accept, travel, arrive, start and complete jobs from one responsive panel.'],
+      [Navigation,'Service visibility','Use real booking location and status information when it is available.'],
+      [LifeBuoy,'Partner support','Get help through the verified PunchX support channel.']
+    ].map(function(item:any){var I=item[0];return <div className="wx-footer-trust-card" key={item[1]}><I/><div><b>{item[1]}</b><span>{item[2]}</span></div></div>})}
+   </div>
+   <div className="wx-footer-main">
+    <div className="wx-footer-brand">
+     <div className="wx-footer-logo"><img src={PUNCHX_LOGO} alt="PunchX"/></div>
+     <div><b>PunchX</b><span>Professional partner network</span></div>
+     <p>Manage PunchX service work from a mobile-friendly website built for real bookings, real status updates and verified account records.</p>
+     <div className="wx-footer-tags"><span>Real bookings</span><span>Verified records</span><span>Responsive website</span></div>
+    </div>
+    <div className="wx-footer-links">
+     <div><strong>Partner panel</strong>
+      <button onClick={()=>nav('home')}>Home</button>
+      <button onClick={()=>nav('orders')}>Orders</button>
+      <button onClick={()=>nav('schedule')}>Schedule</button>
+      <button onClick={()=>nav('earnings')}>Earnings</button>
+      <button onClick={()=>nav('profile')}>Profile</button>
+     </div>
+     <div><strong>Account</strong>
+      <button onClick={()=>nav('support')}>Support</button>
+      <button onClick={()=>nav('settings')}>Settings</button>
+      <button onClick={()=>onTransition?.('terms-and-conditions')}>Terms</button>
+      <button onClick={()=>onTransition?.('privacy-policy')}>Privacy</button>
+     </div>
+    </div>
+    <div className="wx-footer-support">
+     <strong>Partner support</strong>
+     <span>For account, booking, payment or technical issues.</span>
+     <a href="mailto:punchxservice@gmail.com"><MessageCircle/> punchxservice@gmail.com</a>
+     <button onClick={()=>nav('support')}><LifeBuoy/> Open support <ChevronRight/></button>
+     <button className="wx-footer-logout" onClick={handleLogout} disabled={loggingOut}><LogOut/>{loggingOut?'Logging out…':'Logout'}</button>
+    </div>
+   </div>
+   <div className="wx-footer-bottom">
+    <span>© {new Date().getFullYear()} PunchX. All rights reserved.</span>
+    <span>Partner Panel · <b>{tab==='home'?'Home':tab.charAt(0).toUpperCase()+tab.slice(1)}</b></span>
+   </div>
+  </div>
+ </footer>
 }
 
 function Stat(p:any){return <div className="wx-stat"><div className="wx-icon"><p.icon size={18}/></div><div><span>{p.label}</span><strong>{p.value}</strong>{p.trend&&<small>{p.trend}</small>}</div></div>}
