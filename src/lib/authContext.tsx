@@ -78,9 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
       uid: firebaseUid,
       name: extractedName,
       email: identity.email || '',
-      photoURL:
-        (identity.picture as string) ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+      // Never assign a stock/fake portrait. A worker photo is optional until the worker uploads a genuine one.
+      photoURL: (identity.picture as string) || '',
       role: 'citizen',
       dob: extractedDob,
       birthdate: extractedDob,
@@ -117,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
               ...existingData,
               uid: firebaseUid,
               email: existingData.email || identity.email || '',
-              photoURL: existingData.photoURL || (identity.picture as string) || fallbackProfile.photoURL,
+              photoURL: (existingData.photoURL && !String(existingData.photoURL).includes('images.unsplash.com/photo-1534528741775-53994a69daeb')) ? existingData.photoURL : ((identity.picture as string) || ''),
               name: existingData.name || extractedName,
               dob: existingData.dob || existingData.birthdate || extractedDob,
               birthdate: existingData.birthdate || existingData.dob || extractedDob,
