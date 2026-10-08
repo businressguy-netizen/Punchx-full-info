@@ -375,9 +375,14 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
      sector:p.sector||application?.sector||'',
      workerSkill:p.workerSkill||application?.skill||'',
      workerExperience:p.workerExperience||application?.experienceYears||'',
+     workerCategories:categories.length?categories:(Array.isArray(application?.categories)?application.categories:[]),
+     customSkill:p.customSkill||application?.customSkill||'',
+     visitingFee:p.visitingFee??application?.visitingFee??'',
+     city:p.city||application?.city||'',
+     streetAddress:p.streetAddress||application?.streetAddress||'',
      bio:p.bio||application?.bio||''
    });
- },[p.name,p.phone,p.address,p.landmark,p.area,p.sector,p.workerSkill,p.workerExperience,p.bio,p.photoURL,application]);
+ },[p.name,p.phone,p.address,p.landmark,p.area,p.sector,p.city,p.streetAddress,p.workerSkill,p.workerExperience,p.workerCategories,p.customSkill,p.visitingFee,p.bio,p.photoURL,application]);
 
  useEffect(function(){
    if(!uid)return;
@@ -481,11 +486,10 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
        sector:draft.sector.trim(),
        workerSkill:draft.workerSkill.trim(),
        workerExperience:draft.workerExperience.trim(),
-       workerCategories:Array.isArray(source.workerCategories)?source.workerCategories:[],
-       categories:Array.isArray(source.workerCategories)?source.workerCategories:[],
-       customSkill:source.customSkill||'',
-       dob:source.dob||'',
-       birthdate:source.dob||'',
+       workerCategories:Array.isArray(draft.workerCategories)?draft.workerCategories:source.workerCategories||[],
+       categories:Array.isArray(draft.workerCategories)?draft.workerCategories:source.workerCategories||[],
+       customSkill:draft.customSkill.trim(),
+       visitingFee:draft.visitingFee===''||draft.visitingFee==null?null:Number(draft.visitingFee),
        bio:draft.bio.trim(),
        photoURL:photoPreview||'',
        updatedAt:new Date().toISOString()
@@ -564,17 +568,37 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
          {photoPreview?<img src={photoPreview} alt="Profile preview"/>:<div className="wx-avatar xl">{initials}</div>}
          <div><label className="wx-upload-btn">{photoBusy?<Loader2 className="wx-spin"/>:<Camera size={16}/>} {photoBusy?'Processing…':photoPreview?'Change genuine photo':'Add genuine photo'}<input type="file" accept="image/*" onChange={choosePhoto} disabled={saving||photoBusy}/></label><small>Use a clear photo of yourself. PunchX stores the image with your account.</small></div>
        </div>
-       <div className="wx-profile-edit-grid">
-         <label>Full name<input value={draft.name||''} onChange={e=>setDraft({...draft,name:e.target.value})} /></label>
-         <label>Phone<input value={draft.phone||''} onChange={e=>setDraft({...draft,phone:e.target.value})} inputMode="tel" /></label>
-         <label>Address<input value={draft.address||''} onChange={e=>setDraft({...draft,address:e.target.value})} /></label>
-         <label>Landmark<input value={draft.landmark||''} onChange={e=>setDraft({...draft,landmark:e.target.value})} /></label>
-         <label>Area<input value={draft.area||''} onChange={e=>setDraft({...draft,area:e.target.value})} /></label>
-         <label>Sector<input value={draft.sector||''} onChange={e=>setDraft({...draft,sector:e.target.value})} /></label>
-         <label>Primary service<input value={draft.workerSkill||''} onChange={e=>setDraft({...draft,workerSkill:e.target.value})} /></label>
-         <label>Experience<input value={draft.workerExperience||''} onChange={e=>setDraft({...draft,workerExperience:e.target.value})} /></label>
-         <label>City<input value={draft.city||source.city||''} onChange={e=>setDraft({...draft,city:e.target.value})} /></label>
-         <label className="wx-profile-edit-wide">Professional bio<textarea value={draft.bio||''} onChange={e=>setDraft({...draft,bio:e.target.value})} rows={4}/></label>
+       <div className="wx-profile-edit-section">
+         <div className="wx-profile-edit-section-title">Personal & contact details</div>
+         <div className="wx-profile-edit-grid">
+           <label>Full name<input value={draft.name||''} onChange={e=>setDraft({...draft,name:e.target.value})} autoComplete="name" /></label>
+           <label>Phone<input value={draft.phone||''} onChange={e=>setDraft({...draft,phone:e.target.value})} inputMode="tel" autoComplete="tel" /></label>
+           <label>Email <span className="wx-readonly-tag">Account</span><input value={source.email||''} readOnly className="wx-readonly-field" /></label>
+           <label>Date of birth <span className="wx-readonly-tag">NamoID</span><input value={source.dob||'—'} readOnly className="wx-readonly-field" /></label>
+           <label className="wx-profile-edit-wide">Full address<textarea value={draft.address||''} onChange={e=>setDraft({...draft,address:e.target.value})} rows={3} autoComplete="street-address"/></label>
+           <label>Street / house address<input value={draft.streetAddress||''} onChange={e=>setDraft({...draft,streetAddress:e.target.value})} /></label>
+           <label>Landmark<input value={draft.landmark||''} onChange={e=>setDraft({...draft,landmark:e.target.value})} /></label>
+           <label>Area<input value={draft.area||''} onChange={e=>setDraft({...draft,area:e.target.value})} /></label>
+           <label>City<input value={draft.city||''} onChange={e=>setDraft({...draft,city:e.target.value})} /></label>
+           <label>Sector<input value={draft.sector||''} onChange={e=>setDraft({...draft,sector:e.target.value})} /></label>
+         </div>
+       </div>
+
+       <div className="wx-profile-edit-section">
+         <div className="wx-profile-edit-section-title">Professional details</div>
+         <div className="wx-profile-edit-grid">
+           <label>Primary service<input value={draft.workerSkill||''} onChange={e=>setDraft({...draft,workerSkill:e.target.value})} /></label>
+           <label>Years of experience<input value={draft.workerExperience||''} onChange={e=>setDraft({...draft,workerExperience:e.target.value})} /></label>
+           <label>Service categories <span className="wx-readonly-tag">Saved trades</span><input value={Array.isArray(draft.workerCategories)?draft.workerCategories.join(', '):''} onChange={e=>setDraft({...draft,workerCategories:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})} placeholder="Electrician, Plumber" /></label>
+           <label>Custom skill<input value={draft.customSkill||''} onChange={e=>setDraft({...draft,customSkill:e.target.value})} /></label>
+           <label>Visiting / inspection fee (₹)<input type="number" min="0" value={draft.visitingFee??''} onChange={e=>setDraft({...draft,visitingFee:e.target.value})} inputMode="decimal" /></label>
+           <label className="wx-profile-edit-wide">Professional bio<textarea value={draft.bio||''} onChange={e=>setDraft({...draft,bio:e.target.value})} rows={4}/></label>
+         </div>
+       </div>
+
+       <div className="wx-profile-protected-box">
+         <ShieldCheck size={17}/>
+         <div><b>PunchX-controlled information</b><span>Application ID, partner status, verification records, ratings, completed jobs, payout records, terms acceptance, application timestamps and other system records cannot be edited from this profile.</span></div>
        </div>
        <div className="wx-modal-actions"><button className="wx-secondary" onClick={()=>setEditing(false)} disabled={saving}>Cancel</button><button className="wx-primary" onClick={save} disabled={saving||photoBusy}>{saving?<Loader2 className="wx-spin"/>:<Save size={16}/>} {saving?'Saving…':'Save changes'}</button></div>
      </div>
