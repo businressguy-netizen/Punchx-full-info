@@ -166,11 +166,17 @@ service cloud.firestore {
     match /orders/{orderId} {
 
       // Customers and assigned workers can read their own orders.
-      // Admins can read all orders.
+      // Approved workers can also read unassigned, dispatchable jobs so
+      // the partner panel can present real nearby work while online.
       allow read: if signedIn() && (
         isAdmin()
         || resource.data.customerId == request.auth.uid
         || resource.data.workerId == request.auth.uid
+        || (
+          isApprovedWorker()
+          && resource.data.workerId == null
+          && resource.data.status in ['Pending', 'PAID', 'DISPATCHING']
+        )
       );
 
       // A customer can create only an order belonging to themselves.
