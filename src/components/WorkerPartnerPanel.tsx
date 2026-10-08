@@ -175,7 +175,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
 
  return <div className="wx-app">
   <aside className={'wx-sidebar '+(mobile?'open':'')}>
-   <div className="wx-brand"><div className="wx-logo">P</div><div><b>PunchX</b><span>PARTNER PANEL</span></div><button className="wx-close" onClick={()=>setMobile(false)}><X/></button></div>
+   <div className="wx-brand"><div className="wx-logo"><img src={PUNCHX_LOGO} alt="PunchX" /></div><div><b>PunchX</b><span>PARTNER PANEL</span></div><button className="wx-close" onClick={()=>setMobile(false)}><X/></button></div>
    <div className="wx-worker-mini"><div className="wx-avatar">{String(name||"P").slice(0,2).toUpperCase()}</div><div><b>{name}</b><span>{userProfile?.uid||"Partner ID unavailable"}</span></div><i className={online?'online':''}></i></div>
    
    <nav>{menu.map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={19}/><span>{m[1]}</span>{}</button>})}</nav>
@@ -193,8 +193,8 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
     {tab==='support'&&<SupportView/>}
     {tab==='settings'&&<SettingsView online={online} setOnline={setOnline} persistAvailability={persistAvailability}/>}
    </main>
+   <footer className="wx-mobile-nav" aria-label="Worker panel navigation">{menu.slice(0,5).map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={18}/><span>{m[1]}</span></button>})}</footer>
    <WorkerWebsiteFooter tab={tab} nav={nav} onTransition={onTransition} onLogout={handleLogout} loggingOut={loggingOut} />
-   <footer className="wx-mobile-nav">{menu.slice(0,5).map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={19}/><span>{m[1]}</span></button>})}</footer>
   </div>
   {selected&&<OrderModal order={selected} close={()=>setSelected(null)} advance={()=>advance(selected)} action={action(selected.status)}/>}
  </div>
