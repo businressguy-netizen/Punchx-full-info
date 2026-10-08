@@ -100,6 +100,10 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       setErrorMsg('Please select at least one service category or enter a custom skill.');
       return;
     }
+    if (!experienceYears.trim()) {
+      setErrorMsg('Please select your actual field experience.');
+      return;
+    }
     if (visitingFee === '' || Number(visitingFee) <= 0 || isNaN(Number(visitingFee))) {
       setErrorMsg('Please specify a valid estimated visiting fee (minimum ₹50).');
       return;
@@ -125,7 +129,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       uid: applicantUid,
       legalName: legalName.trim(),
       address: address.trim(),
-      categories: selectedCategories.length > 0 ? selectedCategories : (customSkill.trim() ? [customSkill.trim()] : ['Electrician']),
+      categories: selectedCategories.length > 0 ? selectedCategories : [customSkill.trim()],
       skill: selectedCategories.length > 0 ? selectedCategories.join(', ') : customSkill.trim(),
       customSkill: customSkill.trim() || undefined,
       experienceYears,
