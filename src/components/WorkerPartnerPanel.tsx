@@ -172,7 +172,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
     {tab==='home'&&<HomeView area={userProfile?.area||workerArea} online={online} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
     {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} todayEarn={todayEarn}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
-    {tab==='profile'&&<ProfileView userProfile={userProfile}/>}
+    {tab==='profile'&&<ProfileView userProfile={userProfile} uid={uid} refreshProfile={refreshProfile} showNotification={showNotification}/>}
     {tab==='notifications'&&<NotificationsView orders={orders}/>}
     {tab==='incentives'&&<IncentivesView/>}
     {tab==='support'&&<SupportView/>}
