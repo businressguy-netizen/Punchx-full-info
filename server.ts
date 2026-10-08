@@ -8,6 +8,7 @@ import rateLimit from "express-rate-limit";
 import crypto from "crypto";
 import { initializeApp, cert, applicationDefault, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
 // ─── Firebase Admin Setup ───
 try {
@@ -980,10 +981,21 @@ async function startServer() {
   app.get("/api/public/professionals", requireFirebaseUser, async (req, res) => {
     try {
       const apps = await dbAdapter.listWorkerApplications("APPROVED");
+      let onlineByUid = new Map<string, boolean>();
+      try {
+        const userSnap = await getFirestore().collection("users").where("role", "==", "worker").get();
+        onlineByUid = new Map(
+          userSnap.docs.map((doc) => [doc.id, doc.data()?.workerAvailability === true || doc.data()?.isOnline === true])
+        );
+      } catch (userError) {
+        logger.warn("Professional discovery online-status lookup notice:", userError);
+      }
+
       const professionals = apps
         .filter((app: any) => app.status === "APPROVED" && app.available !== false)
         .map((app: any) => ({
           id: app.id,
+          uid: String(app.uid || app.id),
           name: String(app.legalName || "Verified Professional"),
           category: String(app.skill || app.category || "Professional"),
           categories: Array.isArray(app.categories) ? app.categories.map(String) : undefined,
@@ -994,6 +1006,7 @@ async function startServer() {
           price: Number(app.price || app.visitingFee || 0),
           visitingFee: Number(app.visitingFee || 0),
           available: true,
+          isOnline: onlineByUid.get(String(app.uid || app.id)) === true,
           area: String(app.area || ""),
           sector: String(app.sector || ""),
           location: app.location && typeof app.location.lat === "number" && typeof app.location.lng === "number"
