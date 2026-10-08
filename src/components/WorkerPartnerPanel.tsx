@@ -53,7 +53,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        setGeo(next);setGeoError('');
        const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,sector:next.sector,geofenceArea:next.area,geofenceRadiusKm:GEOFENCE_RADIUS_KM,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
        await setDoc(doc(db,'users',uid),payload,{merge:true});
-       await setDoc(doc(db,'workerApplications',uid),payload,{merge:true});
+       await setDoc(doc(db,'workerApplications',String(userProfile?.applicationId||uid)),payload,{merge:true});
      }catch(error){if(!cancelled)setGeoError('Live location could not be resolved right now.');}
    };
    const detect=async function(){
@@ -145,7 +145,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    try{
      if(!uid)throw new Error('Account ID unavailable.');
      await updateDoc(doc(db,'users',uid),{workerAvailability:nextOnline,isOnline:nextOnline,workerStatus:nextOnline?'ONLINE':'OFFLINE',updatedAt:new Date().toISOString()});
-     showNotification?.(nextOnline?'You are now online and eligible for new orders':'You are now offline and will not receive new jobs');
+     showNotification?.(nextOnline?'You are now online and eligible for instant / SOS requests':'You are now offline for instant / SOS requests; later bookings remain visible');
    }catch(e){
      setOnline(previous);
      showNotification?.('Unable to save availability. Please try again.');
