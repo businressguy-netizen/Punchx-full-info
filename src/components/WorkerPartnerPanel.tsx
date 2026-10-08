@@ -240,7 +240,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
  const [saving,setSaving]=useState(false);
  const [photoBusy,setPhotoBusy]=useState(false);
  const [draft,setDraft]=useState<any>({});
- const [photoPreview,setPhotoPreview]=useState<string>(p.photoURL||application?.photoURL||'');
+ const [photoPreview,setPhotoPreview]=useState<string>(p.photoURL||'');
 
  useEffect(function(){
    setPhotoPreview(p.photoURL||application?.photoURL||'');
