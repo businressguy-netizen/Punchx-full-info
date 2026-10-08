@@ -326,7 +326,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
 
  useEffect(function(){
    if(!uid)return;
-   const q=query(collection(db,'workerApplications'),where('uid','==',uid));
+   const q=firestoreQuery(collection(db,'workerApplications'),where('uid','==',uid));
    return onSnapshot(q,function(snap){
      const first=snap.docs[0];
      setApplication(first?{id:first.id,...first.data()}:null);
