@@ -255,7 +255,7 @@ export default function WorkerLocationSetup({
         experienceYears: appData.experienceYears,
         visitingFee: appData.visitingFee,
         customSkill: workerApplication?.customSkill || '',
-        skill: selectedCategories[0] || 'AC Technician',
+        skill: selectedCategories.join(', '),
         ...(coords ? { location: { lat: coords.lat, lng: coords.lng } } : {}),
         role: 'worker',
         phone: appData.phone,
@@ -521,7 +521,7 @@ export default function WorkerLocationSetup({
                     {resolvedSector}
                   </div>
                   <div className="text-[10px] text-zinc-400 font-sans">
-                    {resolvedCity} • Lat: {coords.lat.toFixed(4)}, Lng: {coords.lng.toFixed(4)}
+                    {resolvedCity || 'City unavailable'} {coords ? `• Lat: ${coords.lat.toFixed(4)}, Lng: ${coords.lng.toFixed(4)}` : '• GPS coordinates unavailable'}
                   </div>
                 </div>
               </div>
