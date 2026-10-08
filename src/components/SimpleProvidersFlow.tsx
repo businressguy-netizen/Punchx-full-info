@@ -67,6 +67,24 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
 
   const category = selectedCategory || 'All Services';
   const categoryServices = useMemo(() => { const matches = services.filter(s => category.toLowerCase() === 'all services' || category.toLowerCase() === 'all' || s.category.toLowerCase() === category.toLowerCase() || isCategoryMatching(s.category, category)).filter(s => `${s.name} ${s.description} ${s.subcategory}`.toLowerCase().includes(queryText.toLowerCase().trim())); if (DEMO_PROFESSIONALS_ENABLED && matches.length === 0) return DEMO_SERVICES.filter(s => category.toLowerCase() === 'all services' || category.toLowerCase() === 'all' || s.category.toLowerCase() === category.toLowerCase() || isCategoryMatching(s.category, category)).filter(s => `${s.name} ${s.description} ${s.subcategory}`.toLowerCase().includes(queryText.toLowerCase().trim())); return matches; }, [services, category, queryText]);
+  useEffect(() => {
+    if (!selected) return;
+    let cancelled = false;
+    const refreshOnline = async () => {
+      try {
+        const userSnap = await getDocs(query(collection(db, 'users'), where('role', '==', 'worker')));
+        const onlineByUid = new Map(userSnap.docs.map(d => [d.id, d.data()?.workerAvailability === true || d.data()?.isOnline === true]));
+        if (cancelled) return;
+        setWorkers(current => current.map(w => ({ ...w, isOnline: onlineByUid.get((w as any).uid || w.id) === true })));
+      } catch (error) {
+        console.warn('PUNCHX worker availability refresh:', error);
+      }
+    };
+    void refreshOnline();
+    const timer = window.setInterval(refreshOnline, 15000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [selected, bookingTiming]);
+
   const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => { if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false; if (bookingTiming === 'instant' && w.isOnline !== true) return false; if (customerGeo && w.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, w.location.lat, w.location.lng) <= 15; const area = String(customerGeo?.area || customerGeo?.city || '').toLowerCase(); const workerArea = String(w.area || w.sector || w.address || '').toLowerCase(); return Boolean(area && workerArea && (workerArea.includes(area) || area.includes(workerArea))); }).sort((a,b) => b.rating-a.rating), [workers, selected, bookingTiming, customerGeo]);
   const personalSelectionFeeRate = dispatchMode === 'PERSONAL_SELECT' && completedWithSelectedWorker >= PUNCHX_COMMERCE.personalSelection.freeCompletedBookings ? PUNCHX_COMMERCE.personalSelection.feeRateAfterFreeBookings : 0;
   const personalSelectionFee = Math.round(Number(selected?.price || 0) * personalSelectionFeeRate * 100) / 100;
