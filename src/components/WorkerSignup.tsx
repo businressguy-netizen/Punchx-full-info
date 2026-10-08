@@ -25,7 +25,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
   const [dob, setDob] = useState('');
   const [address, setAddress] = useState('');
   const [isLocating, setIsLocating] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Electrician']);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   // Auto request location permission on load if empty
@@ -45,8 +45,8 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
     }
   };
   const [customSkill, setCustomSkill] = useState('');
-  const [experienceYears, setExperienceYears] = useState('3-5 Years');
-  const [visitingFee, setVisitingFee] = useState<number>(199);
+  const [experienceYears, setExperienceYears] = useState('');
+  const [visitingFee, setVisitingFee] = useState<number | ''>('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   
@@ -100,7 +100,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       setErrorMsg('Please select at least one service category or enter a custom skill.');
       return;
     }
-    if (visitingFee <= 0 || isNaN(visitingFee)) {
+    if (visitingFee === '' || Number(visitingFee) <= 0 || isNaN(Number(visitingFee))) {
       setErrorMsg('Please specify a valid estimated visiting fee (minimum ₹50).');
       return;
     }
@@ -408,6 +408,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
                 onChange={(e) => setExperienceYears(e.target.value)}
                 className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white outline-none cursor-pointer"
               >
+                <option value="" disabled>Select your experience</option>
                 <option value="1-2 Years">1 - 2 Years</option>
                 <option value="3-5 Years">3 - 5 Years</option>
                 <option value="6-10 Years">6 - 10 Years</option>
@@ -423,7 +424,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
                 type="number"
                 min={50}
                 max={5000}
-                placeholder="199"
+                placeholder="Enter your actual fee"
                 value={visitingFee}
                 onChange={(e) => setVisitingFee(Number(e.target.value))}
                 className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none"
