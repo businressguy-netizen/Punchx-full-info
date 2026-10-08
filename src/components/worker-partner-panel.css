@@ -494,3 +494,21 @@
  .wx-report-bar-col:nth-child(-n+4){display:none}
  .wx-report-bar-pair i,.wx-report-bar-pair b{width:6px}
 }
+
+.wx-job-detail-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0;padding:13px;border:1px solid #e8eef5;border-radius:12px;background:#f8fafc}
+.wx-job-detail-card div{padding:9px;border-radius:9px;background:#fff;border:1px solid #eef2f7}
+.wx-job-detail-card span,.wx-job-detail-card b{display:block}
+.wx-job-detail-card span{font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;font-weight:800}
+.wx-job-detail-card b{font-size:10px;color:#334155;margin-top:4px;line-height:1.45}
+.wx-feedback-row{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #eef2f7}
+.wx-feedback-row:first-of-type{border-top:0}
+.wx-feedback-rating{display:flex;align-items:center;justify-content:center;gap:4px;border-radius:9px;padding:8px;background:#f8fafc;color:#d97706}
+.wx-feedback-row b,.wx-feedback-row span{display:block}
+.wx-feedback-row b{font-size:10px;color:#0f172a}
+.wx-feedback-row span{font-size:9px;color:#64748b;margin-top:3px;line-height:1.45}
+.wx-feedback-row small{font-size:8px;color:#94a3b8}
+@media(max-width:560px){
+ .wx-job-detail-card{grid-template-columns:1fr}
+ .wx-feedback-row{grid-template-columns:52px 1fr}
+ .wx-feedback-row small{grid-column:2}
+}
