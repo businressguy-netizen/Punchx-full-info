@@ -163,6 +163,9 @@ export interface OrderRecord {
   personalSelectionRate?: number;
   priorCompletedBookingsWithWorker?: number;
   dispatchMode?: 'PERSONAL_SELECT' | 'AUTO_MATCH' | 'BROADCAST_15KM' | 'RANDOM_15KM';
+  bookingTiming?: 'instant' | 'later';
+  bookingType?: 'INSTANT' | 'SCHEDULED';
+  isInstantOrder?: boolean;
   isPersonalSelection?: boolean;
   date: string;
   time?: string;
