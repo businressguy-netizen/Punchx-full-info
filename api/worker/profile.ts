@@ -18,6 +18,8 @@ const EDITABLE_FIELDS = [
   'customSkill',
   'workerExperience',
   'visitingFee',
+  'minimumVisitingFee',
+  'maximumVisitingFee',
   'bio',
   'photoURL',
 ] as const;
@@ -73,8 +75,17 @@ function cleanPayload(body: any) {
   if (output.categories !== undefined && (!Array.isArray(output.categories) || output.categories.some((x) => typeof x !== 'string'))) {
     throw Object.assign(new Error('Categories must be a list of text values'), { status: 400 });
   }
-  if (output.visitingFee !== undefined && output.visitingFee !== null && (!Number.isFinite(Number(output.visitingFee)) || Number(output.visitingFee) < 0)) {
-    throw Object.assign(new Error('Visiting fee must be a valid non-negative number'), { status: 400 });
+  const hasMinimum = output.minimumVisitingFee !== undefined;
+  const hasMaximum = output.maximumVisitingFee !== undefined;
+  if (hasMinimum !== hasMaximum) throw Object.assign(new Error('Both minimum and maximum visiting fees are required'), { status: 400 });
+  if (hasMinimum && hasMaximum) {
+    const minFee = Number(output.minimumVisitingFee); const maxFee = Number(output.maximumVisitingFee);
+    if (!Number.isFinite(minFee) || minFee < 49) throw Object.assign(new Error('Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.'), { status: 400 });
+    if (!Number.isFinite(maxFee) || maxFee < 49 || maxFee > 349) throw Object.assign(new Error('Maximum visiting fee must be between ₹49 and ₹349.'), { status: 400 });
+    if (minFee > maxFee) throw Object.assign(new Error('Minimum visiting fee cannot be greater than maximum visiting fee.'), { status: 400 });
+    output.visitingFee = minFee;
+  } else if (output.visitingFee !== undefined && output.visitingFee !== null && (!Number.isFinite(Number(output.visitingFee)) || Number(output.visitingFee) < 49 || Number(output.visitingFee) > 349)) {
+    throw Object.assign(new Error('Visiting fee must be between ₹49 and ₹349'), { status: 400 });
   }
   if (typeof output.photoURL === 'string' && output.photoURL.length > 500000) {
     throw Object.assign(new Error('Profile photo is too large'), { status: 400 });
