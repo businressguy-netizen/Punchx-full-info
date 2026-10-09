@@ -46,7 +46,8 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
   };
   const [customSkill, setCustomSkill] = useState('');
   const [experienceYears, setExperienceYears] = useState('');
-  const [visitingFee, setVisitingFee] = useState<number | ''>('');
+  const [minimumVisitingFee, setMinimumVisitingFee] = useState<number | ''>('');
+  const [maximumVisitingFee, setMaximumVisitingFee] = useState<number | ''>('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   
@@ -104,10 +105,9 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       setErrorMsg('Please select your actual field experience.');
       return;
     }
-    if (visitingFee === '' || Number(visitingFee) <= 0 || isNaN(Number(visitingFee))) {
-      setErrorMsg('Please specify a valid estimated visiting fee (minimum ₹50).');
-      return;
-    }
+    if (minimumVisitingFee === '' || Number(minimumVisitingFee) < 49 || !Number.isFinite(Number(minimumVisitingFee))) { setErrorMsg('Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.'); return; }
+    if (maximumVisitingFee === '' || Number(maximumVisitingFee) > 349 || Number(maximumVisitingFee) < 49 || !Number.isFinite(Number(maximumVisitingFee))) { setErrorMsg('Maximum visiting fee must be between ₹49 and ₹349.'); return; }
+    if (Number(minimumVisitingFee) > Number(maximumVisitingFee)) { setErrorMsg('Minimum visiting fee cannot be greater than the maximum visiting fee.'); return; }
     if (!phone.trim() || phone.trim().length < 10) {
       setErrorMsg('Please enter a valid 10-digit mobile phone number.');
       return;
@@ -133,7 +133,9 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       skill: selectedCategories.length > 0 ? selectedCategories.join(', ') : customSkill.trim(),
       customSkill: customSkill.trim() || undefined,
       experienceYears,
-      visitingFee: Number(visitingFee),
+      minimumVisitingFee: Number(minimumVisitingFee),
+      maximumVisitingFee: Number(maximumVisitingFee),
+      visitingFee: Number(minimumVisitingFee),
       phone: phone.trim(),
       email: email.trim(),
       termsAccepted: true,
@@ -421,19 +423,11 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-[#e9c176]" /> Estimated Visiting / Inspection Fee (₹)
-              </label>
-              <input
-                type="number"
-                min={50}
-                max={5000}
-                placeholder="Enter your actual fee"
-                value={visitingFee}
-                onChange={(e) => setVisitingFee(Number(e.target.value))}
-                className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none"
-              />
-              <p className="text-[10px] text-zinc-400">Base visit fee charged to customer before company commission & GST.</p>
+              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5 text-[#e9c176]" /> Visiting / Inspection Fee Range (₹)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="block text-[10px] text-zinc-300 mb-1">Minimum visiting fee (₹)</label><input type="number" min={49} max={349} step={1} required placeholder="Minimum ₹49" value={minimumVisitingFee} onChange={(e) => setMinimumVisitingFee(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none" />{minimumVisitingFee !== '' && Number(minimumVisitingFee) < 49 && <p className="text-[10px] text-rose-300 mt-1">Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.</p>}{minimumVisitingFee !== '' && maximumVisitingFee !== '' && Number(minimumVisitingFee) > Number(maximumVisitingFee) && <p className="text-[10px] text-rose-300 mt-1">Minimum fee cannot be greater than maximum fee.</p>}</div>
+                <div><label className="block text-[10px] text-zinc-300 mb-1">Maximum visiting fee (₹)</label><input type="number" min={49} max={349} step={1} required placeholder="Maximum ₹349" value={maximumVisitingFee} onChange={(e) => setMaximumVisitingFee(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none" />{maximumVisitingFee !== '' && Number(maximumVisitingFee) > 349 && <p className="text-[10px] text-rose-300 mt-1">Maximum visiting fee cannot exceed ₹349.</p>}</div>
+              </div><p className="text-[10px] text-zinc-400">For visits within PunchX's 30 km service radius. Minimum ₹49; maximum ₹349. Repair labour and materials are separate.</p>
             </div>
           </div>
 
