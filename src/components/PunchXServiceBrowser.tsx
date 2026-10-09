@@ -49,7 +49,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   if (!open) return null;
 
   const title = level === 'categories' ? 'All PUNCHX services' : level === 'subcategories' ? selectedCategory?.name || 'Services' : selectedSubcategory?.name || 'Select a service';
-  const countText = level === 'categories' ? `${PUNCHX_50_CATEGORIES.length}+ main services` : level === 'subcategories' ? `${subcategories.length} service groups` : `${services.length} service options`;
+  const countText = level === 'categories' ? `${PUNCHX_50_CATEGORIES.length} main categories` : level === 'subcategories' ? `${subcategories.length} service groups` : `${services.length} service options`;
 
   return <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-5" role="dialog" aria-modal="true">
     <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-white text-[#17191d] sm:max-w-5xl sm:rounded-[28px]">

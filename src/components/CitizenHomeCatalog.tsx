@@ -22,58 +22,15 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 
 /* ── Semantic groupings for the category grid ── */
 const CATEGORY_GROUPS: { title: string; emoji: string; ids: string[] }[] = [
-  {
-    title: 'Home Repairs',
-    emoji: '🏠',
-    ids: ['electrician', 'plumber', 'carpenter', 'painter', 'mason', 'welder', 'locksmith',
-          'pop-false-ceiling-worker', 'glass-glazier-worker', 'tile-marble-installer',
-          'waterproofing-specialist', 'fabricator'],
-  },
-  {
-    title: 'Appliances & Tech',
-    emoji: '🔧',
-    ids: ['ac-technician', 'refrigerator-technician', 'washing-machine-technician',
-          'mobile-repair-technician', 'computer-laptop-technician',
-          'electronics-repair-technician', 'cctv-technician', 'solar-technician',
-          'ro-water-purifier-technician', 'appliance-repair-technician'],
-  },
-  {
-    title: 'Personal Care',
-    emoji: '✨',
-    ids: ['barber', 'hair-stylist', 'beautician', 'tailor', 'laundry-dry-cleaner',
-          'ironing-worker', 'cobbler-shoe-repairer'],
-  },
-  {
-    title: 'Vehicle Services',
-    emoji: '🚗',
-    ids: ['mechanic', 'bike-mechanic', 'car-mechanic'],
-  },
-  {
-    title: 'Home Help',
-    emoji: '🧹',
-    ids: ['cleaner-housekeeper', 'pest-control-worker', 'gardener',
-          'security-guard', 'house-painter'],
-  },
-  {
-    title: 'Food & Catering',
-    emoji: '🍳',
-    ids: ['cook', 'baker', 'caterer', 'tiffin-home-food-provider'],
-  },
-  {
-    title: 'Moving & Delivery',
-    emoji: '📦',
-    ids: ['packer-mover', 'delivery-driver'],
-  },
-  {
-    title: 'Creative & Events',
-    emoji: '🎬',
-    ids: ['interior-decorator', 'event-decorator', 'photographer', 'videographer',
-          'dj-sound-system-operator'],
-  },
+  { title: 'Home Repairs', emoji: '🏠', ids: ['electrician', 'plumber', 'carpenter', 'painter', 'mason', 'welder', 'locksmith', 'pop-false-ceiling-worker', 'glass-glazier-worker', 'waterproofing-specialist'] },
+  { title: 'Appliances & Technology', emoji: '🔧', ids: ['ac-technician', 'appliance-repair-technician', 'ro-water-purifier-technician', 'electronics-repair-technician', 'computer-laptop-technician', 'mobile-repair-technician', 'cctv-technician', 'solar-technician'] },
+  { title: 'Cleaning & Home Care', emoji: '🧹', ids: ['cleaner-housekeeper', 'upholstery-sofa-cleaner', 'pest-control-worker', 'gardener', 'laundry-dry-cleaner'] },
+  { title: 'Beauty & Personal Care', emoji: '✨', ids: ['beautician', 'tailor', 'cobbler-shoe-repairer'] },
+  { title: 'Daily Help & Moving', emoji: '📦', ids: ['packer-mover', 'delivery-driver', 'cook', 'caterer', 'security-guard'] },
+  { title: 'Design & Events', emoji: '🎬', ids: ['interior-decorator', 'event-decorator', 'photographer', 'videographer', 'dj-sound-technician'] },
 ];
 
-const POPULAR_IDS = ['electrician', 'plumber', 'carpenter', 'ac-technician',
-  'cleaner-housekeeper', 'painter', 'car-mechanic', 'beautician'];
+const POPULAR_IDS = ['electrician', 'plumber', 'carpenter', 'ac-technician', 'cleaner-housekeeper', 'painter', 'appliance-repair-technician', 'beautician'];
 
 /* ── Accent color per group for visual variety ── */
 const GROUP_COLORS = [

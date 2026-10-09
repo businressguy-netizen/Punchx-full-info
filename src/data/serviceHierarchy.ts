@@ -94,6 +94,26 @@ const genericGroups = [
   ['Consultation', ['At-home consultation', 'Inspection & quotation', 'Emergency visit']]
 ] as const;
 
+// Keep detailed legacy options while presenting one parent category per service family.
+const appendLegacyGroups = (targetId: string, sourceIds: string[]) => {
+  const merged: Array<[string, LeafSeed[]]> = [...(specific[targetId] || [])];
+  sourceIds.flatMap((sourceId) => specific[sourceId] || []).forEach(([name, seeds]) => {
+    const existingIndex = merged.findIndex(([existingName]) => existingName === name);
+    if (existingIndex === -1) merged.push([name, [...seeds]]);
+    else {
+      const currentSeeds = merged[existingIndex][1];
+      merged[existingIndex] = [name, [...currentSeeds, ...seeds.filter((seed) => !currentSeeds.some((current) => current[0] === seed[0]))]];
+    }
+  });
+  specific[targetId] = merged;
+};
+appendLegacyGroups('appliance-repair-technician', ['refrigerator-technician', 'washing-machine-technician']);
+appendLegacyGroups('beautician', ['hair-stylist', 'barber']);
+appendLegacyGroups('laundry-dry-cleaner', ['ironing-worker']);
+appendLegacyGroups('painter', ['house-painter']);
+appendLegacyGroups('mason', ['tile-marble-installer']);
+appendLegacyGroups('welder', ['fabricator']);
+
 function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
