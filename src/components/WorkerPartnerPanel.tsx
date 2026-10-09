@@ -437,7 +437,8 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
      workerExperience:p.workerExperience||application?.experienceYears||'',
      workerCategories:categories.length?categories:(Array.isArray(application?.categories)?application.categories:[]),
      customSkill:p.customSkill||application?.customSkill||'',
-     visitingFee:p.visitingFee??application?.visitingFee??'',
+     minimumVisitingFee:p.minimumVisitingFee??application?.minimumVisitingFee??p.visitingFee??application?.visitingFee??'',
+     maximumVisitingFee:p.maximumVisitingFee??application?.maximumVisitingFee??p.visitingFee??application?.visitingFee??'',
      city:p.city||application?.city||'',
      streetAddress:p.streetAddress||application?.streetAddress||'',
      bio:p.bio||application?.bio||''
@@ -533,6 +534,10 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
  const save=async function(){
    if(!uid){showNotification?.('Your account ID is unavailable. Please sign in again.');return;}
    if(!draft.name.trim()){showNotification?.('Full name is required.');return;}
+   const minFee=Number(draft.minimumVisitingFee); const maxFee=Number(draft.maximumVisitingFee);
+   if(!Number.isFinite(minFee)||minFee<49){showNotification?.('Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.');return;}
+   if(!Number.isFinite(maxFee)||maxFee<49||maxFee>349){showNotification?.('Maximum visiting fee must be between ₹49 and ₹349.');return;}
+   if(minFee>maxFee){showNotification?.('Minimum visiting fee cannot be greater than maximum visiting fee.');return;}
    setSaving(true);
    try{
      const payload:any={
@@ -551,7 +556,9 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
        workerCategories:Array.isArray(draft.workerCategories)?draft.workerCategories:source.workerCategories||[],
        categories:Array.isArray(draft.workerCategories)?draft.workerCategories:source.workerCategories||[],
        customSkill:draft.customSkill.trim(),
-       visitingFee:draft.visitingFee===''||draft.visitingFee==null?null:Number(draft.visitingFee),
+       minimumVisitingFee:Number(draft.minimumVisitingFee),
+       maximumVisitingFee:Number(draft.maximumVisitingFee),
+       visitingFee:Number(draft.minimumVisitingFee),
        bio:draft.bio.trim(),
        photoURL:photoPreview||'',
        updatedAt:new Date().toISOString()
@@ -630,7 +637,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
        <span>Service categories <b>{source.workerCategories?.length?source.workerCategories.join(', '):'—'}</b></span>
        <span>Custom skill <b>{source.customSkill||'—'}</b></span>
        <span>Experience <b>{source.workerExperience||'—'}</b></span>
-       <span>Visiting / inspection fee <b>{source.visitingFee!=null?money(Number(source.visitingFee)):'—'}</b></span>
+       <span>Visiting / inspection fee range <b>{source.minimumVisitingFee!=null&&source.maximumVisitingFee!=null?`${money(Number(source.minimumVisitingFee))} – ${money(Number(source.maximumVisitingFee))}`:source.visitingFee!=null?money(Number(source.visitingFee)):'—'}</b></span>
        <span>Partner status <b>{source.status||'—'}</b></span>
        <span>Application ID <b>{source.applicationId||application?.id||'—'}</b></span>
        <span>Terms accepted <b>{source.termsAccepted===true?'Yes':source.termsAccepted===false?'No':'—'}</b></span>
@@ -678,7 +685,7 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
            <label>Years of experience<input value={draft.workerExperience||''} onChange={e=>setDraft({...draft,workerExperience:e.target.value})} /></label>
            <label>Service categories <span className="wx-readonly-tag">Saved trades</span><input value={Array.isArray(draft.workerCategories)?draft.workerCategories.join(', '):''} onChange={e=>setDraft({...draft,workerCategories:e.target.value.split(',').map(x=>x.trim()).filter(Boolean)})} placeholder="Electrician, Plumber" /></label>
            <label>Custom skill<input value={draft.customSkill||''} onChange={e=>setDraft({...draft,customSkill:e.target.value})} /></label>
-           <label>Visiting / inspection fee (₹)<input type="number" min="0" value={draft.visitingFee??''} onChange={e=>setDraft({...draft,visitingFee:e.target.value})} inputMode="decimal" /></label>
+           <label>Minimum visiting fee (₹)<input type="number" min="49" max="349" step="1" value={draft.minimumVisitingFee??''} onChange={e=>setDraft({...draft,minimumVisitingFee:e.target.value})} inputMode="numeric" /><small>Minimum ₹49</small></label><label>Maximum visiting fee (₹)<input type="number" min="49" max="349" step="1" value={draft.maximumVisitingFee??''} onChange={e=>setDraft({...draft,maximumVisitingFee:e.target.value})} inputMode="numeric" /><small>Maximum ₹349</small></label>{Number(draft.minimumVisitingFee)<49&&draft.minimumVisitingFee!==''&&<p className="wx-profile-edit-wide" role="alert">Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.</p>}{Number(draft.maximumVisitingFee)>349&&<p className="wx-profile-edit-wide" role="alert">Maximum visiting fee cannot exceed ₹349.</p>}{draft.minimumVisitingFee!==''&&draft.maximumVisitingFee!==''&&Number(draft.minimumVisitingFee)>Number(draft.maximumVisitingFee)&&<p className="wx-profile-edit-wide" role="alert">Minimum visiting fee cannot be greater than maximum visiting fee.</p>
            <label className="wx-profile-edit-wide">Professional bio<textarea value={draft.bio||''} onChange={e=>setDraft({...draft,bio:e.target.value})} rows={4}/></label>
          </div>
        </div>
