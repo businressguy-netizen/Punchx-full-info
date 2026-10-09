@@ -94,6 +94,17 @@ const genericGroups = [
   ['Consultation', ['At-home consultation', 'Inspection & quotation', 'Emergency visit']]
 ] as const;
 
+// Keep detailed legacy options while presenting one parent category per service family.
+const appendLegacyGroups = (targetId: string, sourceIds: string[]) => {
+  specific[targetId] = [...(specific[targetId] || []), ...sourceIds.flatMap((sourceId) => specific[sourceId] || [])];
+};
+appendLegacyGroups('appliance-repair-technician', ['refrigerator-technician', 'washing-machine-technician']);
+appendLegacyGroups('beautician', ['hair-stylist', 'barber']);
+appendLegacyGroups('laundry-dry-cleaner', ['ironing-worker']);
+appendLegacyGroups('painter', ['house-painter']);
+appendLegacyGroups('mason', ['tile-marble-installer']);
+appendLegacyGroups('welder', ['fabricator']);
+
 function slug(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
