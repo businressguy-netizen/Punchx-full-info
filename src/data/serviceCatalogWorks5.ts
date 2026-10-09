@@ -59,4 +59,8 @@ export const SERVICE_WORKS_5 = {
     ['Vocal & Music', ['Singer performance', 'Instrumental performance', 'DJ + orchestra combo', 'Live music package']],
     ['Event Entertainment', ['Birthday music package', 'Corporate music package', 'Community event music', 'Custom event performance']],
   ],
+  'vehicle-detailing': [['Car Wash', ['Exterior car wash', 'Foam wash and rinse', 'Interior vacuuming', 'Dashboard and interior wipe-down']], ['Two-Wheeler Wash', ['Bike wash', 'Scooter wash', 'Chain cleaning and lubrication']], ['Detailing', ['Seat and upholstery cleaning', 'Interior deep cleaning', 'Exterior polish', 'Car shampoo treatment']]],
+  'domestic-help': [['Routine Household Help', ['Sweeping and mopping', 'Dishwashing', 'Dusting and surface cleaning', 'Laundry folding assistance']], ['Scheduled Assistance', ['Part-time household helper visit', 'Kitchen cleanup assistance', 'Move-in household setup help']]],
+  'massage-spa': [['Wellness Massage', ['Relaxation massage session', 'Head and shoulder massage', 'Foot massage session']], ['Spa Services', ['Appointment-based spa treatment', 'Wellness consultation and session selection']]],
+  'home-disinfection': [['Home Sanitisation', ['High-touch surface disinfection', 'Kitchen surface sanitisation', 'Bathroom surface disinfection']], ['Property Disinfection', ['Full-home surface disinfection', 'Small-office disinfection', 'Post-move-in sanitisation']]],
 } as const;
