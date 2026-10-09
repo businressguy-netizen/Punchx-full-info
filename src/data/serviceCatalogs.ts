@@ -70,8 +70,18 @@ const durationFor = (name: string) => {
   return '30–60 min';
 };
 
+const WORK_ALIASES: Record<string, string[]> = {
+  'appliance-repair-technician': ['appliance-repair-technician', 'refrigerator-technician', 'washing-machine-technician'],
+  beautician: ['beautician', 'hair-stylist', 'barber'],
+  'laundry-dry-cleaner': ['laundry-dry-cleaner', 'ironing-worker'],
+  painter: ['painter', 'house-painter'],
+  mason: ['mason', 'tile-marble-installer'],
+  welder: ['welder', 'fabricator'],
+};
+
 const buildCategory = (category: typeof PUNCHX_50_CATEGORIES[number]): ServiceCategory => {
-  const groups = SERVICE_WORKS[category.id] || [];
+  const sourceIds = WORK_ALIASES[category.id] || [category.id];
+  const groups = sourceIds.flatMap((id) => SERVICE_WORKS[id] || []);
   return {
     id: category.id,
     name: category.name,
@@ -111,7 +121,11 @@ export const SERVICE_CATEGORIES = serviceCategories;
 
 export const getCatalogCategory = (nameOrId: string) => {
   const target = nameOrId.trim().toLowerCase();
-  return serviceCategories.find((c) => c.id.toLowerCase() === target || c.name.toLowerCase() === target || c.name.toLowerCase().includes(target) || target.includes(c.name.toLowerCase()));
+  if (!target) return undefined;
+  const direct = serviceCategories.find((c) => c.id.toLowerCase() === target || c.name.toLowerCase() === target || c.name.toLowerCase().includes(target) || target.includes(c.name.toLowerCase()));
+  if (direct) return direct;
+  const legacyAlias = PUNCHX_50_CATEGORIES.find((c) => c.keywords.some((keyword) => keyword.toLowerCase() === target));
+  return legacyAlias ? serviceCategories.find((c) => c.id === legacyAlias.id) : undefined;
 };
 
 export const getCatalogService = (serviceId: string) => {
