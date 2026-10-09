@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import {
   ArrowRight, CalendarDays, CheckCircle2, ChevronRight, Clock, Home as HomeIcon,
   Loader2, MapPin, Search, ShieldCheck, Star, UserRound, X,
-  Zap, Droplet, Hammer, Paintbrush, HardHat, Flame, Scissors, Wrench, Bike, Car,
+  Zap, Droplet, Hammer, Paintbrush, HardHat, Flame, Scissors, Wrench, Bike, Car, Home,
   Wind, Snowflake, Waves, Smartphone, Laptop, Tv, Video, Sun, Droplets, Key,
   Sparkles, Bug, Sprout, Utensils, Cake, Package, Truck, Shield, Palette, Camera, Music, FileText, Info
 } from 'lucide-react';
@@ -24,9 +24,9 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 const CATEGORY_GROUPS: { title: string; emoji: string; ids: string[] }[] = [
   { title: 'Home Repairs', emoji: '🏠', ids: ['electrician', 'plumber', 'carpenter', 'painter', 'mason', 'welder', 'locksmith', 'pop-false-ceiling-worker', 'glass-glazier-worker', 'waterproofing-specialist'] },
   { title: 'Appliances & Technology', emoji: '🔧', ids: ['ac-technician', 'appliance-repair-technician', 'ro-water-purifier-technician', 'electronics-repair-technician', 'computer-laptop-technician', 'mobile-repair-technician', 'cctv-technician', 'solar-technician'] },
-  { title: 'Cleaning & Home Care', emoji: '🧹', ids: ['cleaner-housekeeper', 'upholstery-sofa-cleaner', 'pest-control-worker', 'gardener', 'laundry-dry-cleaner'] },
-  { title: 'Beauty & Personal Care', emoji: '✨', ids: ['beautician', 'tailor', 'cobbler-shoe-repairer'] },
-  { title: 'Daily Help & Moving', emoji: '📦', ids: ['packer-mover', 'delivery-driver', 'cook', 'caterer', 'security-guard'] },
+  { title: 'Cleaning & Home Care', emoji: '🧹', ids: ['cleaner-housekeeper', 'upholstery-sofa-cleaner', 'pest-control-worker', 'gardener', 'laundry-dry-cleaner', 'home-disinfection', 'vehicle-detailing'] },
+  { title: 'Beauty & Personal Care', emoji: '✨', ids: ['beautician', 'massage-spa', 'tailor', 'cobbler-shoe-repairer'] },
+  { title: 'Daily Help & Moving', emoji: '📦', ids: ['packer-mover', 'delivery-driver', 'domestic-help', 'cook', 'caterer', 'security-guard'] },
   { title: 'Design & Events', emoji: '🎬', ids: ['interior-decorator', 'event-decorator', 'photographer', 'videographer', 'dj-sound-technician'] },
 ];
 

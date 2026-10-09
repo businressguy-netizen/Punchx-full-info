@@ -84,7 +84,11 @@ const specific: Record<string, Array<[string, LeafSeed[]]>> = {
     ['Interior painting', [['Single room painting', 1499], ['Wall repainting', 999], ['Touch-up painting', 499], ['Ceiling painting', 799]]],
     ['Exterior painting', [['Exterior wall painting', 1999], ['Gate painting', 599], ['Balcony painting', 799]]],
     ['Waterproofing & repair', [['Wall dampness inspection', 299], ['Waterproofing treatment', 999], ['Crack filling', 399]]]
-  ]
+  ],
+  'vehicle-detailing': [['Car Wash', [['Exterior car wash', 249], ['Foam wash and rinse', 299], ['Interior vacuuming', 199], ['Interior deep cleaning', 799]]], ['Two-Wheeler Wash', [['Bike wash', 99], ['Scooter wash', 99], ['Chain cleaning and lubrication', 149]]], ['Detailing', [['Seat and upholstery cleaning', 499], ['Exterior polish', 699], ['Car shampoo treatment', 399]]]],
+  'domestic-help': [['Routine Household Help', [['Sweeping and mopping', 249], ['Dishwashing', 199], ['Dusting and surface cleaning', 199], ['Laundry folding assistance', 199]]], ['Scheduled Assistance', [['Part-time household helper visit', 299], ['Kitchen cleanup assistance', 249], ['Move-in household setup help', 399]]]],
+  'massage-spa': [['Wellness Massage', [['Relaxation massage session', 799], ['Head and shoulder massage', 399], ['Foot massage session', 399]]], ['Spa Services', [['Appointment-based spa treatment', 999], ['Wellness consultation and session selection', 199]]]],
+  'home-disinfection': [['Home Sanitisation', [['High-touch surface disinfection', 399], ['Kitchen surface sanitisation', 299], ['Bathroom surface disinfection', 299]]], ['Property Disinfection', [['Full-home surface disinfection', 699], ['Small-office disinfection', 799], ['Post-move-in sanitisation', 599]]]],
 };
 
 const genericGroups = [
