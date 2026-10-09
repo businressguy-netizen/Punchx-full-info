@@ -96,7 +96,16 @@ const genericGroups = [
 
 // Keep detailed legacy options while presenting one parent category per service family.
 const appendLegacyGroups = (targetId: string, sourceIds: string[]) => {
-  specific[targetId] = [...(specific[targetId] || []), ...sourceIds.flatMap((sourceId) => specific[sourceId] || [])];
+  const merged = [...(specific[targetId] || [])];
+  sourceIds.flatMap((sourceId) => specific[sourceId] || []).forEach(([name, seeds]) => {
+    const existingIndex = merged.findIndex(([existingName]) => existingName === name);
+    if (existingIndex === -1) merged.push([name, [...seeds]]);
+    else {
+      const currentSeeds = merged[existingIndex][1];
+      merged[existingIndex] = [name, [...currentSeeds, ...seeds.filter((seed) => !currentSeeds.some((current) => current[0] === seed[0]))]];
+    }
+  });
+  specific[targetId] = merged;
 };
 appendLegacyGroups('appliance-repair-technician', ['refrigerator-technician', 'washing-machine-technician']);
 appendLegacyGroups('beautician', ['hair-stylist', 'barber']);
