@@ -38,6 +38,8 @@ export interface WorkerApplication {
   customSkill?: string;
   experienceYears: string;
   visitingFee?: number;
+  minimumVisitingFee?: number;
+  maximumVisitingFee?: number;
   phone: string;
   email: string;
   termsAccepted: boolean;
@@ -72,6 +74,8 @@ export interface UserProfile {
   geofenceUpdatedAt?: string;
   workerStatus?: 'ONLINE' | 'OFFLINE';
   visitingFee?: number;
+  minimumVisitingFee?: number;
+  maximumVisitingFee?: number;
   workerSkill?: string;
   workerCategories?: string[];
   workerExperience?: string;
