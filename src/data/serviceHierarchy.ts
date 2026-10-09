@@ -96,7 +96,7 @@ const genericGroups = [
 
 // Keep detailed legacy options while presenting one parent category per service family.
 const appendLegacyGroups = (targetId: string, sourceIds: string[]) => {
-  const merged = [...(specific[targetId] || [])];
+  const merged: Array<[string, LeafSeed[]]> = [...(specific[targetId] || [])];
   sourceIds.flatMap((sourceId) => specific[sourceId] || []).forEach(([name, seeds]) => {
     const existingIndex = merged.findIndex(([existingName]) => existingName === name);
     if (existingIndex === -1) merged.push([name, [...seeds]]);
