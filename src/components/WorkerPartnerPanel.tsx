@@ -231,7 +231,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    <main className="wx-content">
     {tab==='home'&&<HomeView area={geo?.area||userProfile?.area||workerArea} geo={geo} geoLoading={geoLoading} geoError={geoError} online={online} toggleOnline={()=>persistAvailability(!online)} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
-    {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} todayEarn={todayEarn}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
+    {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
     {tab==='profile'&&<ProfileView userProfile={userProfile} uid={uid} refreshProfile={refreshProfile} showNotification={showNotification}/>}
     {tab==='notifications'&&<NotificationsView orders={orders}/>}
     {tab==='incentives'&&<IncentivesView/>}
@@ -375,21 +375,54 @@ function ReportPeriodPicker({value,onChange}:{value:ReportPeriod;onChange:(v:Rep
  return <section className="wx-card wx-period-card"><div><span className="wx-section-label">REPORT PERIOD</span><h3>Choose your analysis window</h3><p>All figures update from the selected period.</p></div><div className="wx-period-tabs">{REPORT_PERIODS.map(function(days){return <button key={days} className={value===days?'active':''} onClick={()=>onChange(days)}>{reportLabel(days)}</button>})}</div></section>;
 }
 function WorkerAnalyticsReport({orders,period}:{orders:Order[];period:ReportPeriod}){
- const now=new Date(); const start=new Date(now); start.setHours(0,0,0,0); start.setDate(start.getDate()-period+1); const previousStart=new Date(start); previousStart.setDate(previousStart.getDate()-period);
- const inRange=orders.filter(function(o){const d=recordDate(o);return !!d&&d>=start&&d<=now;}); const previous=orders.filter(function(o){const d=recordDate(o);return !!d&&d>=previousStart&&d<start;});
- const completed=inRange.filter(o=>o.status==='COMPLETED'); const cancelled=inRange.filter(o=>o.status==='CANCELLED'); const payoutRows=completed.filter(o=>o.earning!==null);
- const income=payoutRows.reduce((s,o)=>s+(o.earning||0),0); const previousIncome=previous.filter(o=>o.status==='COMPLETED'&&o.earning!==null).reduce((s,o)=>s+(o.earning||0),0);
- const avgJob=payoutRows.length?income/payoutRows.length:null; const den=completed.length+cancelled.length; const completion=den?completed.length/den*100:null;
- const ratings=completed.map(o=>safeNumber(o.raw?.userRating)).filter(n=>n>0); const rating=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;
- const activeDays=new Set(payoutRows.map(o=>recordDate(o)?.toISOString().slice(0,10)).filter(Boolean)).size; const delta=previousIncome>0?((income-previousIncome)/previousIncome)*100:null;
- const actionable=cancelled.length>0?'Reduce avoidable cancellations to protect your completed-job rate.':rating!==null&&rating<4.5?'Review customer feedback and complete relevant training to improve service quality.':completion!==null&&completion<90?'Focus on accepting and completing suitable jobs consistently.':payoutRows.length>0?'Your verified activity is building a measurable income history. Keep consistency and monitor the next period.':'Complete PunchX jobs with recorded professional payouts to unlock this analysis.';
- const chartRows=buildPeriodChartRows(inRange,period); const hasChartData=chartRows.some(r=>r.income>0||r.completed>0||r.cancelled>0);
- return <div className="wx-stack wx-analytics-report">
-  <div className="wx-report-summary"><Stat label="Verified income" value={payoutRows.length?money(income):'Unavailable'} icon={Banknote} trend={delta!==null?(delta>=0?'+'+delta.toFixed(1)+'% vs previous period':delta.toFixed(1)+'% vs previous period'):undefined}/><Stat label="Completed jobs" value={completed.length} icon={CheckCircle2}/><Stat label="Average payout / job" value={avgJob!==null?money(avgJob):'—'} icon={TrendingUp}/><Stat label="Active work days" value={activeDays||'—'} icon={CalendarDays}/></div>
-  {hasChartData?<><section className="wx-card wx-analytics-chart"><div className="wx-card-head"><div><span className="wx-section-label">{reportLabel(period).toUpperCase()} INCOME TREND</span><h3>Verified professional income</h3></div><LineChart size={18}/></div><div className="wx-report-line"><svg viewBox="0 0 700 220" role="img" aria-label={reportLabel(period)+' verified income trend'}>{buildSvgLine(chartRows,'income',700,220)}</svg><div className="wx-report-axis">{chartRows.map(r=><span key={r.key}>{r.label}</span>)}</div></div><div className="wx-chart-total"><span>Period income</span><strong>{income?money(income):'No verified payout recorded'}</strong></div></section>
-  <section className="wx-card wx-analytics-chart"><div className="wx-card-head"><div><span className="wx-section-label">{reportLabel(period).toUpperCase()} WORK OUTPUT</span><h3>Completed vs cancelled jobs</h3></div><BarChart3 size={18}/></div><div className="wx-report-bars">{chartRows.map(r=><div className="wx-report-bar-col" key={r.key}><div className="wx-report-bar-pair"><i style={{height:Math.max(4,r.completed*18)}} title={r.completed+' completed'}></i><b style={{height:Math.max(4,r.cancelled*18)}} title={r.cancelled+' cancelled'}></div><small>{r.label}</small></div>)}</div><div className="wx-chart-legend"><span><i className="done"></i>Completed: {completed.length}</span><span><i className="cancelled"></i>Cancelled: {cancelled.length}</span><span>Completion: {completion!==null?completion.toFixed(1)+'%':'—'}</span></div></section></>:<section className="wx-card"><div className="wx-empty"><BarChart3/><b>No chartable records for {reportLabel(period)}</b><span>Charts use only real PunchX bookings with usable dates and recorded status or professional payout.</span></div></section>}
-  <section className="wx-card wx-growth-card"><div className="wx-card-head"><div><span className="wx-section-label">PERSONAL GROWTH SIGNAL</span><h3>What to improve next</h3></div><TrendingUp size={18}/></div><p>{actionable}</p><div className="wx-growth-metrics"><span>Customer rating <b>{rating!==null?rating.toFixed(1)+'/5':'—'}</b></span><span>Completion rate <b>{completion!==null?completion.toFixed(1)+'%':'—'}</b></span><span>Verified reviews <b>{ratings.length||'—'}</b></span></div></section>
- </div>;
+  const now=new Date();
+  const start=new Date(now);
+  start.setHours(0,0,0,0);
+  start.setDate(start.getDate()-period+1);
+  const previousStart=new Date(start);
+  previousStart.setDate(previousStart.getDate()-period);
+  const inRange=orders.filter(o=>{const d=recordDate(o);return !!d&&d>=start&&d<=now;});
+  const previous=orders.filter(o=>{const d=recordDate(o);return !!d&&d>=previousStart&&d<start;});
+  const completed=inRange.filter(o=>o.status==='COMPLETED');
+  const cancelled=inRange.filter(o=>o.status==='CANCELLED');
+  const payoutRows=completed.filter(o=>o.earning!==null);
+  const income=payoutRows.reduce((sum,o)=>sum+(o.earning||0),0);
+  const previousIncome=previous.filter(o=>o.status==='COMPLETED'&&o.earning!==null).reduce((sum,o)=>sum+(o.earning||0),0);
+  const avgJob=payoutRows.length?income/payoutRows.length:null;
+  const denominator=completed.length+cancelled.length;
+  const completion=denominator?completed.length/denominator*100:null;
+  const ratings=completed.map(o=>safeNumber(o.raw?.userRating)).filter(n=>n>0);
+  const rating=ratings.length?ratings.reduce((a,b)=>a+b,0)/ratings.length:null;
+  const activeDays=new Set(payoutRows.map(o=>recordDate(o)?.toISOString().slice(0,10)).filter(Boolean)).size;
+  const delta=previousIncome>0?((income-previousIncome)/previousIncome)*100:null;
+  const actionable=cancelled.length>0?'Reduce avoidable cancellations to protect your completed-job rate.':rating!==null&&rating<4.5?'Review customer feedback and complete relevant training to improve service quality.':completion!==null&&completion<90?'Focus on accepting and completing suitable jobs consistently.':payoutRows.length>0?'Your verified activity is building a measurable income history. Keep consistency and monitor the next period.':'Complete PunchX jobs with recorded professional payouts to unlock this analysis.';
+  const chartRows=buildPeriodChartRows(inRange,period);
+  const hasChartData=chartRows.some(row=>row.income>0||row.completed>0||row.cancelled>0);
+  return <div className="wx-stack wx-analytics-report">
+    <div className="wx-report-summary">
+      <Stat label="Verified income" value={payoutRows.length?money(income):'Unavailable'} icon={Banknote} trend={delta!==null?(delta>=0?'+'+delta.toFixed(1)+'% vs previous period':delta.toFixed(1)+'% vs previous period'):undefined}/>
+      <Stat label="Completed jobs" value={completed.length} icon={CheckCircle2}/>
+      <Stat label="Average payout / job" value={avgJob!==null?money(avgJob):'—'} icon={TrendingUp}/>
+      <Stat label="Active work days" value={activeDays||'—'} icon={CalendarDays}/>
+    </div>
+    {hasChartData ? <>
+      <section className="wx-card wx-analytics-chart">
+        <div className="wx-card-head"><div><span className="wx-section-label">{reportLabel(period).toUpperCase()} INCOME TREND</span><h3>Verified professional income</h3></div><LineChart size={18}/></div>
+        <div className="wx-report-line"><svg viewBox="0 0 700 220" role="img" aria-label={reportLabel(period)+' verified income trend'}>{buildSvgLine(chartRows,'income',700,220)}</svg><div className="wx-report-axis">{chartRows.map(row=><span key={row.key}>{row.label}</span>)}</div></div>
+        <div className="wx-chart-total"><span>Period income</span><strong>{income?money(income):'No verified payout recorded'}</strong></div>
+      </section>
+      <section className="wx-card wx-analytics-chart">
+        <div className="wx-card-head"><div><span className="wx-section-label">{reportLabel(period).toUpperCase()} WORK OUTPUT</span><h3>Completed vs cancelled jobs</h3></div><BarChart3 size={18}/></div>
+        <div className="wx-report-bars">{chartRows.map(row=><div className="wx-report-bar-col" key={row.key}><div className="wx-report-bar-pair"><i style={{height:Math.max(4,row.completed*18)}} title={row.completed+' completed'}></i><b style={{height:Math.max(4,row.cancelled*18)}} title={row.cancelled+' cancelled'}></b></div><small>{row.label}</small></div>)}</div>
+        <div className="wx-chart-legend"><span><i className="done"></i>Completed: {completed.length}</span><span><i className="cancelled"></i>Cancelled: {cancelled.length}</span><span>Completion: {completion!==null?completion.toFixed(1)+'%':'—'}</span></div>
+      </section>
+    </> : <section className="wx-card"><div className="wx-empty"><BarChart3/><b>No chartable records for {reportLabel(period)}</b><span>Charts use only real PunchX bookings with usable dates and recorded status or professional payout.</span></div></section>}
+    <section className="wx-card wx-growth-card">
+      <div className="wx-card-head"><div><span className="wx-section-label">PERSONAL GROWTH SIGNAL</span><h3>What to improve next</h3></div><TrendingUp size={18}/></div>
+      <p>{actionable}</p>
+      <div className="wx-growth-metrics"><span>Customer rating <b>{rating!==null?rating.toFixed(1)+'/5':'—'}</b></span><span>Completion rate <b>{completion!==null?completion.toFixed(1)+'%':'—'}</b></span><span>Verified reviews <b>{ratings.length||'—'}</b></span></div>
+    </section>
+  </div>;
 }
 function buildPeriodChartRows(orders:Order[],period:ReportPeriod){
  const bucketCount=period<=30?Math.min(15,period):period<=90?15:12; const bucketDays=Math.max(1,Math.ceil(period/bucketCount)); const rows:any[]=[]; const end=new Date(); end.setHours(23,59,59,999);
