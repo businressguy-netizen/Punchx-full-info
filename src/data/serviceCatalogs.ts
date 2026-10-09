@@ -81,7 +81,7 @@ const WORK_ALIASES: Record<string, string[]> = {
 
 const buildCategory = (category: typeof PUNCHX_50_CATEGORIES[number]): ServiceCategory => {
   const sourceIds = WORK_ALIASES[category.id] || [category.id];
-  const groups = sourceIds.flatMap((id) => SERVICE_WORKS[id] || []);
+  const groups = sourceIds.flatMap((id) => SERVICE_WORKS[id] || []).reduce<WorkGroup[]>((merged, [name, items]) => { const index = merged.findIndex(([existingName]) => existingName === name); if (index === -1) merged.push([name, [...items]]); else merged[index] = [name, [...new Set([...merged[index][1], ...items])]]; return merged; }, []);
   return {
     id: category.id,
     name: category.name,
