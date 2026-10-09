@@ -79,6 +79,8 @@ export function isCategoryMatching(
   if (!workerSkills) return false;
 
   const target = targetCategory.toLowerCase().trim();
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const normalizedTarget = normalize(target);
 
   let skillsArray: string[] = [];
   if (Array.isArray(workerSkills)) {
@@ -89,13 +91,14 @@ export function isCategoryMatching(
 
   return skillsArray.some((skill) => {
     const s = skill.toLowerCase().trim();
-    if (s === target) return true;
-    if (s.includes(target) || target.includes(s)) return true;
+    const normalizedSkill = normalize(s);
+    if (s === target || normalizedSkill === normalizedTarget) return true;
+    if (s.includes(target) || target.includes(s) || normalizedSkill.includes(normalizedTarget) || normalizedTarget.includes(normalizedSkill)) return true;
     
     // Check keyword synonym matching
-    const catItem = PUNCHX_50_CATEGORIES.find(c => c.name.toLowerCase() === target || c.id === target);
+    const catItem = PUNCHX_50_CATEGORIES.find(c => c.name.toLowerCase() === target || c.id === target || normalize(c.name) === normalizedTarget || normalize(c.id) === normalizedTarget);
     if (catItem) {
-      if (catItem.keywords.some(kw => s.includes(kw) || kw.includes(s))) return true;
+      if (catItem.keywords.some(kw => normalizedSkill.includes(normalize(kw)) || normalize(kw).includes(normalizedSkill))) return true;
     }
     return false;
   });
