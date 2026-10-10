@@ -875,25 +875,46 @@ export function isSameServiceCity(customerCity?: string, professionalLocation?: 
  * use distance: the worker chooses the localities/areas they actually cover.
  */
 export function normalizePunchXArea(value?: string): string {
-  return String(value || '')
-    .normalize('NFKD')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    .replace(/^(area|locality|neighbourhood|neighborhood)\s+/, '');
+  return String(value || '').normalize('NFKD').toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ').trim()
+    .replace(/^(pin code|pincode)\s+/, 'pin ')
+    .replace(/^(area|locality|neighbourhood|neighborhood)\s+/, 'locality ');
+}
+
+export type PunchXAreaContext = {
+  area?: string; locality?: string; sector?: string; city?: string;
+  district?: string; state?: string; pinCode?: string; postalCode?: string; address?: string;
+};
+
+/** Builds comparable nationwide locality, city, district, state and PIN-code labels. */
+export function buildPunchXCustomerAreaLabels(context: PunchXAreaContext): string[] {
+  const labels: string[] = [];
+  const add = (value?: string, qualifier?: string) => {
+    const text = String(value || '').trim();
+    if (text) { labels.push(text); if (qualifier) labels.push(qualifier + ': ' + text); }
+  };
+  add(context.area, 'AREA'); add(context.locality, 'LOCALITY'); add(context.sector, 'SECTOR');
+  add(context.city, 'CITY'); add(context.district, 'DISTRICT'); add(context.state, 'STATE');
+  const pin = String(context.pinCode || context.postalCode || '').trim();
+  if (/^\d{6}$/.test(pin)) labels.push(pin, 'PIN: ' + pin, 'PINCODE: ' + pin);
+  const city = String(context.city || '').trim(), state = String(context.state || '').trim(), district = String(context.district || '').trim();
+  if (city && state) labels.push('CITY: ' + city + ', ' + state);
+  if (district && state) labels.push('DISTRICT: ' + district + ', ' + state);
+  if (context.address) labels.push(context.address);
+  return Array.from(new Set(labels.filter(Boolean)));
+}
+
+function expandServiceAreaLabel(value: string): string[] {
+  const text = String(value || '').trim();
+  if (!text) return [];
+  if (/^(pin(?:\s*code|code)?|state|district|city|locality|area|village|ward|sector)\s*:/i.test(text)) return [normalizePunchXArea(text)];
+  return text.split(/[,;|\n]+/).map(normalizePunchXArea).filter(Boolean);
 }
 
 export function isServiceAreaMatch(customerLocationLabel: string | string[] | undefined, serviceAreas: string[] | undefined): boolean {
-  // Named-locality matching only: GPS coordinates and distance never determine coverage.
-  // Full addresses are split into address components, then compared exactly.
-  const areas = new Set((Array.isArray(serviceAreas) ? serviceAreas : [])
-    .flatMap(value => String(value || '').split(/[,;|\n]+/))
-    .map(normalizePunchXArea)
-    .filter(Boolean));
-  const candidates = new Set((Array.isArray(customerLocationLabel) ? customerLocationLabel : [customerLocationLabel || ''])
-    .flatMap(value => String(value || '').split(/[,;|\n]+/))
-    .map(normalizePunchXArea)
-    .filter(Boolean));
+  // Nationwide named-area rules only; GPS distance never decides coverage.
+  const areas = new Set((Array.isArray(serviceAreas) ? serviceAreas : []).flatMap(value => expandServiceAreaLabel(String(value || ''))).filter(Boolean));
+  const candidates = new Set((Array.isArray(customerLocationLabel) ? customerLocationLabel : [customerLocationLabel || '']).flatMap(value => expandServiceAreaLabel(String(value || ''))).filter(Boolean));
   if (!areas.size || !candidates.size) return false;
   return Array.from(areas).some(area => candidates.has(area));
 }
