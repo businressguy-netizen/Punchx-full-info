@@ -344,8 +344,7 @@ export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ 
 export async function getAccurateCurrentPosition(rejectOnDenied = false): Promise<{ lat: number; lng: number }> {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      if (rejectOnDenied) return reject(new Error('Geolocation not supported'));
-      return resolve({ lat: 22.5726, lng: 88.3639 });
+      return reject(new Error('Geolocation is not supported on this device. Please enter your address manually.'));
     }
 
     let hasResolved = false;
@@ -390,8 +389,8 @@ export async function getAccurateCurrentPosition(rejectOnDenied = false): Promis
               console.warn("IP fallback 1:", ipErr);
             }
 
-            // Fallback default coordinates
-            safeResolve({ lat: 22.5726, lng: 88.3639 });
+            // Never fabricate Kolkata coordinates for a customer or worker elsewhere in India.
+            reject(new Error('Current location could not be determined. Please enter your address manually.'));
           },
           { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
         );
