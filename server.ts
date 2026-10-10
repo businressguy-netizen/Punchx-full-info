@@ -163,14 +163,6 @@ const ALLOWED_ORIGINS = [
 async function startServer() {
   const app = express();
 
-// PUNCHX geofence: 4 km in smaller towns, 8 km in major urban markets.
-function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
-  const normalized = String(city || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  const largeCities = ['kolkata','bengaluru','bangalore','mumbai','delhi','new delhi','hyderabad','chennai','pune','ahmedabad','jaipur','lucknow','kanpur','nagpur','indore','bhopal','patna','ranchi','bhubaneswar','cuttack','visakhapatnam','vizag','surat','vadodara','ludhiana','agra','nashik','coimbatore','kochi','thiruvananthapuram','guwahati','mysuru','mysore','noida','gurugram','gurgaon','faridabad','ghaziabad','durgapur','asansol','siliguri'];
-  return largeCities.some(name => normalized === name || normalized.startsWith(name + ' ')) ? 8 : 4;
-}
-
-
   const PORT = 3000;
 
   // ─── Security Middleware ───
