@@ -1010,6 +1010,9 @@ async function startServer() {
           isOnline: onlineByUid.get(String(app.uid || app.id)) === true,
           area: String(app.area || ""),
           sector: String(app.sector || ""),
+          serviceAreas: Array.isArray(app.serviceAreas) ? app.serviceAreas.map(String) : Array.isArray(app.geofenceAreas) ? app.geofenceAreas.map(String) : undefined,
+          geofenceAreas: Array.isArray(app.geofenceAreas) ? app.geofenceAreas.map(String) : undefined,
+          serviceAreaMode: app.serviceAreaMode || "india-named-areas",
           location: app.location && typeof app.location.lat === "number" && typeof app.location.lng === "number"
             ? { lat: app.location.lat, lng: app.location.lng }
             : undefined,
