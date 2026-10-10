@@ -5,7 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { AppScreen } from '../types';
 import { isCategoryMatching } from '../data/categories';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
+import { getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isPotentialServiceAreaMatch, isServiceAreaMatch } from '../lib/location';
 
 type Service = {
   id: string;
@@ -39,7 +39,7 @@ type Professional = {
   isDemo?: boolean;
 };
 
-type ServiceArea = { lat: number; lng: number; address: string; area: string; city: string; sector: string };
+type ServiceArea = { lat: number; lng: number; address: string; area: string; city: string; district?: string; state?: string; postalCode?: string; sector: string };
 type AddressParts = { house: string; street: string; locality: string; pin: string; landmark: string };
 
 interface Props {
@@ -176,7 +176,7 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
         const coords = await getAccurateCurrentPosition(true);
         const resolved = await reverseGeocodeCoords(coords.lat, coords.lng);
         if (cancelled) return;
-        const nextArea = { lat: coords.lat, lng: coords.lng, address: resolved.address, area: resolved.area || resolved.city || 'Local Area', city: resolved.city, sector: resolved.sector };
+        const nextArea = { lat: coords.lat, lng: coords.lng, address: resolved.address, area: resolved.area || resolved.city || 'Local area', city: resolved.city, district: resolved.district, state: resolved.state, postalCode: resolved.postalCode, sector: resolved.sector };
         setArea(nextArea);
         localStorage.setItem('punchx_user_location', JSON.stringify({ ...nextArea, timestamp: new Date().toISOString() }));
       } catch {
@@ -196,13 +196,13 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
     setAddressParts(prev => prev.house ? prev : { house: parts[0] || '', street: parts[1] || '', locality: parts[2] || '', pin: parts.find(part => /\b\d{6}\b/.test(part))?.match(/\b\d{6}\b/)?.[0] || '', landmark: '' });
   }, [citizenAddress]);
 
-  const getMatchingProfessionals = (service: Service, customerAreaLabels: string[] = [area?.area, area?.sector, area?.city, area?.address].filter(Boolean) as string[]) => {
+  const getMatchingProfessionals = (service: Service, customerAreaLabels: string[] = buildPunchXCustomerAreaLabels({area:area?.area,sector:area?.sector,city:area?.city,district:area?.district,state:area?.state,pinCode:area?.postalCode,address:area?.address}), allowProvisional = false) => {
     return professionals.filter(pro => {
       if (!pro.available) return false;
       const skillMatch = isCategoryMatching(pro.categories || pro.category, service.category) || pro.category.toLowerCase() === service.category.toLowerCase();
       if (!skillMatch) return false;
       const workerAreas = pro.serviceAreas || pro.geofenceAreas || [pro.area, pro.sector].filter(Boolean);
-      return isServiceAreaMatch(customerAreaLabels, workerAreas);
+      return allowProvisional ? isPotentialServiceAreaMatch(customerAreaLabels, workerAreas) : isServiceAreaMatch(customerAreaLabels, workerAreas);
     }).sort((a, b) => b.rating - a.rating);
   };
 
@@ -210,7 +210,7 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
     setChecking(true); setUnavailableReason('');
     try {
       if (!coords) { setUnavailableReason('We could not determine your service area. Choose a location and try again.'); return false; }
-      const matches = getMatchingProfessionals(service);
+      const matches = getMatchingProfessionals(service, undefined, true);
       setMatchingCount(matches.length);
       if (matches.length === 0) {
         setUnavailableReason(`No eligible ${service.category.toLowerCase()} professional currently covers ${area.area || area.city || 'this locality'}.`);
