@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, Home, MapPin, Plus, ShoppingBag, Trash2, UserRound, Wallet, X } from 'lucide-react';
 import { AppScreen, Worker } from '../types';
-import { calculateDistanceKm, getServiceRadiusKm, isSameServiceCity } from '../lib/location';
+import { isServiceAreaMatch } from '../lib/location';
 import { auth } from '../lib/firebase';
 import { calculatePunchXPricing, formatINR } from '../config/punchxCommerce';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
@@ -35,6 +35,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const [date,setDate]=useState(bookingDate || '');
   const [time,setTime]=useState(bookingTime || '');
   const [workers,setWorkers]=useState<Worker[]>([]);
+  const [allWorkers,setAllWorkers]=useState<Worker[]>([]);
   const [customWorker,setCustomWorker]=useState<Worker|null>(() => loadJSON<Worker|null>('punchx_cart_selected_worker',null));
   const [chooseWorker,setChooseWorker]=useState(false);
   const [warranty,setWarranty]=useState(false);
@@ -43,7 +44,6 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const [validatingGeofence,setValidatingGeofence]=useState(false);
 
   const customerGeo = useMemo(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } }, []);
-  const serviceRadiusKm = getServiceRadiusKm(customerGeo?.city || customerGeo?.area);
 
   useEffect(() => {
     const pending = loadJSON<any>('punchx_pending_booking', null);
@@ -54,11 +54,12 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
     void fetchApprovedProfessionals().then(approved => {
       if (!active) return;
       const timing = (cart[0]?.bookingTiming || pending?.bookingTiming || 'later') as 'instant'|'later';
+      setAllWorkers(approved);
       const visible = approved.filter(worker => {
         if (timing === 'instant' && worker.isOnline !== true) return false;
-        if (customerGeo && worker.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, worker.location.lat, worker.location.lng) <= serviceRadiusKm;
-        const workerCity = String((worker as any).city || worker.address || worker.area || worker.sector || '');
-        return Boolean(customerGeo?.city && isSameServiceCity(customerGeo.city, workerCity));
+        const serviceAreas = worker.serviceAreas || worker.geofenceAreas || [worker.area, worker.sector].filter(Boolean) as string[];
+        const detectedLabels = [customerGeo?.area, customerGeo?.city].filter(Boolean) as string[];
+        return !detectedLabels.length || isServiceAreaMatch(detectedLabels, serviceAreas);
       });
       setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...visible] : visible);
     }).catch(() => {
@@ -79,7 +80,6 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const saveAndPay=async()=>{
     if(!valid||validatingGeofence)return;
     setGeofenceError('');
-    if(!customerGeo){setGeofenceError('Enable location access and detect your service area before continuing.');return;}
     setValidatingGeofence(true);
     try {
       const token=auth.currentUser?await auth.currentUser.getIdToken():'';
@@ -87,15 +87,22 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
       if(!response.ok)throw new Error('ADDRESS_UNVERIFIED');
       const resolved=await response.json();
       if(typeof resolved.lat!=='number'||typeof resolved.lng!=='number')throw new Error('ADDRESS_UNVERIFIED');
-      const geofenceResponse=await fetch('/api/geofence/check',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({origin:{lat:customerGeo.lat,lng:customerGeo.lng,city:customerGeo.city,area:customerGeo.area},destination:{lat:resolved.lat,lng:resolved.lng},city:customerGeo.city||customerGeo.area})});
-      if(!geofenceResponse.ok)throw new Error('GEOFENCE_CHECK_FAILED');
+      const selected=customWorker||selectedWorker;
+      const customerLabels=[resolved.area,resolved.sector,resolved.city,address.villageArea,address.city,addressText].filter(Boolean).map(String);
+      const selectedAreas=selected?(selected.serviceAreas||selected.geofenceAreas||[selected.area,selected.sector].filter(Boolean) as string[]):[];
+      const candidates=selected?[selected]:allWorkers;
+      const matchingWorker=candidates.find(worker=>{
+        const areas=worker.serviceAreas||worker.geofenceAreas||[worker.area,worker.sector].filter(Boolean) as string[];
+        return isServiceAreaMatch(customerLabels,areas);
+      });
+      const areasToCheck=selected?selectedAreas:Array.from(new Set(candidates.flatMap(worker=>worker.serviceAreas||worker.geofenceAreas||[worker.area,worker.sector].filter(Boolean) as string[])));
+      const geofenceResponse=await fetch('/api/geofence/check',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({customerArea:resolved.area||address.villageArea,customerSector:resolved.sector,customerCity:resolved.city||address.city,customerAddress:addressText,workerServiceAreas:areasToCheck})});
+      if(!geofenceResponse.ok)throw new Error('SERVICE_AREA_CHECK_FAILED');
       const geofence=await geofenceResponse.json();
-      const distanceKm=Number(geofence.distanceKm);
-      if(geofence.serviceable!==true){setGeofenceError(`This address is ${distanceKm.toFixed(1)} km from your detected ${customerGeo.city||customerGeo.area||'service area'}. PUNCHX currently serves within ${Number(geofence.radiusKm||serviceRadiusKm)} km here. Choose an address inside this zone.`);return;}
+      if(geofence.serviceable!==true||!matchingWorker){setGeofenceError(selected?'The selected professional does not cover this residential locality. Choose another professional or update the address.':'No verified professional currently covers this residential locality. Please choose a service area supported by PunchX.');return;}
       setCitizenAddress(addressText);setBookingDate(date);setBookingTime(time);
       saveJSON('punchx_residential_address',address);localStorage.setItem('punchx_residential_address_label',addressText);
-      const selected=customWorker||selectedWorker;
-      saveJSON('punchx_pending_booking',{cart,bookingTiming:cart[0]?.bookingTiming||'later',serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,addressCoordinates:{lat:resolved.lat,lng:resolved.lng},distanceFromDetectedAreaKm:distanceKm,geofenceArea:customerGeo.area||'',geofenceCity:customerGeo.city||'',geofenceRadiusKm:Number(geofence.radiusKm||serviceRadiusKm),serviceAvailabilityChecked:true,serviceAvailable:true,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
+      saveJSON('punchx_pending_booking',{cart,bookingTiming:cart[0]?.bookingTiming||'later',serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,addressCoordinates:{lat:resolved.lat,lng:resolved.lng},geofenceArea:resolved.area||address.villageArea,geofenceCity:resolved.city||address.city,serviceAreaMatch:geofence.matchedArea||null,serviceAreasChecked:true,serviceAvailabilityChecked:true,serviceAvailable:true,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
       onTransition('payment');
     } catch { setGeofenceError('We could not verify this address. Check the address and location permission, then try again.'); }
     finally { setValidatingGeofence(false); }
