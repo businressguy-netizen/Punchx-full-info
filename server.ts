@@ -1861,13 +1861,13 @@ async function startServer() {
         }
       }
 
-      // Default fallbacks if address missing
-      if (!fullAddress) {
-        fullAddress = address || "Indiranagar 100ft Road, Sector 2, Bengaluru, KA 560038";
+      if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lng)) || Math.abs(Number(lat)) > 90 || Math.abs(Number(lng)) > 180) {
+        return res.status(400).json({ success: false, resolved: false, error: "Provide a resolvable Indian address or valid coordinates." });
       }
+      if (!fullAddress) fullAddress = address || `Location (${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)})`;
 
-      // Clean sector calculation logic
-      const rawArea = (area || fullAddress.split(',')[0] || "Indiranagar").trim();
+      // Clean sector calculation logic without a city-specific fallback.
+      const rawArea = (area || fullAddress.split(',')[0] || "Local Area").trim();
       let sectorName = "";
 
       const lowerStr = (fullAddress + " " + rawArea).toLowerCase();
@@ -1895,10 +1895,10 @@ async function startServer() {
       return res.json({
         address: fullAddress,
         area: rawArea,
-        city: city || "Bengaluru",
+        city: city || "",
         sector: sectorName,
-        lat: lat || 12.9716,
-        lng: lng || 77.5946
+        lat: Number(lat),
+        lng: Number(lng)
       });
     } catch (err: any) {
       console.error("Geocode backend error:", err);
