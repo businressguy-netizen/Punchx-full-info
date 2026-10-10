@@ -133,6 +133,7 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
   const [locationLoading, setLocationLoading] = useState(false);
   const [addressParts, setAddressParts] = useState<AddressParts>({ house: '', street: '', locality: '', pin: '', landmark: '' });
   const [addressCoordinates, setAddressCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const [confirmedAreaLabels, setConfirmedAreaLabels] = useState<string[]>([]);
   const [addressValidating, setAddressValidating] = useState(false);
   const [addressError, setAddressError] = useState('');
   const [addressConfirmed, setAddressConfirmed] = useState(false);
@@ -243,6 +244,7 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
       } catch (error) { console.warn('PUNCHX address geocode fallback:', error); }
       if (!coords) coords = getCoordinatesForAddressOrSector(fullAddress, addressParts.locality);
       setAddressCoordinates(coords);
+      setConfirmedAreaLabels(resolvedLabels);
       if (!area) { setAddressError('Choose a service area before confirming the visit address.'); return false; }
       if (selected) {
         const matches = getMatchingProfessionals(selected, resolvedLabels); setMatchingCount(matches.length);
@@ -266,10 +268,10 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
       if (await validateResidentialAddress()) setStep('datetime');
     } else if (step === 'datetime') {
       if (!date || !time) { showNotification('Choose a date and time.'); return; }
-      if (selected && !getMatchingProfessionals(selected, addressCoordinates || area).length) { setAddressError('No eligible professional is available for this visit location. Please change the address or choose another service.'); setStep('location'); return; }
+      if (selected && !getMatchingProfessionals(selected, confirmedAreaLabels.length ? confirmedAreaLabels : [addressParts.locality, fullAddress].filter(Boolean)).length) { setAddressError('No eligible professional is available for this visit location. Please change the address or choose another service.'); setStep('location'); return; }
       setStep('summary');
     } else if (step === 'summary' && selected) {
-      const matches = getMatchingProfessionals(selected, addressCoordinates || area);
+      const matches = getMatchingProfessionals(selected, confirmedAreaLabels.length ? confirmedAreaLabels : [addressParts.locality, fullAddress].filter(Boolean));
       if (!matches.length) { setUnavailableReason('Availability changed. No eligible professional is currently available for this address.'); setStep('location'); return; }
       const selectedWorker = matches[0];
       try {
