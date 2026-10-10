@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, Home, MapPin, Plus, ShoppingBag, Trash2, UserRound, Wallet, X } from 'lucide-react';
 import { AppScreen, Worker } from '../types';
-import { isServiceAreaMatch } from '../lib/location';
+import { buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
 import { auth } from '../lib/firebase';
 import { calculatePunchXPricing, formatINR } from '../config/punchxCommerce';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
@@ -88,7 +88,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
       const resolved=await response.json();
       if(typeof resolved.lat!=='number'||typeof resolved.lng!=='number')throw new Error('ADDRESS_UNVERIFIED');
       const selected=customWorker||selectedWorker;
-      const customerLabels=[resolved.area,resolved.sector,resolved.city,address.villageArea,address.city,addressText].filter(Boolean).map(String);
+      const customerLabels=buildPunchXCustomerAreaLabels({area:resolved.area,locality:address.villageArea,sector:resolved.sector,city:resolved.city||address.city,district:resolved.district||address.district,state:resolved.state||address.state,pinCode:resolved.postalCode||address.pinCode,address:addressText});
       const selectedAreas=selected?(selected.serviceAreas||selected.geofenceAreas||[selected.area,selected.sector].filter(Boolean) as string[]):[];
       const candidates=selected?[selected]:allWorkers;
       const matchingWorker=candidates.find(worker=>{
@@ -96,7 +96,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
         return isServiceAreaMatch(customerLabels,areas);
       });
       const areasToCheck=selected?selectedAreas:Array.from(new Set(candidates.flatMap(worker=>worker.serviceAreas||worker.geofenceAreas||[worker.area,worker.sector].filter(Boolean) as string[])));
-      const geofenceResponse=await fetch('/api/geofence/check',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({customerArea:resolved.area||address.villageArea,customerSector:resolved.sector,customerCity:resolved.city||address.city,customerAddress:addressText,workerServiceAreas:areasToCheck})});
+      const geofenceResponse=await fetch('/api/geofence/check',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({customerArea:resolved.area||address.villageArea,customerLocality:address.villageArea,customerSector:resolved.sector,customerCity:resolved.city||address.city,customerDistrict:resolved.district||address.district,customerState:resolved.state||address.state,customerPinCode:resolved.postalCode||address.pinCode,customerAddress:addressText,workerServiceAreas:areasToCheck})});
       if(!geofenceResponse.ok)throw new Error('SERVICE_AREA_CHECK_FAILED');
       const geofence=await geofenceResponse.json();
       if(geofence.serviceable!==true||!matchingWorker){setGeofenceError(selected?'The selected professional does not cover this residential locality. Choose another professional or update the address.':'No verified professional currently covers this residential locality. Please choose a service area supported by PunchX.');return;}
