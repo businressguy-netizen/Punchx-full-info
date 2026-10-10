@@ -87,12 +87,15 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
       if(!response.ok)throw new Error('ADDRESS_UNVERIFIED');
       const resolved=await response.json();
       if(typeof resolved.lat!=='number'||typeof resolved.lng!=='number')throw new Error('ADDRESS_UNVERIFIED');
-      const distanceKm=calculateDistanceKm(customerGeo.lat,customerGeo.lng,resolved.lat,resolved.lng);
-      if(distanceKm>serviceRadiusKm){setGeofenceError(`This address is ${distanceKm.toFixed(1)} km from your detected ${customerGeo.city||customerGeo.area||'service area'}. PUNCHX currently serves within ${serviceRadiusKm} km here. Choose an address inside this zone.`);return;}
+      const geofenceResponse=await fetch('/api/geofence/check',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({origin:{lat:customerGeo.lat,lng:customerGeo.lng,city:customerGeo.city,area:customerGeo.area},destination:{lat:resolved.lat,lng:resolved.lng},city:customerGeo.city||customerGeo.area})});
+      if(!geofenceResponse.ok)throw new Error('GEOFENCE_CHECK_FAILED');
+      const geofence=await geofenceResponse.json();
+      const distanceKm=Number(geofence.distanceKm);
+      if(geofence.serviceable!==true){setGeofenceError(`This address is ${distanceKm.toFixed(1)} km from your detected ${customerGeo.city||customerGeo.area||'service area'}. PUNCHX currently serves within ${Number(geofence.radiusKm||serviceRadiusKm)} km here. Choose an address inside this zone.`);return;}
       setCitizenAddress(addressText);setBookingDate(date);setBookingTime(time);
       saveJSON('punchx_residential_address',address);localStorage.setItem('punchx_residential_address_label',addressText);
       const selected=customWorker||selectedWorker;
-      saveJSON('punchx_pending_booking',{cart,bookingTiming:cart[0]?.bookingTiming||'later',serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,addressCoordinates:{lat:resolved.lat,lng:resolved.lng},distanceFromDetectedAreaKm:distanceKm,geofenceArea:customerGeo.area||'',geofenceCity:customerGeo.city||'',geofenceRadiusKm:serviceRadiusKm,serviceAvailabilityChecked:true,serviceAvailable:true,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
+      saveJSON('punchx_pending_booking',{cart,bookingTiming:cart[0]?.bookingTiming||'later',serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,addressCoordinates:{lat:resolved.lat,lng:resolved.lng},distanceFromDetectedAreaKm:distanceKm,geofenceArea:customerGeo.area||'',geofenceCity:customerGeo.city||'',geofenceRadiusKm:Number(geofence.radiusKm||serviceRadiusKm),serviceAvailabilityChecked:true,serviceAvailable:true,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
       onTransition('payment');
     } catch { setGeofenceError('We could not verify this address. Check the address and location permission, then try again.'); }
     finally { setValidatingGeofence(false); }
