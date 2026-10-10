@@ -6,7 +6,7 @@ import { AppScreen, Worker } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
 import { PUNCHX_COMMERCE, formatINR } from '../config/punchxCommerce';
-import { isServiceAreaMatch } from '../lib/location';
+import { buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
 
 type Service = {
   id: string; name: string; category: string; subcategory: string; description: string;
@@ -85,7 +85,10 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [selected, bookingTiming]);
 
-  const customerAreaLabels = useMemo(() => [customerGeo?.area, customerGeo?.city].filter(Boolean).map(String), [customerGeo]);
+  const customerAreaLabels = useMemo(() => {
+    let saved:any={};try{saved=JSON.parse(localStorage.getItem('punchx_residential_address')||'{}');}catch{}
+    return buildPunchXCustomerAreaLabels({area:customerGeo?.area,city:customerGeo?.city,locality:saved.villageArea,district:saved.district,state:saved.state,pinCode:saved.pinCode,address:saved.fullAddress});
+  }, [customerGeo]);
   const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => {
     if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false;
     if (bookingTiming === 'instant' && w.isOnline !== true) return false;
