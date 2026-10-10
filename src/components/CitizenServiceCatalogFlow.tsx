@@ -6,7 +6,7 @@ import { AppScreen, Worker } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { isServiceAreaMatch } from '../lib/location';
+import { buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
 
 interface Props { onTransition:(target:AppScreen)=>void; selectedCategory:string; onSelectCategory?:(category:string)=>void; onSelectWorker:(worker:Worker)=>void; showNotification:(msg:string)=>void; citizenAddress:string; setCitizenAddress:(address:string)=>void; }
 type Step='categories'|'subcategories'|'services'|'providers'|'booking';
@@ -29,7 +29,7 @@ export default function CitizenServiceCatalogFlow({onTransition,selectedCategory
  const checkAvailability=()=>{
   if(!category||!service)return false;
   if(!geo){setAvailable(false);setMatching([]);setAvailabilityMessage('Allow location access to check service availability in your area.');return false;}
-  const customerAreaLabels=[geo.area,geo.sector,geo.city,geo.address].filter(Boolean).map(String); const found=workers.filter(w=>{if(w.available===false)return false;const cat=isCategoryMatching(w.categories||w.category,category.name)||isCategoryMatching(w.categories||w.category,category.id);if(!cat)return false;const workerAreas=(w as any).serviceAreas||(w as any).geofenceAreas||[w.area,w.sector].filter(Boolean);return isServiceAreaMatch(customerAreaLabels,workerAreas);});
+  const customerAreaLabels=buildPunchXCustomerAreaLabels({area:geo.area,locality:address.villageArea,sector:geo.sector,city:address.city||geo.city,district:address.district,state:address.state,pinCode:address.pinCode,address:geo.address}); const found=workers.filter(w=>{if(w.available===false)return false;const cat=isCategoryMatching(w.categories||w.category,category.name)||isCategoryMatching(w.categories||w.category,category.id);if(!cat)return false;const workerAreas=(w as any).serviceAreas||(w as any).geofenceAreas||[w.area,w.sector].filter(Boolean);return isServiceAreaMatch(customerAreaLabels,workerAreas);});
   setMatching(found);setAvailable(found.length>0);setAvailabilityMessage(found.length?`${found.length} verified professional${found.length===1?'':'s'} available`:'Service is not available on your area.');return found.length>0;
  };
  const chooseCategory=(c:ServiceCategory)=>{setCategory(c);setSubcategory(null);setService(null);setSearch('');setStep('subcategories');onSelectCategory?.(c.name);};
