@@ -113,7 +113,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               fullAddress = fullAddress || data.display_name;
               const a = data.address || {};
               area = area || a.sublocality || a.neighbourhood || a.suburb || a.residential || a.road || '';
-              city = city || a.city || a.town || a.village || a.county || '';
+              city = city || a.city || a.town || a.village || '';
+              district = district || a.state_district || a.district || a.county || '';
+              state = state || a.state || '';
               postalCode = postalCode || a.postcode || '';
             }
           }
