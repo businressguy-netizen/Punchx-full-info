@@ -155,3 +155,61 @@ body:has(.punchx-citizen-shell), body:has(#providers-list-root), body:has(#provi
 @media (prefers-reduced-motion:reduce) {
   #panel-select-screen,.punchx-citizen-shell,#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container { animation:none !important; }
 }
+
+
+/* Mobile-first overflow hardening: keep every screen, label and control inside the viewport. */
+*,*::before,*::after { box-sizing:border-box; }
+html,body,#root { width:100%; min-width:0; max-width:100%; }
+html { overflow-x:clip; -webkit-text-size-adjust:100%; }
+body { overflow-x:clip; }
+#root { overflow-x:clip; }
+img,video,canvas,svg,iframe { max-width:100%; }
+img,video,canvas { height:auto; }
+button,input,textarea,select { max-width:100%; min-width:0; }
+input,textarea,select { width:100%; }
+button,a,[role="button"] { overflow-wrap:anywhere; }
+h1,h2,h3,h4,h5,h6,p,span,label,small,strong,em,li,td,th { overflow-wrap:anywhere; }
+pre,code { white-space:pre-wrap; overflow-wrap:anywhere; }
+table { max-width:100%; }
+.flex > *, .inline-flex > *, .grid > * { min-width:0; }
+[class*="min-w-"] { min-width:0; }
+[class*="w-screen"] { width:100%; max-width:100vw; }
+[class*="max-w-"] { max-width:min(100%,100vw); }
+
+@media (max-width:767px) {
+  html { font-size:15px; }
+  body { font-size:14px; }
+  #root > * { min-width:0; max-width:100%; }
+  main,header,footer,section,article,aside,nav,form { min-width:0; max-width:100%; }
+  .overflow-x-auto { max-width:100%; overscroll-behavior-x:contain; }
+  [role="dialog"], [aria-modal="true"] {
+    width:min(100% - 24px, 560px);
+    max-width:calc(100vw - 24px);
+    max-height:calc(100dvh - 24px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  input,select,textarea { font-size:16px; }
+  button { white-space:normal; }
+  #panel-select-screen { padding-left:16px !important; padding-right:16px !important; }
+  #panel-select-screen > .max-w-4xl { width:100%; }
+  #panel-select-screen .grid > div { width:100%; min-width:0; }
+  .wx-app { width:100%; min-width:0; max-width:100vw; overflow-x:clip; }
+  .wx-main { width:0; min-width:0; max-width:100%; }
+  .wx-header { min-width:0; padding-left:14px; padding-right:14px; gap:10px; }
+  .wx-header > * { min-width:0; }
+  .wx-period-card,.wx-period-tabs,.wx-report-summary { min-width:0; max-width:100%; }
+  .wx-period-tabs button { min-width:0; overflow-wrap:anywhere; }
+  .wx-feedback-row > * { min-width:0; }
+  .wx-chart-card,.wx-analytics-chart,.wx-growth-card { min-width:0; max-width:100%; }
+}
+
+@media (max-width:360px) {
+  .wx-header { padding-left:10px; padding-right:10px; }
+  #panel-select-screen h1 { font-size:clamp(27px,9vw,34px) !important; }
+  .wx-period-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
