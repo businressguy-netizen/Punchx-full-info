@@ -5,7 +5,7 @@ import {
   ExternalLink, Layers, Crosshair, RefreshCw, AlertTriangle, Phone, ChevronRight
 } from 'lucide-react';
 import { Worker, OrderRecord } from '../types';
-import { calculateDistanceKm, getCoordinatesForAddressOrSector } from '../lib/location';
+import { calculateDistanceKm, getCoordinatesForAddressOrSector, getServiceRadiusKm } from '../lib/location';
 
 interface ServiceRadiusRadarModalProps {
   isOpen: boolean;
@@ -33,8 +33,9 @@ export default function ServiceRadiusRadarModal({
   onRecalibrateGps
 }: ServiceRadiusRadarModalProps) {
   const activeProviders = providers.length > 0 ? providers : workers;
+  const serviceRadiusKm = getServiceRadiusKm(centerLocation.city || centerLocation.area);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
-  const [filterRadius, setFilterRadius] = useState<number>(15); // Default 15 km
+  const [filterRadius, setFilterRadius] = useState<number>(getServiceRadiusKm(centerLocation.city || centerLocation.area));
   const [mapType, setMapType] = useState<'radar' | 'satellite' | 'street'>('radar');
   const [isCalibrating, setIsCalibrating] = useState(false);
 
@@ -58,7 +59,7 @@ export default function ServiceRadiusRadarModal({
           ...p,
           coords,
           distanceKm: dist,
-          isWithinZone: dist <= 15.0
+          isWithinZone: dist <= serviceRadiusKm
         };
       })
     : orders.map(o => {
@@ -75,7 +76,7 @@ export default function ServiceRadiusRadarModal({
       });
 
   const visibleItems = processedItems.filter(item => item.distanceKm <= filterRadius);
-  const totalWithin15Km = processedItems.filter(item => item.isWithinZone).length;
+  const totalWithinServiceRadius = processedItems.filter(item => item.isWithinZone).length;
 
   const handleRefresh = async () => {
     setIsCalibrating(true);
