@@ -917,7 +917,8 @@ export function buildPunchXCustomerAreaLabels(context: PunchXAreaContext): strin
   };
   add(context.area, 'AREA'); add(context.locality, 'LOCALITY'); add(context.sector, 'SECTOR');
   add(context.city, 'CITY'); add(context.district, 'DISTRICT'); add(context.state, 'STATE');
-  const pin = String(context.pinCode || context.postalCode || '').trim();
+  const addressPin = String(context.address || '').match(/\b\d{6}\b/)?.[0] || '';
+  const pin = String(context.pinCode || context.postalCode || addressPin).trim();
   if (/^\d{6}$/.test(pin)) labels.push(pin, 'PIN: ' + pin, 'PINCODE: ' + pin);
   const city = String(context.city || '').trim(), state = String(context.state || '').trim(), district = String(context.district || '').trim();
   if (city && state) labels.push('CITY: ' + city + ', ' + state);
