@@ -5,13 +5,13 @@ import {
   ExternalLink, Layers, Crosshair, RefreshCw, AlertTriangle, Phone, ChevronRight
 } from 'lucide-react';
 import { Worker, OrderRecord } from '../types';
-import { calculateDistanceKm, getCoordinatesForAddressOrSector, getServiceRadiusKm } from '../lib/location';
+import { calculateDistanceKm, getCoordinatesForAddressOrSector, buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
 
 interface ServiceRadiusRadarModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'customer' | 'worker';
-  centerLocation: { lat: number; lng: number; address?: string; name?: string; city?: string; area?: string };
+  centerLocation: { lat: number; lng: number; address?: string; name?: string; city?: string; area?: string; district?: string; state?: string; postalCode?: string; serviceAreas?: string[] };
   providers?: Worker[];
   workers?: Worker[];
   orders?: OrderRecord[];
@@ -33,51 +33,55 @@ export default function ServiceRadiusRadarModal({
   onRecalibrateGps
 }: ServiceRadiusRadarModalProps) {
   const activeProviders = providers.length > 0 ? providers : workers;
-  const serviceRadiusKm = getServiceRadiusKm(centerLocation.city || centerLocation.area);
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
-  const [filterRadius, setFilterRadius] = useState<number>(getServiceRadiusKm(centerLocation.city || centerLocation.area));
   const [mapType, setMapType] = useState<'radar' | 'satellite' | 'street'>('radar');
   const [isCalibrating, setIsCalibrating] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setSelectedItem(null);
-      setFilterRadius(serviceRadiusKm);
     }
-  }, [isOpen, serviceRadiusKm]);
+  }, [isOpen, centerLocation.area, centerLocation.city]);
 
   if (!isOpen) return null;
 
   const centerLat = centerLocation.lat || 12.9716;
   const centerLng = centerLocation.lng || 77.5946;
 
-  // Process and calculate distance for items relative to center
+  const centerAreaLabels = buildPunchXCustomerAreaLabels({
+    area: centerLocation.area, city: centerLocation.city, district: centerLocation.district,
+    state: centerLocation.state, pinCode: centerLocation.postalCode, address: centerLocation.address
+  });
+
+  // Distances are informational for navigation only. Serviceability uses configured named areas.
   const processedItems = mode === 'customer'
     ? activeProviders.map(p => {
         const coords = (p.location && p.location.lat) ? p.location : getCoordinatesForAddressOrSector(p.address, p.area, p.sector);
         const dist = calculateDistanceKm(centerLat, centerLng, coords.lat, coords.lng);
-        return {
-          ...p,
-          coords,
-          distanceKm: dist,
-          isWithinZone: dist <= serviceRadiusKm
-        };
+        const workerAreas = (p as any).serviceAreas || (p as any).geofenceAreas || [p.area, p.sector].filter(Boolean);
+        return { ...p, coords, distanceKm: Number.isFinite(dist) ? Math.round(dist * 10) / 10 : null, isWithinZone: isServiceAreaMatch(centerAreaLabels, workerAreas) };
       })
     : orders.map(o => {
-        const coords = (o as any).customerLocation?.lat 
-          ? (o as any).customerLocation 
+        const coords = (o as any).customerLocation?.lat
+          ? (o as any).customerLocation
           : getCoordinatesForAddressOrSector(o.customerAddress, o.area, o.sector);
         const dist = calculateDistanceKm(centerLat, centerLng, coords.lat, coords.lng);
-        return {
-          ...o,
-          coords,
-          distanceKm: dist,
-          isWithinZone: dist <= 15.0
-        };
+        const customerLabels = buildPunchXCustomerAreaLabels({
+          area: (o as any).area, locality: (o as any).locality || (o as any).villageArea,
+          sector: (o as any).sector, city: (o as any).customerCity || (o as any).city,
+          district: (o as any).customerDistrict || (o as any).district,
+          state: (o as any).customerState || (o as any).state,
+          pinCode: (o as any).customerPinCode || (o as any).pinCode,
+          address: o.customerAddress
+        });
+        const coverage = centerLocation.serviceAreas || [];
+        return { ...o, coords, distanceKm: Number.isFinite(dist) ? Math.round(dist * 10) / 10 : null, isWithinZone: coverage.length ? isServiceAreaMatch(customerLabels, coverage) : true };
       });
 
-  const visibleItems = processedItems.filter(item => item.distanceKm <= filterRadius);
+  // Do not filter on distance or a circular boundary.
+  const visibleItems = processedItems;
   const totalWithinServiceRadius = processedItems.filter(item => item.isWithinZone).length;
+  const maxDisplayDistance = Math.max(1, ...processedItems.map(item => Number(item.distanceKm) || 0));
 
   const handleRefresh = async () => {
     setIsCalibrating(true);
@@ -105,7 +109,7 @@ export default function ServiceRadiusRadarModal({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[9px] font-mono font-extrabold uppercase tracking-widest text-[#e9c176] bg-[#c5a059]/10 px-2 py-0.5 rounded border border-[#c5a059]/30">
-                  Smart Proximity Geofence
+                  Pan-India Service Areas
                 </span>
                 <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1 font-bold">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
@@ -113,7 +117,7 @@ export default function ServiceRadiusRadarModal({
                 </span>
               </div>
               <h2 id="radar-dialog-title" className="text-base sm:text-lg font-bold text-white tracking-tight">
-                {mode === 'customer' ? 'Nearby Certified Service Specialists' : 'Customer Order Proximity Dispatch Radar'}
+                {mode === 'customer' ? 'Service Specialists in Covered Areas' : 'Customer Service-Area Dispatch'}
               </h2>
             </div>
           </div>
@@ -151,9 +155,9 @@ export default function ServiceRadiusRadarModal({
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 bg-[#c5a059]/10 border border-[#c5a059]/30 px-3 py-1 rounded-full text-[#e9c176] font-mono text-[11px] font-bold">
-              <span>Coverage:</span>
-              <span className="text-white font-extrabold">{filterRadius} km</span>
-              <span className="text-zinc-400">({visibleItems.length} in Active Radius)</span>
+              <span>Area matches:</span>
+              <span className="text-white font-extrabold">{totalWithinServiceRadius}</span>
+              <span className="text-zinc-400">of {visibleItems.length} shown</span>
             </div>
 
             <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg">
@@ -182,22 +186,8 @@ export default function ServiceRadiusRadarModal({
             {/* Visual Radar Rings & Crosshairs */}
             <div className="relative w-full aspect-square max-w-[380px] max-h-[380px] flex items-center justify-center">
               
-              {/* Outer 15km perimeter ring */}
-              <div className="absolute inset-0 rounded-full border-2 border-dashed border-[#c5a059]/40 flex items-center justify-center">
-                <span className="absolute top-2 right-4 text-[9px] font-mono text-[#e9c176] font-bold bg-[#07122a]/90 px-1.5 py-0.5 rounded border border-[#c5a059]/30">
-                  15 KM BOUNDARY
-                </span>
-              </div>
-
-              {/* 10km mid ring */}
-              <div className="absolute w-[66%] h-[66%] rounded-full border border-[#c5a059]/25 flex items-center justify-center">
-                <span className="absolute top-1 text-[8px] font-mono text-zinc-500">10 km</span>
-              </div>
-
-              {/* 5km inner ring */}
-              <div className="absolute w-[33%] h-[33%] rounded-full border border-[#c5a059]/20 flex items-center justify-center">
-                <span className="absolute top-0.5 text-[8px] font-mono text-zinc-500">5 km</span>
-              </div>
+              {/* No circular geofence: the overlay describes locality coverage only. */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-[#c5a059]/40 bg-[#07122a]/90 px-3 py-1 text-[9px] font-mono font-bold text-[#e9c176] whitespace-nowrap">NAMED AREAS · NOT TO SCALE</div>
 
               {/* Radar Grid axes */}
               <div className="absolute w-full h-[1px] bg-[#c5a059]/15"></div>
@@ -223,18 +213,18 @@ export default function ServiceRadiusRadarModal({
                   <div className="absolute -inset-2 rounded-full border border-blue-400 animate-ping opacity-60 pointer-events-none"></div>
                 </div>
                 <span className="text-[10px] font-bold font-mono bg-blue-950/90 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/40 mt-1 shadow whitespace-nowrap">
-                  {mode === 'customer' ? 'Your GPS Location' : 'Worker Service Hub'}
+                  {mode === 'customer' ? 'Your Location' : 'Worker Service Hub'}
                 </span>
               </div>
 
-              {/* Render Visible Pins within 15 km */}
+              {/* Pins show location context; distance is not used to decide serviceability. */}
               {visibleItems.map((item, idx) => {
                 // Calculate geometric angle & radial distance from center
                 const dLat = item.coords.lat - centerLat;
                 const dLng = item.coords.lng - centerLng;
                 
-                // Normalizing 15 km to radius percent
-                const distanceRatio = Math.min(item.distanceKm / 15, 1);
+                // Normalizing named area to radius percent
+                const distanceRatio = Math.min((Number(item.distanceKm) || 0) / maxDisplayDistance, 1);
                 const angle = Math.atan2(dLat, dLng);
                 const radiusPx = distanceRatio * 150; // max radius inside 380px box
                 
@@ -280,7 +270,7 @@ export default function ServiceRadiusRadarModal({
                         ? 'bg-[#c5a059] text-black font-extrabold' 
                         : 'bg-[#0b1325]/90 text-zinc-300 border border-zinc-800 group-hover:border-[#c5a059]'
                     }`}>
-                      {displayName} ({item.distanceKm} km)
+                      {displayName} ({item.distanceKm == null ? 'Distance unavailable' : item.distanceKm + ' km'})
                     </div>
                   </div>
                 );
@@ -290,8 +280,8 @@ export default function ServiceRadiusRadarModal({
 
             {/* Compass rose legend */}
             <div className="absolute bottom-3 left-3 bg-[#0b1325]/90 border border-zinc-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-zinc-400 flex items-center gap-2">
-              <span className="text-[#e9c176] font-bold">15km Geofence:</span>
-              <span className="text-emerald-400">{visibleItems.length} inside radius</span>
+              <span className="text-[#e9c176] font-bold">Named-area coverage:</span>
+              <span className="text-emerald-400">{totalWithinServiceRadius} area matches</span>
             </div>
 
           </div>
@@ -307,9 +297,9 @@ export default function ServiceRadiusRadarModal({
                     Selected Location Point
                   </span>
                   <span className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                    selectedItem.distanceKm <= 15 ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-red-950 text-red-300 border border-red-500/40'
+                    selectedItem.isWithinZone ? 'bg-emerald-950 text-emerald-300 border border-emerald-500/40' : 'bg-red-950 text-red-300 border border-red-500/40'
                   }`}>
-                    {selectedItem.distanceKm} km away
+                    {selectedItem.distanceKm == null ? 'Distance unavailable' : selectedItem.distanceKm + ' km away'}
                   </span>
                 </div>
 
@@ -341,11 +331,11 @@ export default function ServiceRadiusRadarModal({
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                     <span className="font-bold text-xs font-mono">
-                      ✓ PROXIMITY RADAR MATCH ({selectedItem.distanceKm} km Away)
+                      {selectedItem.isWithinZone ? '✓ SERVICE AREA MATCH' : 'OUTSIDE CONFIGURED SERVICE AREAS'}
                     </span>
                   </div>
                   <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-                    Technician is in active geofenced proximity. Rapid arrival and dispatched assistance guaranteed.
+                    {selectedItem.isWithinZone ? 'This location matches the configured named-area coverage. Distance is shown only as navigation context.' : 'This location does not match the configured named service areas.'}
                   </p>
                 </div>
 
@@ -442,7 +432,7 @@ export default function ServiceRadiusRadarModal({
                               {item.distanceKm} km
                             </span>
                             <span className="text-[9px] font-mono text-emerald-400 font-bold">
-                              Live Route
+                              Distance info
                             </span>
                           </div>
                         </div>
