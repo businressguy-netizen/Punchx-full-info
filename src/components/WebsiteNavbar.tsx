@@ -156,6 +156,8 @@ export default function WebsiteNavbar({
               Find a pro
             </button>
 
+            <button onClick={() => go('catalogue')} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'catalogue' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}>Price catalogue</button>
+
             <button onClick={() => go('founder')} className={`hidden rounded-xl px-3 py-2 text-xs font-extrabold transition lg:block ${currentScreen === 'founder' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}>
               Team
             </button>
@@ -205,6 +207,7 @@ export default function WebsiteNavbar({
             <span className="truncate text-[10px] font-bold text-[#6d727c]">{citizenAddress || 'Set your service location'}</span>
           </button>
           <button onClick={() => go('providers')} className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0ecff] text-[#7358d7]" aria-label="Find a professional"><Search className="h-4 w-4" /></button>
+          <button onClick={() => go('catalogue')} className="rounded-xl bg-[#171c35] px-3 py-2 text-[10px] font-extrabold text-white" aria-label="Open price catalogue">₹ Prices</button>
         </div>
 
         <AnimatePresence>
