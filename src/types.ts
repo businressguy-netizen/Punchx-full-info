@@ -177,7 +177,7 @@ export interface OrderRecord {
   personalSelectionFee?: number;
   personalSelectionRate?: number;
   priorCompletedBookingsWithWorker?: number;
-  dispatchMode?: 'PERSONAL_SELECT' | 'AUTO_MATCH' | 'BROADCAST_15KM' | 'RANDOM_15KM';
+  dispatchMode?: 'PERSONAL_SELECT' | 'AUTO_MATCH' | 'AREA_MATCH';
   bookingTiming?: 'instant' | 'later';
   bookingType?: 'INSTANT' | 'SCHEDULED';
   isInstantOrder?: boolean;
