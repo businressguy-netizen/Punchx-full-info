@@ -155,3 +155,17 @@ body:has(.punchx-citizen-shell), body:has(#providers-list-root), body:has(#provi
 @media (prefers-reduced-motion:reduce) {
   #panel-select-screen,.punchx-citizen-shell,#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container { animation:none !important; }
 }
+
+/* Citizen pages already own their mobile/desktop navigation. Never stack the legacy website chrome above them. */
+body:has(.punchx-citizen-main) #punchx-website-navbar,
+body:has(.punchx-citizen-main) #punchx-website-footer { display:none !important; }
+
+/* Keep citizen content full-width on every viewport while preventing accidental fixed desktop widths. */
+.punchx-citizen-main { width:100%; min-width:0; overflow-x:clip; }
+.punchx-citizen-main > * { min-width:0; max-width:100%; }
+@media (min-width: 1024px) {
+  .punchx-citizen-shell { width:100%; }
+}
+@media (max-width: 767px) {
+  .punchx-citizen-shell { width:100%; max-width:100vw; overflow-x:clip; }
+}
