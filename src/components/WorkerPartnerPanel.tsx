@@ -329,10 +329,10 @@ function HomeView(p:any){
    <div className="wx-geofence-main">
     <div className="wx-geofence-icon"><MapPin size={20}/></div>
     <div className="wx-geofence-copy">
-     <span className="wx-section-label">LIVE GEOFENCING</span>
-     <h3>{p.geo?.area||p.area||'Service zone unavailable'}</h3>
-     <p>{p.serviceAreas?.length?p.serviceAreas.join(' · '):'No service areas configured'}</p>
-     <small>{p.geoLoading?'Detecting your live location…':p.geoError||'GPS is used to identify your current location; job eligibility follows the localities you select below, not a circular radius.'}</small>
+     <span className="wx-section-label">YOUR SERVICE AREA LIMIT</span>
+     <h3>{p.geo?.area||p.area||'Service area not set'}</h3>
+     <div className="wx-service-area-tags">{p.serviceAreas?.length?p.serviceAreas.map(function(area:string){return <span key={area}>{area}</span>}):<span>No service areas configured</span>}</div>
+     <small>{p.geoLoading?'Resolving your current locality…':p.geoError||'Coverage is limited to the named localities below. PunchX does not use a circular kilometre radius for job eligibility.'}</small>
     </div>
    </div>
    <div className="wx-geofence-actions">
@@ -344,7 +344,7 @@ function HomeView(p:any){
   <section className="wx-card wx-service-area-editor">
    <div className="wx-card-head"><div><span className="wx-section-label">SERVICE AREA BOUNDARY</span><h3>Choose the localities you cover</h3><p>Enter area, neighbourhood, ward or town names separated by commas. Jobs outside these named areas will not appear in your new-job queue.</p></div></div>
    <label className="wx-service-area-label">Covered areas<textarea value={p.serviceAreasDraft||''} onChange={function(e:any){p.setServiceAreasDraft(e.target.value)}} rows={3} placeholder="e.g. Nabadwip, Mayapur, Bablari" /></label>
-   <div className="wx-service-area-foot"><span>{p.serviceAreas?.length||0} saved area(s) · area matching only</span><button className="wx-primary" onClick={p.saveServiceAreas} disabled={p.savingServiceAreas}>{p.savingServiceAreas?'Saving areas…':'Save service areas'} <Save size={15}/></button></div>
+   <div className="wx-service-area-foot"><span>{p.serviceAreas?.length||0} named area(s) · no circular radius</span><button className="wx-primary" onClick={p.saveServiceAreas} disabled={p.savingServiceAreas}>{p.savingServiceAreas?'Saving areas…':'Save service areas'} <Save size={15}/></button></div>
   </section>
   <div className="wx-stats"><Stat label="Today’s orders" value={p.today.length} icon={ClipboardList}/><Stat label="Completed" value={p.completed} icon={CheckCircle2}/><Stat label="Pending" value={p.pending} icon={Clock3}/><Stat label="Cancelled" value={p.cancelled} icon={CircleAlert}/><Stat label="Working hours" value="—" icon={BriefcaseBusiness}/><Stat label="Avg. order" value={p.today.filter((o:any)=>o.earning!==null).length?money(p.today.filter((o:any)=>o.earning!==null).reduce((s:number,o:any)=>s+(o.earning||0),0)/p.today.filter((o:any)=>o.earning!==null).length):"—"} icon={TrendingUp}/></div>
   <div className="wx-grid-main">
