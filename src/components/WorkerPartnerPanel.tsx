@@ -124,7 +124,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        const catOk=!workerCategories.length || workerCategories.some(function(x){return cat.includes(x)||x.includes(cat)});
        if(!catOk)return false;
        // Serviceability is locality-based: do not use GPS distance or a circular radius.
-       const residential=o.residentialAddress||o.addressDetails||{};const customerAreaLabels=buildPunchXCustomerAreaLabels({area:o.area||residential.area,locality:o.locality||o.villageArea||residential.villageArea,sector:o.sector,city:o.customerCity||o.city||residential.city,district:o.customerDistrict||o.district||residential.district,state:o.customerState||o.state||residential.state,pinCode:o.customerPinCode||o.pinCode||residential.pinCode,address:o.customerAddress||o.address||residential.fullAddress});
+       const orderAny=o as any;const residential=orderAny.residentialAddress||orderAny.addressDetails||{};const customerAreaLabels=buildPunchXCustomerAreaLabels({area:orderAny.area||residential.area,locality:orderAny.locality||orderAny.villageArea||residential.villageArea,sector:orderAny.sector,city:orderAny.customerCity||orderAny.city||residential.city,district:orderAny.customerDistrict||orderAny.district||residential.district,state:orderAny.customerState||orderAny.state||residential.state,pinCode:orderAny.customerPinCode||orderAny.pinCode||residential.pinCode,address:orderAny.customerAddress||orderAny.address||residential.fullAddress});
        return isServiceAreaMatch(customerAreaLabels,workerServiceAreas);
      }).sort(function(a,b){
        const at=new Date(a.createdAt||'').getTime() || a.createdTimestamp || 0;
