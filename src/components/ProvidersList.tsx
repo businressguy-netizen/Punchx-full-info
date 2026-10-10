@@ -68,13 +68,12 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
       const freshWorkers = await fetchApprovedProfessionals();
       setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers);
       const sourceWorkers = DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers;
-      const area = norm(`${geo?.area || ''} ${geo?.city || ''}`);
       const found = sourceWorkers.filter(worker => {
         if (worker.available === false || !category) return false;
         if (!isCategoryMatching(worker.categories || worker.category, category.name) && !isCategoryMatching(worker.categories || worker.category, category.id)) return false;
         if (bookingTiming === 'instant' && worker.isOnline !== true) return false;
         if (geo && worker.location) return calculateDistanceKm(geo.lat, geo.lng, worker.location.lat, worker.location.lng) <= serviceRadiusKm;
-        if (typeof worker.distanceKm === 'number') return worker.distanceKm <= RADIUS_KM;
+        if (typeof worker.distanceKm === 'number') return worker.distanceKm <= serviceRadiusKm;
         const workerCity = String((worker as any).city || worker.address || worker.area || worker.sector || '');
         return Boolean(geo?.city && isSameServiceCity(geo.city, workerCity));
       });
