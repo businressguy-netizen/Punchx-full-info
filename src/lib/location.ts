@@ -950,7 +950,11 @@ export function isPotentialServiceAreaMatch(customerLocationLabel: string | stri
     const normalized = normalizePunchXArea(rule);
     if (/^pin \d{6}$/.test(normalized) || /^\d{6}$/.test(normalized)) return !hasPin;
     if (normalized.startsWith('state ')) return !hasState;
-    if (normalized.startsWith('district ')) return !hasDistrict;
+    if (normalized.startsWith('district ')) {
+      const compositeDistrict = normalized.split(' ').length > 2;
+      const sameDistrictKnown = Array.from(candidates).some(value => value === 'district ' + normalized.split(' ')[1]);
+      return !hasDistrict || (compositeDistrict && sameDistrictKnown && !hasState);
+    }
     if (normalized.startsWith('city ') && normalized.split(' ').length > 2) return !hasState && hasCity;
     return false;
   });
