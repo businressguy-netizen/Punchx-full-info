@@ -625,7 +625,7 @@ export async function fetchGoogleMapsRoute(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ origin, destination })
+      body: JSON.stringify({ origin, destination, city: getStoredCustomerCity() })
     });
     if (res.ok) {
       return await res.json();
@@ -688,7 +688,7 @@ export async function fetchGoogleMapsDistanceMatrix(
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ origin, destinations })
+      body: JSON.stringify({ origin, destinations, city: getStoredCustomerCity() })
     });
     if (res.ok) {
       return await res.json();
@@ -866,4 +866,14 @@ export function isSameServiceCity(customerCity?: string, professionalLocation?: 
   const location = normalizePunchXCity(professionalLocation);
   if (!city || !location) return false;
   return location === city || (' ' + location + ' ').includes(' ' + city + ' ');
+}
+
+
+export function getStoredCustomerCity(): string {
+  try {
+    const saved = JSON.parse(localStorage.getItem('punchx_user_location') || '{}');
+    return typeof saved.city === 'string' ? saved.city : (typeof saved.area === 'string' ? saved.area : '');
+  } catch {
+    return '';
+  }
 }
