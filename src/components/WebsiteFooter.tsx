@@ -56,6 +56,7 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
           </div>
 
           <div>
+            <button onClick={() => onTransition('catalogue')} className="mb-4 flex w-full items-center justify-between rounded-xl border border-[#b9adff]/25 bg-[#7358d7]/15 px-3 py-3 text-left text-xs font-extrabold text-[#d7d0ff] transition hover:bg-[#7358d7]/25">Browse interactive price catalogue <ArrowRight className="h-4 w-4" /></button>
             <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b9adff]">Explore services</div>
             <div className="mt-4 space-y-2">
               {serviceLinks.map(cat => <button key={cat.id} onClick={() => jump(cat.name)} className="group flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-[11px] font-bold text-white/65 hover:bg-white/5 hover:text-white"><span className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#7358d7]/10 text-[#b9adff]"><Wrench className="h-3.5 w-3.5" /></span>{cat.name}</span><ChevronRight className="h-3.5 w-3.5 text-white/25 transition group-hover:translate-x-0.5" /></button>)}
