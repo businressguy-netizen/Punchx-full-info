@@ -582,7 +582,7 @@ export interface GoogleMapsConfig {
   mapId: string;
   attributionId: string;
   defaultCenter: { lat: number; lng: number };
-  maxRadiusKm: number;
+  serviceAreaMode?: 'india-named-areas';
 }
 
 export async function fetchGoogleMapsConfig(): Promise<GoogleMapsConfig> {
@@ -600,8 +600,8 @@ export async function fetchGoogleMapsConfig(): Promise<GoogleMapsConfig> {
     apiKey: '',
     mapId: 'PUNCHX_MAP_ID',
     attributionId: 'gmp_mcp_codeassist_v1_aistudio',
-    defaultCenter: { lat: 22.5726, lng: 88.3639 },
-    maxRadiusKm: 4.0
+    defaultCenter: { lat: 22.9734, lng: 78.6569 },
+    serviceAreaMode: 'india-named-areas'
   };
 }
 
@@ -612,7 +612,10 @@ export interface RouteResult {
   directDistanceKm: number;
   durationMinutes: number;
   etaText: string;
-  isWithin15Km: boolean;
+  /** @deprecated Legacy alias; null means route distance did not decide serviceability. */
+  isWithin15Km: boolean | null;
+  serviceableByArea?: boolean | null;
+  matchType?: 'named-area';
   isLiveGoogleRoute: boolean;
   waypoints: { lat: number; lng: number }[];
   origin: { lat: number; lng: number };
@@ -650,7 +653,9 @@ export async function fetchGoogleMapsRoute(
     directDistanceKm: directKm,
     durationMinutes: etaMins,
     etaText: `${etaMins} mins`,
-    isWithin15Km: roadKm <= getServiceRadiusKm(getStoredCustomerCity()),
+    isWithin15Km: null,
+    serviceableByArea: null,
+    matchType: 'named-area',
     isLiveGoogleRoute: false,
     waypoints: [origin, destination],
     origin,
@@ -658,7 +663,7 @@ export async function fetchGoogleMapsRoute(
   };
 }
 
-// Distance Matrix and 15km Zone Radar Backend Query
+// Distance matrix: distance is navigation context; named areas decide coverage.
 export interface DistanceMatrixItem {
   id: string;
   name: string;
@@ -666,7 +671,9 @@ export interface DistanceMatrixItem {
   lat: number;
   lng: number;
   distanceKm: number;
-  isWithin15Km: boolean;
+  /** @deprecated Legacy alias; mirrors serviceableByArea, never a radius check. */
+  isWithin15Km: boolean | null;
+  serviceableByArea?: boolean | null;
   durationMinutes: number;
   etaText: string;
   bearingDeg: number;
@@ -676,8 +683,10 @@ export interface DistanceMatrixResponse {
   success: boolean;
   origin: { lat: number; lng: number };
   totalChecked: number;
-  totalWithin15Km: number;
-  maxRadiusKm: number;
+  totalWithin15Km?: number;
+  totalServiceableByArea?: number;
+  maxRadiusKm?: number;
+  serviceAreaMode?: 'named-area';
   results: DistanceMatrixItem[];
   allResults: DistanceMatrixItem[];
 }
