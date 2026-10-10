@@ -6,7 +6,7 @@ import { AppScreen, Worker } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
 import { PUNCHX_COMMERCE, formatINR } from '../config/punchxCommerce';
-import { calculateDistanceKm } from '../lib/location';
+import { calculateDistanceKm, getServiceRadiusKm, isSameServiceCity } from '../lib/location';
 
 type Service = {
   id: string; name: string; category: string; subcategory: string; description: string;
@@ -85,7 +85,8 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [selected, bookingTiming]);
 
-  const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => { if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false; if (bookingTiming === 'instant' && w.isOnline !== true) return false; if (customerGeo && w.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, w.location.lat, w.location.lng) <= 15; const area = String(customerGeo?.area || customerGeo?.city || '').toLowerCase(); const workerArea = String(w.area || w.sector || w.address || '').toLowerCase(); return Boolean(area && workerArea && (workerArea.includes(area) || area.includes(workerArea))); }).sort((a,b) => b.rating-a.rating), [workers, selected, bookingTiming, customerGeo]);
+  const serviceRadiusKm = getServiceRadiusKm(customerGeo?.city || customerGeo?.area);
+  const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => { if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false; if (bookingTiming === 'instant' && w.isOnline !== true) return false; if (customerGeo && w.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, w.location.lat, w.location.lng) <= serviceRadiusKm; const workerCity = String((w as any).city || w.address || w.area || w.sector || ''); return Boolean(customerGeo?.city && isSameServiceCity(customerGeo.city, workerCity)); }).sort((a,b) => b.rating-a.rating), [workers, selected, bookingTiming, customerGeo, serviceRadiusKm]);
   const personalSelectionFeeRate = dispatchMode === 'PERSONAL_SELECT' && completedWithSelectedWorker >= PUNCHX_COMMERCE.personalSelection.freeCompletedBookings ? PUNCHX_COMMERCE.personalSelection.feeRateAfterFreeBookings : 0;
   const personalSelectionFee = Math.round(Number(selected?.price || 0) * personalSelectionFeeRate * 100) / 100;
 
