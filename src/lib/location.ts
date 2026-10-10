@@ -7,6 +7,9 @@ export interface LocationData {
   address: string;
   area: string;
   city: string;
+  district?: string;
+  state?: string;
+  postalCode?: string;
   sector: string;
   timestamp: string;
 }
@@ -405,7 +408,7 @@ export async function requestAndAutoUpdateLocation(
 ): Promise<LocationData | null> {
   try {
     const coords = await getAccurateCurrentPosition();
-    const { address, area, city, sector } = await reverseGeocodeCoords(coords.lat, coords.lng);
+    const { address, area, city, district, state, postalCode, sector } = await reverseGeocodeCoords(coords.lat, coords.lng);
 
     const locData: LocationData = {
       lat: coords.lat,
@@ -413,6 +416,9 @@ export async function requestAndAutoUpdateLocation(
       address,
       area,
       city,
+      district,
+      state,
+      postalCode,
       sector: sector || getSectorFromAddress(address, area, coords.lat, coords.lng),
       timestamp: new Date().toISOString()
     };
@@ -437,6 +443,9 @@ export async function requestAndAutoUpdateLocation(
             address: address,
             area: area,
             city: city,
+            district,
+            state,
+            postalCode,
             sector: locData.sector,
             role: role,
             updatedAt: new Date().toISOString()
@@ -453,6 +462,9 @@ export async function requestAndAutoUpdateLocation(
               address: address,
               area: area,
               city: city,
+              district,
+              state,
+              postalCode,
               sector: locData.sector,
               updatedAt: new Date().toISOString()
             },
