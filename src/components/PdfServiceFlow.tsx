@@ -5,7 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { AppScreen } from '../types';
 import { isCategoryMatching } from '../data/categories';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords, isServiceAreaMatch } from '../lib/location';
+import { getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
 
 type Service = {
   id: string;
@@ -239,7 +239,7 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
         if (response.ok) {
           const data = await response.json();
           if (typeof data.lat === 'number' && typeof data.lng === 'number') coords = { lat: data.lat, lng: data.lng };
-          resolvedLabels = [addressParts.locality, data.area, data.sector, data.city, fullAddress].filter(Boolean).map(String);
+          resolvedLabels = buildPunchXCustomerAreaLabels({locality:addressParts.locality,area:data.area,sector:data.sector,city:data.city,district:data.district,state:data.state,pinCode:data.postalCode||addressParts.pin,address:fullAddress});
         }
       } catch (error) { console.warn('PUNCHX address geocode fallback:', error); }
       if (!coords) coords = getCoordinatesForAddressOrSector(fullAddress, addressParts.locality);
