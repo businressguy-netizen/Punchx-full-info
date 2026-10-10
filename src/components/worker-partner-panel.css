@@ -512,3 +512,12 @@
  .wx-feedback-row{grid-template-columns:52px 1fr}
  .wx-feedback-row small{grid-column:2}
 }
+
+/* Worker-configured locality coverage: area boundaries, never a circular radius. */
+.wx-service-area-editor{border:1px solid #c7d2fe;background:linear-gradient(145deg,#fff,#f8faff)}
+.wx-service-area-label{display:grid;gap:7px;margin-top:14px;color:#334155;font-size:12px;font-weight:800}
+.wx-service-area-label textarea{width:100%;resize:vertical;min-height:84px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;padding:12px;color:#0f172a;font:inherit;font-weight:600;line-height:1.5;outline:none}
+.wx-service-area-label textarea:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+.wx-service-area-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;color:#64748b;font-size:11px}
+.wx-service-area-foot .wx-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap}
+@media(max-width:560px){.wx-service-area-foot{align-items:stretch;flex-direction:column}.wx-service-area-foot .wx-primary{width:100%}}
