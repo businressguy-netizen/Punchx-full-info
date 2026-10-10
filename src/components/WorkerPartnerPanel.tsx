@@ -5,7 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { OrderRecord } from '../types';
 import { collection, doc, onSnapshot, runTransaction, updateDoc, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
-import { getAccurateCurrentPosition, reverseGeocodeCoords, isServiceAreaMatch } from '../lib/location';
+import { getAccurateCurrentPosition, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
 import './worker-partner-panel.css';
 
 type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
@@ -41,9 +41,9 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const [filter,setFilter]=useState('ALL');
  const [mobile,setMobile]=useState(false);
  const [loggingOut,setLoggingOut]=useState(false);
- const [geo,setGeo]=useState<{lat:number;lng:number;area:string;city:string;sector:string;updatedAt:string}|null>(()=>{
+ const [geo,setGeo]=useState<{lat:number;lng:number;area:string;city:string;district:string;state:string;postalCode:string;sector:string;updatedAt:string}|null>(()=>{
    const loc=userProfile?.location;
-   return loc&&typeof loc.lat==='number'&&typeof loc.lng==='number'?{lat:loc.lat,lng:loc.lng,area:String(userProfile?.geofenceArea||userProfile?.area||'Service area unavailable'),city:String(userProfile?.city||''),sector:String(userProfile?.sector||''),updatedAt:String(userProfile?.geofenceUpdatedAt||userProfile?.updatedAt||'')}:null;
+   return loc&&typeof loc.lat==='number'&&typeof loc.lng==='number'?{lat:loc.lat,lng:loc.lng,area:String(userProfile?.geofenceArea||userProfile?.area||'Service area unavailable'),city:String(userProfile?.city||''),district:String(userProfile?.district||''),state:String(userProfile?.state||''),postalCode:String(userProfile?.postalCode||''),sector:String(userProfile?.sector||''),updatedAt:String(userProfile?.geofenceUpdatedAt||userProfile?.updatedAt||'')}:null;
  });
  const [geoLoading,setGeoLoading]=useState(false);
  const [geoError,setGeoError]=useState('');
@@ -62,9 +62,9 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
      try{
        const resolved=await reverseGeocodeCoords(lat,lng);
        if(cancelled)return;
-       const next={lat,lng,area:resolved.area||'Local area',city:resolved.city||'',sector:resolved.sector||'',updatedAt:new Date().toISOString()};
+       const next={lat,lng,area:resolved.area||'Local area',city:resolved.city||'',district:resolved.district||'',state:resolved.state||'',postalCode:resolved.postalCode||'',sector:resolved.sector||'',updatedAt:new Date().toISOString()};
        setGeo(next);setGeoError('');
-       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,sector:next.sector,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
+       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,district:next.district,state:next.state,postalCode:next.postalCode,sector:next.sector,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
        await setDoc(doc(db,'users',uid),payload,{merge:true});
        await setDoc(doc(db,'workerApplications',String(userProfile?.applicationId||uid)),payload,{merge:true});
      }catch(error){if(!cancelled)setGeoError('Live location could not be resolved right now.');}
@@ -124,7 +124,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        const catOk=!workerCategories.length || workerCategories.some(function(x){return cat.includes(x)||x.includes(cat)});
        if(!catOk)return false;
        // Serviceability is locality-based: do not use GPS distance or a circular radius.
-       const customerAreaLabels=[o.area,o.sector,o.customerAddress].filter(Boolean).map(String);
+       const customerAreaLabels=buildPunchXCustomerAreaLabels({area:o.area,locality:o.locality||o.villageArea,sector:o.sector,city:o.customerCity||o.city,district:o.customerDistrict||o.district,state:o.customerState||o.state,pinCode:o.customerPinCode||o.pinCode,address:o.customerAddress||o.address});
        return isServiceAreaMatch(customerAreaLabels,workerServiceAreas);
      }).sort(function(a,b){
        const at=new Date(a.createdAt||'').getTime() || a.createdTimestamp || 0;
