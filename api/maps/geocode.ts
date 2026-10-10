@@ -91,7 +91,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             plusCode = result.plus_code?.global_code || plusCode;
             for (const comp of result.address_components || []) {
               if (!area && (comp.types.includes('sublocality') || comp.types.includes('sublocality_level_1') || comp.types.includes('neighborhood'))) area = comp.long_name;
-              if (!city && (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2'))) city = comp.long_name;
+              if (!city && comp.types.includes('locality')) city = comp.long_name;
+              if (!district && comp.types.includes('administrative_area_level_2')) district = comp.long_name;
+              if (!state && comp.types.includes('administrative_area_level_1')) state = comp.long_name;
               if (!postalCode && comp.types.includes('postal_code')) postalCode = comp.long_name;
             }
           }
