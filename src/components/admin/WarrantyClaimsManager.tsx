@@ -52,7 +52,7 @@ export default function WarrantyClaimsManager({
         emergencySurcharge: 0,
         status: 'In Progress',
         paymentMethod: '30-Day Guarantee Free Rebooking',
-        dispatchMode: 'RANDOM_15KM',
+        dispatchMode: 'AREA_MATCH',
         date: claim.preferredDate || claim.rebookingDate || 'Today',
         time: claim.preferredTimeSlot || claim.rebookingTime || '11:00 AM',
         createdTimestamp: Date.now(),
