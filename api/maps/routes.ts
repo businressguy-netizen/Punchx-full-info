@@ -5,9 +5,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { origin, destination, travelMode = 'DRIVE' } = req.body || {};
-    const city = String(origin?.city || origin?.area || req.body?.city || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-    const largeCities = new Set(['kolkata','bengaluru','bangalore','mumbai','delhi','new delhi','hyderabad','chennai','pune','ahmedabad','jaipur','lucknow','kanpur','nagpur','indore','bhopal','patna','ranchi','bhubaneswar','cuttack','visakhapatnam','vizag','surat','vadodara','ludhiana','agra','nashik','coimbatore','kochi','thiruvananthapuram','guwahati','mysuru','mysore','noida','gurugram','gurgaon','faridabad','ghaziabad','durgapur','asansol','siliguri']);
-    const radiusKm = largeCities.has(city) || [...largeCities].some(name => city.startsWith(name + ' ')) ? 8 : 4;
+    // Route distance/ETA is informational only; serviceability is checked by named areas at booking time.
     if (!origin || !destination) {
       return res.status(400).json({ error: 'Origin and destination coordinates are required' });
     }
@@ -76,8 +74,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       directDistanceKm: directKm,
       durationMinutes,
       etaText,
-      isWithin15Km: routeDistanceKm <= radiusKm,
-      radiusKm,
+      // Deprecated compatibility field: null means this route calculation did not decide serviceability.
+      isWithin15Km: null,
+      serviceableByArea: null,
+      matchType: 'named-area',
       isLiveGoogleRoute,
       waypoints: polylinePoints,
       origin: { lat: originLat, lng: originLng },
