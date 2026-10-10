@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS orders (
     warranty_expiry_date VARCHAR(64),
     warranty_claim_id VARCHAR(128),
     warranty_claim_status VARCHAR(64),
-    dispatch_mode VARCHAR(64) DEFAULT 'BROADCAST_15KM',
+    dispatch_mode VARCHAR(64) DEFAULT 'AREA_MATCH',
     personal_select_fee DECIMAL(10, 2) DEFAULT 0.00,
     is_emergency BOOLEAN DEFAULT FALSE,
     emergency_eta VARCHAR(32),
