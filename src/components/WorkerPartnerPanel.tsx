@@ -157,9 +157,9 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const filtered=useMemo(function(){return orders.filter(function(o){return (filter==='ALL'||(filter==='NEW'&&o.status==='NEW')||(filter==='ACCEPTED'&&o.status==='ACCEPTED')||(filter==='TRAVELLING'&&o.status==='TRAVELLING')||(filter==='ARRIVED'&&o.status==='ARRIVED')||(filter==='SERVICE_STARTED'&&o.status==='SERVICE_STARTED')||(filter==='COMPLETED'&&o.status==='COMPLETED')||(filter==='CANCELLED'&&o.status==='CANCELLED'))&&(o.id+' '+o.customer+' '+o.service+' '+o.address).toLowerCase().includes(query.toLowerCase())})},[orders,filter,query]);
  const saveServiceAreas=async function(){
    if(!uid||savingServiceAreas)return;
-   const areas=Array.from(new Set(serviceAreasDraft.split(/[\\n;]+/).map(x=>x.trim()).filter(Boolean)));
+   const areas=Array.from(new Set(serviceAreasDraft.split(/[\n;]+/).map(x=>x.trim()).filter(Boolean)));
    if(!areas.length){showNotification?.('Enter at least one service-area rule before saving.');return;}
-   const invalidPin=areas.find(x=>/^(pin(?:\\s*code|code)?)\\s*:/i.test(x)&&!/^pin(?:\\s*code|code)?\\s*:\\s*\\d{6}$/i.test(x));
+   const invalidPin=areas.find(x=>/^(pin(?:\s*code|code)?)\s*:/i.test(x)&&!/^pin(?:\s*code|code)?\s*:\s*\d{6}$/i.test(x));
    if(invalidPin){showNotification?.('Use a valid six-digit PIN, for example: PIN: 700001.');return;}
    if(areas.length>100){showNotification?.('You can configure up to 100 service-area rules.');return;}
    setSavingServiceAreas(true);
