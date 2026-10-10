@@ -1631,8 +1631,10 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
         directDistanceKm: directKm,
         durationMinutes: durationMinutes,
         etaText: `${durationMinutes} mins`,
-        isWithin15Km: routeDistanceKm <= getPunchXServiceRadiusKm(req.body?.city || origin?.city || origin?.area),
-        radiusKm: getPunchXServiceRadiusKm(req.body?.city || origin?.city || origin?.area),
+        // Route distance is informational only; it is not a service-area boundary.
+        isWithin15Km: null,
+        serviceableByArea: null,
+        matchType: "named-area",
         isLiveGoogleRoute,
         waypoints: polylinePoints,
         origin: { lat: originLat, lng: originLng },
@@ -1663,60 +1665,63 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
         return res.status(400).json({ error: 'Valid origin lat/lng required' });
       }
 
-      const radiusKm = getPunchXServiceRadiusKm(req.body?.city || origin?.city || origin?.area);
+      const normalizeArea = (value: unknown) => String(value || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+        .replace(/^(pin code|pincode)\s+/, "pin ").replace(/^(area|locality|neighbourhood|neighborhood)\s+/, "locality ");
+      const expandArea = (value: unknown): string[] => {
+        const raw = String(value || "").trim(); if (!raw) return [];
+        if (/^(pin(?:\s*code|code)?|state|district|city|locality|area|village|ward|sector)\s*:/i.test(raw)) return [normalizeArea(raw)];
+        return raw.split(/[,;|\n]+/).map(normalizeArea).filter(Boolean);
+      };
+      const labels = (point: any): string[] => {
+        const out: string[] = [];
+        const add = (value: unknown, qualifier?: string) => { const text = String(value || "").trim(); if (text) { out.push(text); if (qualifier) out.push(qualifier + ": " + text); } };
+        add(point?.area, "AREA"); add(point?.locality, "LOCALITY"); add(point?.sector, "SECTOR"); add(point?.city, "CITY");
+        add(point?.district, "DISTRICT"); add(point?.state, "STATE");
+        const pin = String(point?.postalCode || point?.pinCode || "").trim(); if (/^\d{6}$/.test(pin)) out.push(pin, "PIN: " + pin);
+        const city = String(point?.city || "").trim(), state = String(point?.state || "").trim(), district = String(point?.district || "").trim();
+        if (city && state) out.push("CITY: " + city + ", " + state); if (district && state) out.push("DISTRICT: " + district + ", " + state);
+        if (point?.address) out.push(String(point.address));
+        return out;
+      };
+      const matchesArea = (customer: any, worker: any): boolean | null => {
+        const workerAreas = Array.isArray(worker?.serviceAreas) ? worker.serviceAreas : Array.isArray(worker?.geofenceAreas) ? worker.geofenceAreas : [];
+        if (!workerAreas.length) return null;
+        const candidates = new Set(labels(customer).flatMap(expandArea));
+        return workerAreas.flatMap(expandArea).some((area: string) => candidates.has(area));
+      };
       const results = destinations.map((dest: any, index: number) => {
         const destLat = typeof dest.lat === 'number' && Number.isFinite(dest.lat) ? dest.lat : null;
         const destLng = typeof dest.lng === 'number' && Number.isFinite(dest.lng) ? dest.lng : null;
-        if (destLat === null || destLng === null) {
-          return { id: dest.id || `dest_${index}`, error: 'Invalid coordinates', distanceKm: 0, isWithin15Km: false };
+        if (destLat === null || destLng === null || Math.abs(destLat) > 90 || Math.abs(destLng) > 180) {
+          return { id: dest.id || `dest_${index}`, error: 'Invalid coordinates', distanceKm: null, isWithin15Km: null, serviceableByArea: matchesArea(origin, dest) };
         }
 
         const dLat = ((destLat - originLat) * Math.PI) / 180;
         const dLon = ((destLng - originLng) * Math.PI) / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos((originLat * Math.PI) / 180) *
-            Math.cos((destLat * Math.PI) / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((originLat * Math.PI) / 180) * Math.cos((destLat * Math.PI) / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distanceKm = Math.round(6371 * c * 10) / 10;
-        const isWithin15Km = distanceKm <= radiusKm;
+        const serviceableByArea = matchesArea(origin, dest);
         const etaMins = Math.max(4, Math.round(distanceKm * 3.2));
-
-        // Bearing angle in degrees (-180 to 180)
         const y = Math.sin(dLon) * Math.cos((destLat * Math.PI) / 180);
-        const x =
-          Math.cos((originLat * Math.PI) / 180) * Math.sin((destLat * Math.PI) / 180) -
+        const x = Math.cos((originLat * Math.PI) / 180) * Math.sin((destLat * Math.PI) / 180) -
           Math.sin((originLat * Math.PI) / 180) * Math.cos((destLat * Math.PI) / 180) * Math.cos(dLon);
         const bearingDeg = Math.round(((Math.atan2(y, x) * 180) / Math.PI + 360) % 360);
 
         return {
-          id: dest.id || `dest_${index}`,
-          name: dest.name || dest.workerName || dest.customerName || `Target ${index + 1}`,
-          category: dest.category || dest.skill || 'Specialist',
-          lat: destLat,
-          lng: destLng,
-          distanceKm,
-          isWithin15Km,
-          durationMinutes: etaMins,
-          etaText: `${etaMins} mins`,
-          bearingDeg
+          id: dest.id || `dest_${index}`, name: dest.name || dest.workerName || dest.customerName || `Target ${index + 1}`,
+          category: dest.category || dest.skill || 'Specialist', lat: destLat, lng: destLng, distanceKm,
+          serviceableByArea, isWithin15Km: serviceableByArea, durationMinutes: etaMins,
+          etaText: `${etaMins} mins`, bearingDeg
         };
       });
-
-      // Filter and sort by distance
-      const within15KmList = results.filter(r => r.isWithin15Km).sort((a, b) => a.distanceKm - b.distanceKm);
-
+      const allResults = results.sort((a: any, b: any) => (Number(a.distanceKm) || Number.POSITIVE_INFINITY) - (Number(b.distanceKm) || Number.POSITIVE_INFINITY));
+      const serviceableCount = allResults.filter((r: any) => r.serviceableByArea === true).length;
       return res.json({
-        success: true,
-        origin: { lat: originLat, lng: originLng },
-        totalChecked: destinations.length,
-        totalWithin15Km: within15KmList.length,
-        maxRadiusKm: radiusKm,
-        radiusKm,
-        results: within15KmList,
-        allResults: results
+        success: true, origin: { lat: originLat, lng: originLng }, totalChecked: destinations.length,
+        totalServiceableByArea: serviceableCount, serviceAreaMode: "named-area", results: allResults, allResults
       });
     } catch (err: any) {
       console.error("Distance matrix error:", err);
