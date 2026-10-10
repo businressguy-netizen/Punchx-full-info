@@ -5,7 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { OrderRecord } from '../types';
 import { collection, doc, onSnapshot, runTransaction, updateDoc, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
-import { calculateDistanceKm, getAccurateCurrentPosition, reverseGeocodeCoords, getServiceRadiusKm } from '../lib/location';
+import { getAccurateCurrentPosition, reverseGeocodeCoords, isServiceAreaMatch } from '../lib/location';
 import './worker-partner-panel.css';
 
 type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
@@ -47,6 +47,11 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  });
  const [geoLoading,setGeoLoading]=useState(false);
  const [geoError,setGeoError]=useState('');
+ const [serviceAreasDraft,setServiceAreasDraft]=useState<string>(()=>{
+   const saved=Array.isArray(userProfile?.serviceAreas)?userProfile.serviceAreas:Array.isArray(userProfile?.geofenceAreas)?userProfile.geofenceAreas:[];
+   return saved.length?saved.join(', '):[userProfile?.area,userProfile?.sector].filter(Boolean).join(', ');
+ });
+ const [savingServiceAreas,setSavingServiceAreas]=useState(false);
  const name=userProfile?.name||'Professional';
  useEffect(function(){if(typeof userProfile?.workerAvailability==='boolean')setOnline(userProfile.workerAvailability);},[userProfile?.workerAvailability]);
  useEffect(function(){
@@ -59,7 +64,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        if(cancelled)return;
        const next={lat,lng,area:resolved.area||'Local area',city:resolved.city||'',sector:resolved.sector||'',updatedAt:new Date().toISOString()};
        setGeo(next);setGeoError('');
-       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,sector:next.sector,geofenceArea:next.area,geofenceRadiusKm:getServiceRadiusKm(next.city || next.area),geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
+       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,sector:next.sector,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
        await setDoc(doc(db,'users',uid),payload,{merge:true});
        await setDoc(doc(db,'workerApplications',String(userProfile?.applicationId||uid)),payload,{merge:true});
      }catch(error){if(!cancelled)setGeoError('Live location could not be resolved right now.');}
@@ -82,6 +87,11 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  },[userProfile]);
  const workerArea=normalise(userProfile?.area);
  const workerSector=normalise(userProfile?.sector);
+ const workerServiceAreas=useMemo(function(){
+   const configured=Array.isArray(userProfile?.serviceAreas)?userProfile.serviceAreas:Array.isArray(userProfile?.geofenceAreas)?userProfile.geofenceAreas:[];
+   return configured.map((x:any)=>String(x).trim()).filter(Boolean).length?configured.map((x:any)=>String(x).trim()).filter(Boolean):[userProfile?.area,userProfile?.sector].map((x:any)=>String(x||'').trim()).filter(Boolean);
+ },[userProfile]);
+ useEffect(function(){setServiceAreasDraft(workerServiceAreas.join(', '));},[workerServiceAreas.join('|')]);
  const mapStatus=function(s?:string):Status{
    if(['Done','COMPLETED'].includes(s||'')) return 'COMPLETED';
    if(['Cancelled','CANCELLED'].includes(s||'')) return 'CANCELLED';
@@ -113,11 +123,9 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        const cat=normalise(o.category);
        const catOk=!workerCategories.length || workerCategories.some(function(x){return cat.includes(x)||x.includes(cat)});
        if(!catOk)return false;
-       const customerLoc=o.customerLocation;
-       if(customerLoc&&geo){return calculateDistanceKm(geo.lat,geo.lng,customerLoc.lat,customerLoc.lng)<=getServiceRadiusKm(geo.city || geo.area);}
-       const oa=normalise(o.area), os=normalise(o.sector);
-       if(oa||os)return (!workerArea || !oa || oa===workerArea) || (!!workerSector && !!os && workerSector===os);
-       return true;
+       // Serviceability is locality-based: do not use GPS distance or a circular radius.
+       const customerAreaLabels=[o.area,o.sector,o.customerAddress].filter(Boolean).map(String);
+       return isServiceAreaMatch(customerAreaLabels,workerServiceAreas);
      }).sort(function(a,b){
        const at=new Date(a.createdAt||'').getTime() || a.createdTimestamp || 0;
        const bt=new Date(b.createdAt||'').getTime() || b.createdTimestamp || 0;
@@ -139,7 +147,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    },function(){availableReady=true;publish();showNotification?.('Unable to sync available jobs right now.');});
 
    return function(){unsubAssigned();unsubAvailable();};
- },[uid,workerCategories.join('|'),workerArea,workerSector,online,geo?.lat,geo?.lng]);
+ },[uid,workerCategories.join('|'),workerArea,workerSector,workerServiceAreas.join('|'),online]);
  const today=orders.filter(function(o){return isToday(o.date)||isToday(o.raw?.createdAt)});
  const completed=today.filter(function(o){return o.status==='COMPLETED'}).length;
  const pendingCount=today.filter(function(o){return o.status!=='COMPLETED'&&o.status!=='CANCELLED'}).length;
@@ -147,6 +155,21 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const todayPayouts=today.filter(function(o){return o.status==='COMPLETED'&&o.earning!==null});
  const todayEarn=todayPayouts.length?todayPayouts.reduce(function(s,o){return s+(o.earning||0)},0):null;
  const filtered=useMemo(function(){return orders.filter(function(o){return (filter==='ALL'||(filter==='NEW'&&o.status==='NEW')||(filter==='ACCEPTED'&&o.status==='ACCEPTED')||(filter==='TRAVELLING'&&o.status==='TRAVELLING')||(filter==='ARRIVED'&&o.status==='ARRIVED')||(filter==='SERVICE_STARTED'&&o.status==='SERVICE_STARTED')||(filter==='COMPLETED'&&o.status==='COMPLETED')||(filter==='CANCELLED'&&o.status==='CANCELLED'))&&(o.id+' '+o.customer+' '+o.service+' '+o.address).toLowerCase().includes(query.toLowerCase())})},[orders,filter,query]);
+ const saveServiceAreas=async function(){
+   if(!uid||savingServiceAreas)return;
+   const areas=Array.from(new Set(serviceAreasDraft.split(/[\\n,;]+/).map(x=>x.trim()).filter(Boolean)));
+   if(!areas.length){showNotification?.('Enter at least one locality or service area before saving.');return;}
+   setSavingServiceAreas(true);
+   const updatedAt=new Date().toISOString();
+   try{
+     const patch={serviceAreas:areas,geofenceAreas:areas,geofenceArea:areas.join(', '),serviceAreaUpdatedAt:updatedAt,updatedAt};
+     await setDoc(doc(db,'users',uid),patch,{merge:true});
+     await setDoc(doc(db,'workerApplications',String(userProfile?.applicationId||uid)),patch,{merge:true});
+     await refreshProfile?.();
+     showNotification?.('Service-area boundaries saved. New jobs will match only these named areas.');
+   }catch(error){showNotification?.('Could not save service areas. Please try again.');}
+   finally{setSavingServiceAreas(false);}
+ };
  const persistAvailability=async function(nextOnline:boolean){
    const previous=online;
    setOnline(nextOnline);
@@ -229,7 +252,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
   <div className="wx-main">
    <header className="wx-header"><div className="wx-header-left"><button className="wx-menu" onClick={()=>setMobile(true)} aria-label="Open partner menu"><Menu/></button><div className="wx-mobile-brand"><img src={PUNCHX_LOGO} alt="PunchX" /></div></div><div className="wx-header-title"><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button className={'wx-status '+(online?'is-online':'')} onClick={()=>persistAvailability(!online)}><i></i>{online?'ONLINE':'OFFLINE'}</button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')} aria-label="Open profile"><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
    <main className="wx-content">
-    {tab==='home'&&<HomeView area={geo?.area||userProfile?.area||workerArea} geo={geo} geoLoading={geoLoading} geoError={geoError} online={online} toggleOnline={()=>persistAvailability(!online)} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav}/>}
+    {tab==='home'&&<HomeView area={geo?.area||userProfile?.area||workerArea} geo={geo} geoLoading={geoLoading} geoError={geoError} online={online} toggleOnline={()=>persistAvailability(!online)} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav} serviceAreas={workerServiceAreas} serviceAreasDraft={serviceAreasDraft} setServiceAreasDraft={setServiceAreasDraft} saveServiceAreas={saveServiceAreas} savingServiceAreas={savingServiceAreas}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
     {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
     {tab==='profile'&&<ProfileView userProfile={userProfile} uid={uid} refreshProfile={refreshProfile} showNotification={showNotification}/>}
@@ -308,8 +331,8 @@ function HomeView(p:any){
     <div className="wx-geofence-copy">
      <span className="wx-section-label">LIVE GEOFENCING</span>
      <h3>{p.geo?.area||p.area||'Service zone unavailable'}</h3>
-     <p>{p.geo?.city||'Location not resolved'}{p.geo?.sector?' · '+p.geo.sector:''} · {getServiceRadiusKm(p.geo?.city || p.geo?.area)} km service radius</p>
-     <small>{p.geoLoading?'Detecting your live location…':p.geoError||'Your current GPS position determines the active service zone.'}</small>
+     <p>{p.serviceAreas?.length?p.serviceAreas.join(' · '):'No service areas configured'}</p>
+     <small>{p.geoLoading?'Detecting your live location…':p.geoError||'GPS is used to identify your current location; job eligibility follows the localities you select below, not a circular radius.'}</small>
     </div>
    </div>
    <div className="wx-geofence-actions">
@@ -317,6 +340,11 @@ function HomeView(p:any){
     <button className={'wx-online-toggle '+(p.online?'online':'offline')} onClick={p.toggleOnline}><i></i>{p.online?'Go offline':'Come online'}</button>
     <small>{p.online?'Online: eligible for instant / SOS requests.':'Offline: instant / SOS requests are not offered; later bookings remain visible.'}</small>
    </div>
+  </section>
+  <section className="wx-card wx-service-area-editor">
+   <div className="wx-card-head"><div><span className="wx-section-label">SERVICE AREA BOUNDARY</span><h3>Choose the localities you cover</h3><p>Enter area, neighbourhood, ward or town names separated by commas. Jobs outside these named areas will not appear in your new-job queue.</p></div></div>
+   <label className="wx-service-area-label">Covered areas<textarea value={p.serviceAreasDraft||''} onChange={function(e:any){p.setServiceAreasDraft(e.target.value)}} rows={3} placeholder="e.g. Nabadwip, Mayapur, Bablari" /></label>
+   <div className="wx-service-area-foot"><span>{p.serviceAreas?.length||0} saved area(s) · area matching only</span><button className="wx-primary" onClick={p.saveServiceAreas} disabled={p.savingServiceAreas}>{p.savingServiceAreas?'Saving areas…':'Save service areas'} <Save size={15}/></button></div>
   </section>
   <div className="wx-stats"><Stat label="Today’s orders" value={p.today.length} icon={ClipboardList}/><Stat label="Completed" value={p.completed} icon={CheckCircle2}/><Stat label="Pending" value={p.pending} icon={Clock3}/><Stat label="Cancelled" value={p.cancelled} icon={CircleAlert}/><Stat label="Working hours" value="—" icon={BriefcaseBusiness}/><Stat label="Avg. order" value={p.today.filter((o:any)=>o.earning!==null).length?money(p.today.filter((o:any)=>o.earning!==null).reduce((s:number,o:any)=>s+(o.earning||0),0)/p.today.filter((o:any)=>o.earning!==null).length):"—"} icon={TrendingUp}/></div>
   <div className="wx-grid-main">
