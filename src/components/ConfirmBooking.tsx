@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, Home, MapPin, Plus, ShoppingBag, Trash2, UserRound, Wallet, X } from 'lucide-react';
 import { AppScreen, Worker } from '../types';
-import { calculateDistanceKm } from '../lib/location';
+import { calculateDistanceKm, getServiceRadiusKm, isSameServiceCity } from '../lib/location';
 import { calculatePunchXPricing, formatINR } from '../config/punchxCommerce';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
 import { fetchApprovedProfessionals } from '../services/professionalDirectory';
@@ -40,6 +40,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const [note,setNote]=useState('');
 
   const customerGeo = useMemo(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } }, []);
+  const serviceRadiusKm = getServiceRadiusKm(customerGeo?.city || customerGeo?.area);
 
   useEffect(() => {
     const pending = loadJSON<any>('punchx_pending_booking', null);
@@ -50,12 +51,11 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
     void fetchApprovedProfessionals().then(approved => {
       if (!active) return;
       const timing = (cart[0]?.bookingTiming || pending?.bookingTiming || 'later') as 'instant'|'later';
-      const area = String(customerGeo?.area || customerGeo?.city || '').toLowerCase();
       const visible = approved.filter(worker => {
         if (timing === 'instant' && worker.isOnline !== true) return false;
-        if (customerGeo && worker.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, worker.location.lat, worker.location.lng) <= 15;
-        const workerArea = String(worker.area || worker.sector || worker.address || '').toLowerCase();
-        return Boolean(area && workerArea && (workerArea.includes(area) || area.includes(workerArea)));
+        if (customerGeo && worker.location) return calculateDistanceKm(customerGeo.lat, customerGeo.lng, worker.location.lat, worker.location.lng) <= serviceRadiusKm;
+        const workerCity = String((worker as any).city || worker.address || worker.area || worker.sector || '');
+        return Boolean(customerGeo?.city && isSameServiceCity(customerGeo.city, workerCity));
       });
       setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...visible] : visible);
     }).catch(() => {
