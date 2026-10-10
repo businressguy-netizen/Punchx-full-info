@@ -1282,19 +1282,24 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
 
   // Server-authoritative PUNCHX service-area validation before checkout.
   app.post("/api/geofence/check", requireFirebaseUser, (req, res) => {
-    const { origin, destination, city } = req.body || {};
-    const valid = (point: any) => point && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)) && Math.abs(Number(point.lat)) <= 90 && Math.abs(Number(point.lng)) <= 180;
-    if (!valid(origin) || !valid(destination)) return res.status(400).json({ success: false, serviceable: false, error: "Valid origin and destination coordinates are required." });
-    const normalized = String(city || origin.city || origin.area || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-    const largeCities = ['kolkata','bengaluru','bangalore','mumbai','delhi','new delhi','hyderabad','chennai','pune','ahmedabad','jaipur','lucknow','kanpur','nagpur','indore','bhopal','patna','ranchi','bhubaneswar','cuttack','visakhapatnam','vizag','surat','vadodara','ludhiana','agra','nashik','coimbatore','kochi','thiruvananthapuram','guwahati','mysuru','mysore','noida','gurugram','gurgaon','faridabad','ghaziabad','durgapur','asansol','siliguri'];
-    const radiusKm = largeCities.some(name => normalized === name || normalized.startsWith(name + " ")) ? 8 : 4;
-    const toRad = (value: number) => value * Math.PI / 180;
-    const dLat = toRad(Number(destination.lat) - Number(origin.lat));
-    const dLng = toRad(Number(destination.lng) - Number(origin.lng));
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(Number(origin.lat))) * Math.cos(toRad(Number(destination.lat))) * Math.sin(dLng / 2) ** 2;
-    const distanceKm = Math.round(6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 100) / 100;
-    const serviceable = distanceKm <= radiusKm;
-    return res.json({ success: true, serviceable, city: String(city || origin.city || origin.area || ""), distanceKm, radiusKm, message: serviceable ? "Address is inside the PUNCHX service area." : `Address is outside the ${radiusKm} km PUNCHX service area.` });
+    const body = req.body || {};
+    const normalizeArea = (value: unknown) => String(value || "").normalize("NFKD").toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ").trim().replace(/^(area|locality|neighbourhood|neighborhood)\s+/, "");
+    const splitLabels = (value: unknown) => String(value || "").split(/[,;|\n]+/).map(normalizeArea).filter(Boolean);
+    const customerLabels = [body.customerArea, body.customerCity, body.customerSector, body.customerAddress].flatMap(splitLabels);
+    const workerAreas = (Array.isArray(body.workerServiceAreas) ? body.workerServiceAreas : []).flatMap(splitLabels);
+    if (!customerLabels.length || !workerAreas.length) {
+      return res.status(400).json({ success: false, serviceable: false, error: "A verified customer locality and configured worker service areas are required." });
+    }
+    const matchedArea = workerAreas.find((area: string) => customerLabels.includes(area)) || null;
+    const serviceable = Boolean(matchedArea);
+    return res.json({
+      success: true,
+      serviceable,
+      matchType: "named-area",
+      matchedArea,
+      message: serviceable ? "The address matches a configured PunchX service area." : "The address is outside the professional's configured service areas."
+    });
   });
 
   // Google Maps Platform Config API — Origin-restricted
