@@ -6,7 +6,7 @@ import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
 import { getProductsForCategory, PriceProduct } from '../data/expandedPriceCatalogue';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { calculateDistanceKm, getServiceRadiusKm, isSameServiceCity } from '../lib/location';
+import { buildPunchXCustomerAreaLabels, isPotentialServiceAreaMatch } from '../lib/location';
 import { fetchApprovedProfessionals } from '../services/professionalDirectory';
 
 interface ProvidersListProps {
@@ -43,8 +43,11 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const [available, setAvailable] = useState(false);
   const [bookingTiming, setBookingTiming] = useState<'instant'|'later'>('instant');
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
-  const [geo] = useState<{lat:number;lng:number;area?:string;city?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
-  const serviceRadiusKm = getServiceRadiusKm(geo?.city || geo?.area);
+  const [geo] = useState<{lat:number;lng:number;area?:string;city?:string;district?:string;state?:string;postalCode?:string;sector?:string;address?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
+  const customerAreaLabels = useMemo(() => {
+    let saved:any={};try{saved=JSON.parse(localStorage.getItem('punchx_residential_address')||'{}');}catch{}
+    return buildPunchXCustomerAreaLabels({area:geo?.area,city:geo?.city,locality:saved.villageArea,sector:geo?.sector,district:saved.district||geo?.district,state:saved.state||geo?.state,pinCode:saved.pinCode||geo?.postalCode,address:saved.fullAddress||geo?.address});
+  }, [geo]);
 
   useEffect(() => {
     let active = true;
@@ -88,15 +91,12 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
       const freshWorkers = await fetchApprovedProfessionals();
       setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers);
       const sourceWorkers = DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers;
-      const area = norm(`${geo?.area || ''} ${geo?.city || ''}`);
       const found = sourceWorkers.filter(worker => {
         if (worker.available === false || !category) return false;
         if (!isCategoryMatching(worker.categories || worker.category, category.name) && !isCategoryMatching(worker.categories || worker.category, category.id)) return false;
         if (bookingTiming === 'instant' && worker.isOnline !== true) return false;
-        if (geo && worker.location) return calculateDistanceKm(geo.lat, geo.lng, worker.location.lat, worker.location.lng) <= serviceRadiusKm;
-        if (typeof worker.distanceKm === 'number') return worker.distanceKm <= RADIUS_KM;
-        const workerCity = String((worker as any).city || worker.address || worker.area || worker.sector || '');
-        return Boolean(geo?.city && isSameServiceCity(geo.city, workerCity));
+        const workerAreas = (worker as any).serviceAreas || (worker as any).geofenceAreas || [worker.area, worker.sector].filter(Boolean);
+        return isPotentialServiceAreaMatch(customerAreaLabels, workerAreas);
       });
       setMatchingWorkers(found); setAvailable(found.length > 0); setAvailabilityMessage(found.length ? `${found.length} verified professional${found.length===1?'':'s'} available` : 'No registered professional is currently available in your service zone.');
     } catch (error) {
@@ -115,7 +115,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const back = () => { if(step==='categories') onTransition('home'); else if(step==='subcategories'){setStep('categories');setCategory(null);} else {setStep('subcategories');setSubcategory(null);setSelectedService(null);setAvailable(false);setMatchingWorkers([]);} setSearch(''); };
 
   return <div id="providers-list-root" className="min-h-screen bg-[#f7faff] pb-32 text-[#0f172a]">
-    <header className="sticky top-0 z-40 border-b border-[#dbeafe] bg-white/95 backdrop-blur-xl"><div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-2.5 sm:px-6"><button onClick={back} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-white"><ArrowLeft className="h-5 w-5"/></button><div className="min-w-0 flex-1"><div className="truncate text-lg font-black">{category?.name||'PUNCHX Services'}</div><div className="flex items-center gap-1 text-[10px] text-[#64748b]"><MapPin className="h-3 w-3 text-[#2563eb]"/>{geo?.area||'Service area'} · {serviceRadiusKm} km service zone</div></div><div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-[#eef6ff]"><Search className="h-4 w-4 text-[#2563eb]"/></div></div></header>
+    <header className="sticky top-0 z-40 border-b border-[#dbeafe] bg-white/95 backdrop-blur-xl"><div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-2.5 sm:px-6"><button onClick={back} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-white"><ArrowLeft className="h-5 w-5"/></button><div className="min-w-0 flex-1"><div className="truncate text-lg font-black">{category?.name||'PUNCHX Services'}</div><div className="flex items-center gap-1 text-[10px] text-[#64748b]"><MapPin className="h-3 w-3 text-[#2563eb]"/>{geo?.area||'Service area'} · named localities only</div></div><div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-[#eef6ff]"><Search className="h-4 w-4 text-[#2563eb]"/></div></div></header>
     <main className="punchx-citizen-main mx-auto max-w-6xl px-3 py-3 sm:px-6 sm:py-5"><div className="mb-3 flex items-center gap-2 rounded-2xl border border-[#dbeafe] bg-white px-3 py-3 shadow-sm"><Search className="h-4 w-4 text-[#64748b]"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={step==='categories'?'Search all 50 services':`Search ${category?.name||'services'}`} className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"/>{search&&<button onClick={()=>setSearch('')}><X className="h-4 w-4"/></button>}</div>
       {step==='categories'&&<><div className="mb-4 rounded-3xl bg-gradient-to-br from-[#0f2b55] via-[#173e78] to-[#2563eb] p-5 text-white shadow-xl"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#bfdbfe]">Complete catalogue</div><h1 className="mt-1 text-3xl font-black">All 50 services</h1><p className="mt-1 text-xs text-white/75">Main service → facility → exact work → availability → cart.</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{categories.map(cat=>{const c=getCatalogCategory(cat.id);return <motion.button key={cat.id} onClick={()=>c&&chooseCategory(c)} whileHover={{y:-3}} className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white text-left shadow-sm"><img src={c?.image} alt={cat.name} className="h-28 w-full object-cover bg-[#eef6ff]"/><div className="p-3"><div className="text-sm font-black">{cat.name}</div><div className="mt-1 line-clamp-2 text-[10px] leading-4 text-[#64748b]">{cat.shortDesc}</div><div className="mt-2 text-[10px] font-black text-[#2563eb]">Open services <ArrowRight className="inline h-3 w-3"/></div></div></motion.button>})}</div></>}
       {step==='subcategories'&&category&&<><div className="mb-3 rounded-3xl bg-white p-5 ring-1 ring-[#dbeafe] shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#2563eb]">{category.name}</div><h1 className="mt-1 text-2xl font-black">Choose the facility</h1><p className="mt-1 text-xs text-[#64748b]">Fan, bulb, doorbell, switch & socket and every other facility available for this category.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{subs.map(sub=><motion.button key={sub.id} onClick={()=>chooseSubcategory(sub)} whileHover={{y:-2}} className="flex gap-3 rounded-2xl border border-[#dbeafe] bg-white p-3 text-left shadow-sm"><img src={sub.image} alt={sub.name} className="h-20 w-20 shrink-0 rounded-xl object-cover bg-[#eef6ff]"/><div className="min-w-0"><div className="font-black">{sub.name}</div><div className="mt-1 text-[11px] leading-4 text-[#64748b]">{sub.description}</div><div className="mt-2 text-[10px] font-black text-[#2563eb]">{sub.items.length} works <ChevronRight className="inline h-3 w-3"/></div></div></motion.button>)}</div></>}
