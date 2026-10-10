@@ -252,7 +252,7 @@ export default function ServiceRadiusRadarModal({
                     <div className={`p-1 rounded-full border transition-all ${
                       isSelected 
                         ? 'bg-[#c5a059] border-white scale-125 shadow-[0_0_20px_rgba(197,160,89,1)]' 
-                        : isWithin15Km 
+                        : isServiceable 
                           ? 'bg-[#121f3d] border-[#c5a059] hover:border-white shadow-md hover:scale-110' 
                           : 'bg-red-950 border-red-500 shadow-md'
                     }`}>
@@ -281,7 +281,7 @@ export default function ServiceRadiusRadarModal({
             {/* Compass rose legend */}
             <div className="absolute bottom-3 left-3 bg-[#0b1325]/90 border border-zinc-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-zinc-400 flex items-center gap-2">
               <span className="text-[#e9c176] font-bold">Named-area coverage:</span>
-              <span className="text-emerald-400">{totalWithinServiceRadius} area matches</span>
+              <span className="text-emerald-400">{totalServiceableAreas} area matches</span>
             </div>
 
           </div>
