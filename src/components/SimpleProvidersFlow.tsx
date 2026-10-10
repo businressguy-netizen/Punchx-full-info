@@ -42,7 +42,7 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
   const [selected, setSelected] = useState<Service | null>(null); const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [dispatchMode, setDispatchMode] = useState<'AUTO_MATCH'|'PERSONAL_SELECT'>('AUTO_MATCH'); const [bookingTiming, setBookingTiming] = useState<'instant'|'later'>('instant'); const [completedWithSelectedWorker, setCompletedWithSelectedWorker] = useState(0); const [countLoading, setCountLoading] = useState(false);
   const [address, setAddress] = useState(citizenAddress || ''); const [date, setDate] = useState(''); const [time, setTime] = useState('');
-  const [customerGeo] = useState<{lat:number;lng:number;area?:string;city?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
+  const [customerGeo] = useState<{lat:number;lng:number;area?:string;city?:string;district?:string;state?:string;postalCode?:string;sector?:string;address?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
   useEffect(() => setAddress(citizenAddress || ''), [citizenAddress]);
 
   useEffect(() => { const unsub = onSnapshot(collection(db, 'services'), snapshot => { const next = snapshot.docs.map(doc => normalize(doc.id, doc.data())).filter(Boolean) as Service[]; setServices(next.filter(s => (s as any).active !== false)); setLoading(false); }, error => { console.warn('PUNCHX service catalogue:', error); setServices([]); setLoading(false); }); return () => unsub(); }, []);
@@ -87,7 +87,7 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
 
   const customerAreaLabels = useMemo(() => {
     let saved:any={};try{saved=JSON.parse(localStorage.getItem('punchx_residential_address')||'{}');}catch{}
-    return buildPunchXCustomerAreaLabels({area:customerGeo?.area,city:customerGeo?.city,locality:saved.villageArea,district:saved.district,state:saved.state,pinCode:saved.pinCode,address:saved.fullAddress});
+    return buildPunchXCustomerAreaLabels({area:customerGeo?.area,city:customerGeo?.city,locality:saved.villageArea,sector:customerGeo?.sector,district:saved.district||customerGeo?.district,state:saved.state||customerGeo?.state,pinCode:saved.pinCode||customerGeo?.postalCode,address:saved.fullAddress||customerGeo?.address});
   }, [customerGeo]);
   const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => {
     if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false;
