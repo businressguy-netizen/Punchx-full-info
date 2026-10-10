@@ -11,8 +11,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Origin and destinations array are required" });
     }
 
-    const originLat = origin.lat || 12.9716;
-    const originLng = origin.lng || 77.5946;
+    const originLat = Number(origin.lat);
+    const originLng = Number(origin.lng);
+    if (!Number.isFinite(originLat) || !Number.isFinite(originLng) || Math.abs(originLat) > 90 || Math.abs(originLng) > 180) return res.status(400).json({ error: 'Valid origin coordinates are required' });
+    const city = String(origin.city || origin.area || req.body?.city || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const largeCities = new Set(['kolkata','bengaluru','bangalore','mumbai','delhi','new delhi','hyderabad','chennai','pune','ahmedabad','jaipur','lucknow','kanpur','nagpur','indore','bhopal','patna','ranchi','bhubaneswar','cuttack','visakhapatnam','vizag','surat','vadodara','ludhiana','agra','nashik','coimbatore','kochi','thiruvananthapuram','guwahati','mysuru','mysore','noida','gurugram','gurgaon','faridabad','ghaziabad','durgapur','asansol','siliguri']);
+    const radiusKm = largeCities.has(city) || [...largeCities].some(name => city.startsWith(name + ' ')) ? 8 : 4;
 
     const results = destinations.map((dest: any, index: number) => {
       const destLat = dest.lat || 12.9716;
@@ -28,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const distanceKm = Math.round(6371 * c * 10) / 10;
-      const isWithin15Km = distanceKm <= 15.0;
+      const isWithin15Km = distanceKm <= radiusKm;
       const etaMins = Math.max(4, Math.round(distanceKm * 3.2));
 
       // Bearing angle in degrees (-180 to 180)
@@ -60,7 +64,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       origin: { lat: originLat, lng: originLng },
       totalChecked: destinations.length,
       totalWithin15Km: within15KmList.length,
-      maxRadiusKm: 15.0,
+      maxRadiusKm: radiusKm,
+      radiusKm,
+      city,
       results: within15KmList,
       allResults: results
     });
