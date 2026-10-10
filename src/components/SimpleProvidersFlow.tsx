@@ -85,7 +85,7 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [selected, bookingTiming]);
 
-  const customerAreaLabels = [customerGeo?.area, customerGeo?.sector, customerGeo?.city, customerGeo?.address].filter(Boolean).map(String);
+  const customerAreaLabels = [customerGeo?.area, customerGeo?.city].filter(Boolean).map(String);
   const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => {
     if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false;
     if (bookingTiming === 'instant' && w.isOnline !== true) return false;
