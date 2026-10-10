@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, MapPin, Search, ShieldCheck, ShoppingCart, Star, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, MapPin, Search, ShieldCheck, ShoppingCart, Star, X, Package, Info } from 'lucide-react';
 import { motion } from 'motion/react';
 import { AppScreen, Worker } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
+import { getProductsForCategory, PriceProduct } from '../data/expandedPriceCatalogue';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
 import { calculateDistanceKm, getServiceRadiusKm, isSameServiceCity } from '../lib/location';
 import { fetchApprovedProfessionals } from '../services/professionalDirectory';
@@ -22,7 +23,7 @@ interface ProvidersListProps {
   setCitizenAddress: (addr: string) => void;
 }
 
-type CartItem = { id: string; serviceId: string; serviceName: string; category: string; subcategory: string; description: string; price: number; duration?: string; image?: string; bookingTiming?: 'instant'|'later' };
+type CartItem = { id: string; serviceId: string; serviceName: string; category: string; subcategory: string; description: string; price: number; duration?: string; image?: string; bookingTiming?: 'instant'|'later'; itemType?: 'service'|'product'; quantity?: number; priceMin?: number; priceMax?: number };
 const DEMO_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_PROFESSIONALS === 'true';
 const norm = (value?: string) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const readCart = (): CartItem[] => { try { const v = JSON.parse(localStorage.getItem('punchx_cart') || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
@@ -41,6 +42,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const [availabilityMessage, setAvailabilityMessage] = useState('');
   const [available, setAvailable] = useState(false);
   const [bookingTiming, setBookingTiming] = useState<'instant'|'later'>('instant');
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [geo] = useState<{lat:number;lng:number;area?:string;city?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
   const serviceRadiusKm = getServiceRadiusKm(geo?.city || geo?.area);
 
@@ -58,6 +60,24 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const categories = useMemo(() => { const q=norm(search); return PUNCHX_50_CATEGORIES.filter(c => !q || norm(`${c.name} ${c.shortDesc} ${c.keywords.join(' ')}`).includes(q)); }, [search]);
   const subs = useMemo(() => { if(!category)return[]; const q=norm(search); return category.subcategories.filter(s => !q || norm(`${s.name} ${s.description} ${s.items.map(i=>i.name).join(' ')}`).includes(q)); }, [category,search]);
   const services = useMemo(() => { if(!subcategory)return[]; const q=norm(search); return subcategory.items.filter(i => !q || norm(`${i.name} ${i.description}`).includes(q)); }, [subcategory,search]);
+  // Product/material choices are rendered after services for every category.
+  const products = category ? getProductsForCategory(category) : [];
+  const addProductToCart = (product: PriceProduct) => {
+    if (!category) return;
+    if (product.quoteRequired) {
+      try { localStorage.setItem('punchx_catalogue_quote_request', JSON.stringify({ categoryId: category.id, categoryName: category.name, productId: product.id, productName: product.name, unit: product.unit, minPrice: product.minPrice, maxPrice: product.maxPrice, specification: product.specification, quantity: productQuantities[product.id] || 1, quoteRequired: true, createdAt: new Date().toISOString() })); } catch { /* Optional quote request record. */ }
+      showNotification('Quote request noted. Confirm exact model, quantity and final price before purchase.');
+      return;
+    }
+    const quantity = Math.max(1, Math.min(99, productQuantities[product.id] || 1));
+    const lineMin = product.minPrice * quantity;
+    const lineMax = product.maxPrice * quantity;
+    const item: CartItem = { id: `${product.id}-${Date.now()}`, serviceId: product.id, serviceName: `${product.name} × ${quantity}`, category: category.name, subcategory: 'Products & materials', description: `${product.specification}. Indicative unit price ₹${product.minPrice}–₹${product.maxPrice}; confirm stock and final supplier price before purchase.`, price: Math.round((lineMin + lineMax) / 2), priceMin: lineMin, priceMax: lineMax, quantity, itemType: 'product' };
+    const next = [...cart, item];
+    setCart(next);
+    try { localStorage.setItem('punchx_cart', JSON.stringify(next)); } catch { /* Cart state remains usable for this session. */ }
+    showNotification(`✓ ${product.name} added after your service selection.`);
+  };
 
   const chooseCategory = (value: ServiceCategory) => { setCategory(value); setSubcategory(null); setSelectedService(null); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage(''); setSearch(''); setStep('subcategories'); onSelectCategory?.(value.name); };
   const chooseSubcategory = (value: ServicesSubcategory) => { setSubcategory(value); setSelectedService(null); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage(''); setSearch(''); setStep('services'); };
@@ -113,7 +133,42 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
             </button>
           </div>
         </section>
-        <div className="mb-3 flex items-center gap-1 text-xs text-[#64748b]"><span>{category.name}</span><ChevronRight className="h-3 w-3"/><span className="font-black text-[#0f172a]">{subcategory.name}</span></div><section className="mb-3 rounded-3xl bg-white p-4 ring-1 ring-[#dbeafe] shadow-sm"><div className="flex items-center justify-between gap-3"><div><h1 className="text-2xl font-black">{category.name}</h1></div><div className="rounded-xl bg-[#eaf3ff] px-3 py-2 text-right"><div className="text-[9px] font-black text-[#2563eb]">EARLIEST</div><div className="text-xs font-black">Wed, 8:00 AM</div></div></div><div className="mt-3 flex items-center gap-2 rounded-xl border border-[#dbeafe] bg-[#f8fbff] p-3"><ShieldCheck className="h-5 w-5 text-[#2563eb]"/><div><div className="text-xs font-black">Verified PUNCHX professionals</div><div className="text-[10px] text-[#64748b]">Availability is checked only after an exact work is selected.</div></div></div></section><div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white">{services.map(item=><article key={item.id} className="border-b border-[#e5eefb] p-4 last:border-b-0"><div className="flex gap-4"><div className="min-w-0 flex-1"><div className="flex items-start gap-2"><h3 className="text-base font-black leading-5">{item.name}</h3>{item.popular&&<span className="rounded-full bg-[#eaf3ff] px-2 py-1 text-[9px] font-black text-[#2563eb]">Popular</span>}</div><div className="mt-1 text-sm font-black">₹{item.price.toLocaleString('en-IN')}</div><div className="mt-1 text-[10px] text-[#64748b]">{item.duration}</div><p className="mt-2 text-[11px] leading-5 text-[#64748b]">{item.description}</p><button onClick={()=>checkAvailability(item)} className="mt-3 rounded-xl bg-[#2563eb] px-5 py-2.5 text-xs font-black text-white">{selectedService?.id===item.id&&checking?'Checking…':'Select work'}</button></div></div>{selectedService?.id===item.id&&<div className="mt-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-3">{checking?<div className="flex items-center gap-2 text-sm font-bold text-[#2563eb]"><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#93c5fd] border-t-[#2563eb]"/>Checking nearby professionals…</div>:available?<><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-black text-[#0f7a4a]">{availabilityMessage}</div><div className="text-[10px] text-[#64748b]">Instant shows online professionals; later bookings can use any registered professional in the service zone.</div></div><CheckCircle2 className="h-6 w-6 text-[#16a34a]"/></div><div className="mt-3 flex gap-2 overflow-x-auto pb-1">{matchingWorkers.slice(0,4).map(worker=><button key={worker.id} onClick={()=>{onSelectWorker(worker);localStorage.setItem('punchx_cart_selected_worker',JSON.stringify(worker));}} className="min-w-[155px] rounded-xl border border-[#dbeafe] bg-white p-2 text-left"><div className="flex items-center gap-2"><img src={worker.avatar||'/placeholder.svg'} alt="" className="h-9 w-9 rounded-full object-cover bg-[#eef6ff]"/><div className="min-w-0"><div className="truncate text-xs font-black">{worker.name}</div><div className="text-[9px] text-[#64748b]">★ {worker.rating.toFixed(1)} · {bookingTiming==='instant'?'Online now':'Registered in zone'}</div></div></div></button>)}</div><button onClick={addToCart} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0f172a] py-3 text-xs font-black text-white"><ShoppingCart className="h-4 w-4"/> Add to cart · ₹{item.price.toLocaleString('en-IN')}</button></>:<div className="rounded-xl bg-[#fff7ed] p-3 text-sm font-black text-[#c2410c]">{availabilityMessage}</div>}</div>}</article>)}</div></>}
+        <div className="mb-3 flex items-center gap-1 text-xs text-[#64748b]"><span>{category.name}</span><ChevronRight className="h-3 w-3"/><span className="font-black text-[#0f172a]">{subcategory.name}</span></div><section className="mb-3 rounded-3xl bg-white p-4 ring-1 ring-[#dbeafe] shadow-sm"><div className="flex items-center justify-between gap-3"><div><h1 className="text-2xl font-black">{category.name}</h1></div><div className="rounded-xl bg-[#eaf3ff] px-3 py-2 text-right"><div className="text-[9px] font-black text-[#2563eb]">EARLIEST</div><div className="text-xs font-black">Wed, 8:00 AM</div></div></div><div className="mt-3 flex items-center gap-2 rounded-xl border border-[#dbeafe] bg-[#f8fbff] p-3"><ShieldCheck className="h-5 w-5 text-[#2563eb]"/><div><div className="text-xs font-black">Verified PUNCHX professionals</div><div className="text-[10px] text-[#64748b]">Availability is checked only after an exact work is selected.</div></div></div></section><div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white">{services.map(item=><article key={item.id} className="border-b border-[#e5eefb] p-4 last:border-b-0"><div className="flex gap-4"><div className="min-w-0 flex-1"><div className="flex items-start gap-2"><h3 className="text-base font-black leading-5">{item.name}</h3>{item.popular&&<span className="rounded-full bg-[#eaf3ff] px-2 py-1 text-[9px] font-black text-[#2563eb]">Popular</span>}</div><div className="mt-1 text-sm font-black">₹{item.price.toLocaleString('en-IN')}</div><div className="mt-1 text-[10px] text-[#64748b]">{item.duration}</div><p className="mt-2 text-[11px] leading-5 text-[#64748b]">{item.description}</p><button onClick={()=>checkAvailability(item)} className="mt-3 rounded-xl bg-[#2563eb] px-5 py-2.5 text-xs font-black text-white">{selectedService?.id===item.id&&checking?'Checking…':'Select work'}</button></div></div>{selectedService?.id===item.id&&<div className="mt-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-3">{checking?<div className="flex items-center gap-2 text-sm font-bold text-[#2563eb]"><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#93c5fd] border-t-[#2563eb]"/>Checking nearby professionals…</div>:available?<><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-black text-[#0f7a4a]">{availabilityMessage}</div><div className="text-[10px] text-[#64748b]">Instant shows online professionals; later bookings can use any registered professional in the service zone.</div></div><CheckCircle2 className="h-6 w-6 text-[#16a34a]"/></div><div className="mt-3 flex gap-2 overflow-x-auto pb-1">{matchingWorkers.slice(0,4).map(worker=><button key={worker.id} onClick={()=>{onSelectWorker(worker);localStorage.setItem('punchx_cart_selected_worker',JSON.stringify(worker));}} className="min-w-[155px] rounded-xl border border-[#dbeafe] bg-white p-2 text-left"><div className="flex items-center gap-2"><img src={worker.avatar||'/placeholder.svg'} alt="" className="h-9 w-9 rounded-full object-cover bg-[#eef6ff]"/><div className="min-w-0"><div className="truncate text-xs font-black">{worker.name}</div><div className="text-[9px] text-[#64748b]">★ {worker.rating.toFixed(1)} · {bookingTiming==='instant'?'Online now':'Registered in zone'}</div></div></div></button>)}</div><button onClick={addToCart} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0f172a] py-3 text-xs font-black text-white"><ShoppingCart className="h-4 w-4"/> Add to cart · ₹{item.price.toLocaleString('en-IN')}</button></>:<div className="rounded-xl bg-[#fff7ed] p-3 text-sm font-black text-[#c2410c]">{availabilityMessage}</div>}</div>}</article>)}</div>
+        <section aria-labelledby="products-materials-heading" className="mt-5 rounded-3xl border border-[#dbeafe] bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef6ff] text-[#2563eb]"><Package className="h-5 w-5"/></div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] font-black uppercase tracking-[.16em] text-[#2563eb]">Step 2 · After services</div>
+              <h2 id="products-materials-heading" className="mt-1 text-xl font-black">Products & materials</h2>
+              <p className="mt-1 text-xs leading-5 text-[#64748b]">Choose required parts or materials after reviewing service prices above. Ranges are indicative, not live stock or confirmed supplier quotes.</p>
+            </div>
+          </div>
+          {products.length > 0 ? <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {products.map(product => {
+              const qty = productQuantities[product.id] || 1;
+              return <article key={product.id} className="rounded-2xl border border-[#e2e8f0] bg-[#fbfdff] p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-black leading-5">{product.name}</h3>
+                    <div className="mt-1 text-sm font-black text-[#0f172a]">₹{product.minPrice.toLocaleString('en-IN')}–₹{product.maxPrice.toLocaleString('en-IN')} <span className="text-[10px] font-semibold text-[#64748b]">/ {product.unit}</span></div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-[#eef6ff] px-2 py-1 text-[9px] font-black text-[#315da8]">{product.confidence}</span>
+                </div>
+                <p className="mt-2 text-[11px] leading-5 text-[#64748b]">{product.specification}</p>
+                {product.quoteRequired && <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-[#fff7ed] p-2 text-[10px] leading-4 text-[#9a3412]"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0"/>Exact model, dimensions or supplier quote required before purchase.</div>}
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 rounded-xl border border-[#dbeafe] bg-white p-1">
+                    <button type="button" aria-label={"Decrease " + product.name + " quantity"} disabled={qty<=1} onClick={()=>setProductQuantities(old=>({...old,[product.id]:Math.max(1,qty-1)}))} className="h-8 w-8 rounded-lg font-black disabled:opacity-30">−</button>
+                    <span className="min-w-5 text-center text-xs font-black">{qty}</span>
+                    <button type="button" aria-label={"Increase " + product.name + " quantity"} disabled={qty>=99} onClick={()=>setProductQuantities(old=>({...old,[product.id]:Math.min(99,qty+1)}))} className="h-8 w-8 rounded-lg font-black disabled:opacity-30">+</button>
+                  </div>
+                  <button type="button" onClick={()=>addProductToCart(product)} className={"rounded-xl px-3 py-2.5 text-[11px] font-black text-white " + (product.quoteRequired ? "bg-[#475569]" : "bg-[#2563eb]")}>{product.quoteRequired?'Request quote':'Add product'}</button>
+                </div>
+                {!product.quoteRequired && <div className="mt-2 text-[10px] text-[#64748b]">Estimated line range: ₹{(product.minPrice*qty).toLocaleString('en-IN')}–₹{(product.maxPrice*qty).toLocaleString('en-IN')}</div>}
+              </article>;
+            })}
+          </div> : <p className="mt-3 text-sm text-[#64748b]">No listed materials for this category yet. Ask your professional for an itemised quote.</p>}
+        </section></>}
     </main>
     {cart.length>0&&<div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#dbeafe] bg-white/95 p-3 shadow-[0_-8px_30px_rgba(37,99,235,.12)] backdrop-blur-xl"><div className="mx-auto flex max-w-3xl items-center gap-3"><div className="flex min-w-0 flex-1 items-center gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2563eb]"><ShoppingCart className="h-5 w-5"/></div><div className="min-w-0"><div className="truncate text-sm font-black">{cart.length} booking{cart.length===1?'':'s'} in cart</div><div className="truncate text-[10px] text-[#64748b]">₹{cart.reduce((sum,item)=>sum+item.price,0).toLocaleString('en-IN')} service value</div></div></div><button onClick={()=>onTransition('booking')} className="rounded-xl bg-[#2563eb] px-5 py-3 text-xs font-black text-white">View cart <ArrowRight className="ml-1 inline h-4 w-4"/></button></div></div>}
   </div>;
