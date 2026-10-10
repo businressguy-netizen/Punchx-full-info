@@ -13,9 +13,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../lib/authContext';
 import { 
   requestAndAutoUpdateLocation, 
-  fetchRegisteredCustomersForWorkerLocation,
-  getServiceRadiusKm,
-  getStoredCustomerCity
+  fetchRegisteredCustomersForWorkerLocation
 } from '../lib/location';
 import ServiceCategoryModal from './ServiceCategoryModal';
 import DobPicker from './DobPicker';
@@ -539,8 +537,8 @@ export default function WorkerLocationSetup({
                 <div className="bg-[#07122a] border border-zinc-800/80 p-2.5 rounded-lg flex items-center gap-2">
                   <Radio className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
                   <div>
-                    <p className="text-[10px] text-zinc-400 uppercase font-mono">Dispatch Radius</p>
-                    <p className="font-bold text-white text-xs">{getServiceRadiusKm(getStoredCustomerCity() || workerApplication?.address)}-Km Local Service Zone</p>
+                    <p className="text-[10px] text-zinc-400 uppercase font-mono">Service Area Limit</p>
+                    <p className="font-bold text-white text-xs">Named localities · set on dashboard</p>
                   </div>
                 </div>
                 <div className="bg-[#07122a] border border-zinc-800/80 p-2.5 rounded-lg flex items-center gap-2">
