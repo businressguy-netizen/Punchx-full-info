@@ -1352,6 +1352,8 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
       let fullAddress = address || "";
       let area = requestedArea || "";
       let city = "";
+      let district = "";
+      let state = "";
       let postalCode = "";
       let plusCode = "";
       let locationType = "APPROXIMATE";
@@ -1360,7 +1362,7 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
       if ((!lat || !lng) && address && address.trim().length > 1) {
         if (mapsKey) {
           try {
-            const queryStr = encodeURIComponent(`${address}${landmark ? ' near ' + landmark : ''}, Bengaluru, India`);
+            const queryStr = encodeURIComponent(`${address}${landmark ? ' near ' + landmark : ''}, India`);
             const gRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${queryStr}&key=${mapsKey}&solution_id=gmp_mcp_codeassist_v1_aistudio`);
             const gData = await gRes.json();
             if (gData.status === "OK" && gData.results && gData.results[0]) {
@@ -1375,12 +1377,10 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
                 if (comp.types.includes("sublocality") || comp.types.includes("sublocality_level_1") || comp.types.includes("neighborhood")) {
                   if (!area) area = comp.long_name;
                 }
-                if (comp.types.includes("locality") || comp.types.includes("administrative_area_level_2")) {
-                  city = comp.long_name;
-                }
-                if (comp.types.includes("postal_code")) {
-                  postalCode = comp.long_name;
-                }
+                if (comp.types.includes("locality")) city = comp.long_name;
+                if (!district && comp.types.includes("administrative_area_level_2")) district = comp.long_name;
+                if (!state && comp.types.includes("administrative_area_level_1")) state = comp.long_name;
+                if (comp.types.includes("postal_code")) postalCode = comp.long_name;
               }
             }
           } catch (gErr) {
@@ -1403,7 +1403,9 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
                 fullAddress = nomData[0].display_name;
                 const addr = nomData[0].address || {};
                 area = addr.sublocality || addr.neighbourhood || addr.suburb || addr.residential || addr.road || "";
-                city = addr.city || addr.town || addr.county || "Bengaluru";
+                city = addr.city || addr.town || addr.village || "";
+                district = addr.state_district || addr.district || addr.county || "";
+                state = addr.state || "";
                 postalCode = addr.postcode || "";
                 locationType = "GEOMETRIC_CENTER";
               }
@@ -1430,12 +1432,10 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
                 if (comp.types.includes("sublocality") || comp.types.includes("sublocality_level_1") || comp.types.includes("neighborhood")) {
                   if (!area) area = comp.long_name;
                 }
-                if (comp.types.includes("locality") || comp.types.includes("administrative_area_level_2")) {
-                  city = comp.long_name;
-                }
-                if (comp.types.includes("postal_code")) {
-                  postalCode = comp.long_name;
-                }
+                if (comp.types.includes("locality")) city = comp.long_name;
+                if (!district && comp.types.includes("administrative_area_level_2")) district = comp.long_name;
+                if (!state && comp.types.includes("administrative_area_level_1")) state = comp.long_name;
+                if (comp.types.includes("postal_code")) postalCode = comp.long_name;
               }
             }
           } catch (gRevErr) {
@@ -1456,7 +1456,9 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
                 fullAddress = nomRevData.display_name;
                 const addr = nomRevData.address || {};
                 area = area || addr.sublocality || addr.neighbourhood || addr.suburb || addr.road || "";
-                city = addr.city || addr.town || "Bengaluru";
+                city = addr.city || addr.town || addr.village || "";
+                district = addr.state_district || addr.district || addr.county || "";
+                state = addr.state || "";
                 postalCode = addr.postcode || "";
               }
             }
@@ -1511,6 +1513,8 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
         address: fullAddress,
         area: rawArea,
         city: city || "",
+        district: district || "",
+        state: state || "",
         postalCode: postalCode || "",
         plusCode: plusCode,
         sector: sectorName,
