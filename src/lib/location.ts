@@ -933,6 +933,29 @@ export function isServiceAreaMatch(customerLocationLabel: string | string[] | un
   return Array.from(areas).some(area => candidates.has(area));
 }
 
+/**
+ * Discovery-only fallback: when the GPS label does not yet include a PIN/state/district,
+ * show relevant broad-area workers provisionally. Checkout must always use isServiceAreaMatch
+ * against the full residential address before accepting a booking.
+ */
+export function isPotentialServiceAreaMatch(customerLocationLabel: string | string[] | undefined, serviceAreas: string[] | undefined): boolean {
+  if (isServiceAreaMatch(customerLocationLabel, serviceAreas)) return true;
+  const candidates = new Set((Array.isArray(customerLocationLabel) ? customerLocationLabel : [customerLocationLabel || ''])
+    .flatMap(value => expandServiceAreaLabel(String(value || ''))).filter(Boolean));
+  const hasPin = Array.from(candidates).some(value => /^pin \d{6}$/.test(value) || /^\d{6}$/.test(value));
+  const hasState = Array.from(candidates).some(value => value.startsWith('state '));
+  const hasDistrict = Array.from(candidates).some(value => value.startsWith('district '));
+  const hasCity = Array.from(candidates).some(value => value.startsWith('city '));
+  return (Array.isArray(serviceAreas) ? serviceAreas : []).some(rule => {
+    const normalized = normalizePunchXArea(rule);
+    if (/^pin \d{6}$/.test(normalized) || /^\d{6}$/.test(normalized)) return !hasPin;
+    if (normalized.startsWith('state ')) return !hasState;
+    if (normalized.startsWith('district ')) return !hasDistrict;
+    if (normalized.startsWith('city ') && normalized.split(' ').length > 2) return !hasState && hasCity;
+    return false;
+  });
+}
+
 
 export function getStoredCustomerCity(): string {
   try {
