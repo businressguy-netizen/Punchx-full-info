@@ -162,6 +162,15 @@ const ALLOWED_ORIGINS = [
 
 async function startServer() {
   const app = express();
+
+// PUNCHX geofence: 4 km in smaller towns, 8 km in major urban markets.
+function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
+  const normalized = String(city || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const largeCities = ['kolkata','bengaluru','bangalore','mumbai','delhi','new delhi','hyderabad','chennai','pune','ahmedabad','jaipur','lucknow','kanpur','nagpur','indore','bhopal','patna','ranchi','bhubaneswar','cuttack','visakhapatnam','vizag','surat','vadodara','ludhiana','agra','nashik','coimbatore','kochi','thiruvananthapuram','guwahati','mysuru','mysore','noida','gurugram','gurgaon','faridabad','ghaziabad','durgapur','asansol','siliguri'];
+  return largeCities.some(name => normalized === name || normalized.startsWith(name + ' ')) ? 8 : 4;
+}
+
+
   const PORT = 3000;
 
   // ─── Security Middleware ───
@@ -1285,7 +1294,8 @@ async function startServer() {
       mapId: "PUNCHX_MAP_ID",
       attributionId: "gmp_mcp_codeassist_v1_aistudio",
       defaultCenter: { lat: 12.9716, lng: 77.5946 }, // Bengaluru tech corridor center
-      maxRadiusKm: 15.0
+      maxRadiusKm: 4.0,
+      radiusPolicy: { smallCityKm: 4, largeCityKm: 8 }
     });
   });
 
@@ -1583,7 +1593,8 @@ async function startServer() {
         directDistanceKm: directKm,
         durationMinutes: durationMinutes,
         etaText: `${durationMinutes} mins`,
-        isWithin15Km: routeDistanceKm <= 15.0,
+        isWithin15Km: routeDistanceKm <= getPunchXServiceRadiusKm(req.body?.city || origin?.city || origin?.area),
+        radiusKm: getPunchXServiceRadiusKm(req.body?.city || origin?.city || origin?.area),
         isLiveGoogleRoute,
         waypoints: polylinePoints,
         origin: { lat: originLat, lng: originLng },
@@ -1614,6 +1625,7 @@ async function startServer() {
         return res.status(400).json({ error: 'Valid origin lat/lng required' });
       }
 
+      const radiusKm = getPunchXServiceRadiusKm(req.body?.city || origin?.city || origin?.area);
       const results = destinations.map((dest: any, index: number) => {
         const destLat = typeof dest.lat === 'number' && Number.isFinite(dest.lat) ? dest.lat : null;
         const destLng = typeof dest.lng === 'number' && Number.isFinite(dest.lng) ? dest.lng : null;
@@ -1631,7 +1643,7 @@ async function startServer() {
             Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distanceKm = Math.round(6371 * c * 10) / 10;
-        const isWithin15Km = distanceKm <= 15.0;
+        const isWithin15Km = distanceKm <= radiusKm;
         const etaMins = Math.max(4, Math.round(distanceKm * 3.2));
 
         // Bearing angle in degrees (-180 to 180)
@@ -1663,7 +1675,8 @@ async function startServer() {
         origin: { lat: originLat, lng: originLng },
         totalChecked: destinations.length,
         totalWithin15Km: within15KmList.length,
-        maxRadiusKm: 15.0,
+        maxRadiusKm: radiusKm,
+        radiusKm,
         results: within15KmList,
         allResults: results
       });
