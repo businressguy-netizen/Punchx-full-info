@@ -1328,9 +1328,8 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
       apiKey: isAllowed ? mapsKey : "",
       mapId: "PUNCHX_MAP_ID",
       attributionId: "gmp_mcp_codeassist_v1_aistudio",
-      defaultCenter: { lat: 12.9716, lng: 77.5946 }, // Bengaluru tech corridor center
-      maxRadiusKm: 4.0,
-      radiusPolicy: { smallCityKm: 4, largeCityKm: 8 }
+      defaultCenter: { lat: 22.9734, lng: 78.6569 }, // approximate geographic centre of India, for map framing only
+      serviceAreaMode: "india-named-areas"
     });
   });
 
