@@ -5,7 +5,7 @@ import { AppScreen, Worker } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
+import { buildPunchXCustomerAreaLabels, isPotentialServiceAreaMatch } from '../lib/location';
 import { fetchApprovedProfessionals } from '../services/professionalDirectory';
 
 interface ProvidersListProps {
@@ -76,7 +76,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
         if (!isCategoryMatching(worker.categories || worker.category, category.name) && !isCategoryMatching(worker.categories || worker.category, category.id)) return false;
         if (bookingTiming === 'instant' && worker.isOnline !== true) return false;
         const workerAreas = (worker as any).serviceAreas || (worker as any).geofenceAreas || [worker.area, worker.sector].filter(Boolean);
-        return isServiceAreaMatch(customerAreaLabels, workerAreas);
+        return isPotentialServiceAreaMatch(customerAreaLabels, workerAreas);
       });
       setMatchingWorkers(found); setAvailable(found.length > 0); setAvailabilityMessage(found.length ? `${found.length} verified professional${found.length===1?'':'s'} available` : 'No registered professional is currently available in your service zone.');
     } catch (error) {
