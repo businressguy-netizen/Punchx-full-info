@@ -72,6 +72,10 @@ export interface UserProfile {
   location?: { lat: number; lng: number };
   geofenceRadiusKm?: number;
   geofenceArea?: string;
+  /** Explicit named localities covered by this professional; no radius matching. */
+  serviceAreas?: string[];
+  geofenceAreas?: string[];
+  serviceAreaUpdatedAt?: string;
   geofenceUpdatedAt?: string;
   workerStatus?: 'ONLINE' | 'OFFLINE';
   visitingFee?: number;
@@ -106,6 +110,9 @@ export interface Worker {
   address?: string;
   area?: string;
   sector?: string;
+  /** Explicit named localities covered by this professional; no radius matching. */
+  serviceAreas?: string[];
+  geofenceAreas?: string[];
   location?: { lat: number; lng: number };
   areaMatch?: boolean;
   distanceKm?: number;
