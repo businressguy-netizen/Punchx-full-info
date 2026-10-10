@@ -3,6 +3,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/oauth/token",
+      "destination": "/api/namoid-proxy"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/$1"
     },
@@ -15,35 +19,77 @@
     {
       "source": "/((?!api/|assets/).*)",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, max-age=0" },
-        { "key": "CDN-Cache-Control", "value": "no-store" },
-        { "key": "Vercel-CDN-Cache-Control", "value": "no-store" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate, max-age=0"
+        },
+        {
+          "key": "CDN-Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "no-store"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(self), payment=()" },
-        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(self), payment=()"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
       ]
     },
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "https://www.punchxapp.co.in" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS, PUT, DELETE" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, Accept, X-Requested-With" },
-        { "key": "Cache-Control", "value": "no-store" }
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://www.punchxapp.co.in"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS, PUT, DELETE"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, Accept, X-Requested-With"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
       ]
     }
   ]
