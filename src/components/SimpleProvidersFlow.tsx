@@ -85,13 +85,13 @@ export default function SimpleProvidersFlow({ onTransition, selectedCategory, on
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [selected, bookingTiming]);
 
-  const customerAreaLabels = [customerGeo?.area, customerGeo?.city].filter(Boolean).map(String);
+  const customerAreaLabels = useMemo(() => [customerGeo?.area, customerGeo?.city].filter(Boolean).map(String), [customerGeo]);
   const matchingWorkers = useMemo(() => !selected ? [] : workers.filter(w => {
     if ((!(isCategoryMatching(w.categories || w.category, selected.category) || w.category.toLowerCase() === selected.category.toLowerCase())) || w.available === false) return false;
     if (bookingTiming === 'instant' && w.isOnline !== true) return false;
     const workerAreas = (w as any).serviceAreas || (w as any).geofenceAreas || [w.area, w.sector].filter(Boolean);
     return isServiceAreaMatch(customerAreaLabels, workerAreas);
-  }).sort((a,b) => b.rating-a.rating), [workers, selected, bookingTiming, customerAreaLabels.join('|')]);
+  }).sort((a,b) => b.rating-a.rating), [workers, selected, bookingTiming, customerAreaLabels]);
   const personalSelectionFeeRate = dispatchMode === 'PERSONAL_SELECT' && completedWithSelectedWorker >= PUNCHX_COMMERCE.personalSelection.freeCompletedBookings ? PUNCHX_COMMERCE.personalSelection.feeRateAfterFreeBookings : 0;
   const personalSelectionFee = Math.round(Number(selected?.price || 0) * personalSelectionFeeRate * 100) / 100;
 
