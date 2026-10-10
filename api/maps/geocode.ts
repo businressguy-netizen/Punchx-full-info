@@ -22,8 +22,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!hasCoordinates() && fullAddress.length > 1) {
       if (mapsKey) {
         try {
-          const query = encodeURIComponent(`${fullAddress}${landmark ? ` near ${landmark}` : ''}`);
-          const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsKey}`);
+          const indiaAddress = /india/i.test(fullAddress) ? fullAddress : `${fullAddress}, India`;
+          const query = encodeURIComponent(`${indiaAddress}${landmark ? ` near ${landmark}` : ''}`);
+          const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${query}&region=in&key=${mapsKey}`);
           const data = await response.json();
           if (data.status === 'OK' && data.results?.[0]) {
             const result = data.results[0];
@@ -47,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!hasCoordinates()) {
         try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`${fullAddress}${landmark ? ` ${landmark}` : ''}`)}&format=json&addressdetails=1&limit=1`, {
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`${fullAddress}${landmark ? ` ${landmark}` : ''}, India`)}&format=json&addressdetails=1&countrycodes=in&limit=1`, {
             headers: { 'Accept-Language': 'en', 'User-Agent': 'PunchX-Service-Platform/2.0' }
           });
           if (response.ok) {
