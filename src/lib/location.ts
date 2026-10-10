@@ -884,18 +884,18 @@ export function normalizePunchXArea(value?: string): string {
 }
 
 export function isServiceAreaMatch(customerLocationLabel: string | string[] | undefined, serviceAreas: string[] | undefined): boolean {
-  const areas = (Array.isArray(serviceAreas) ? serviceAreas : [])
+  // Named-locality matching only: GPS coordinates and distance never determine coverage.
+  // Full addresses are split into address components, then compared exactly.
+  const areas = new Set((Array.isArray(serviceAreas) ? serviceAreas : [])
+    .flatMap(value => String(value || '').split(/[,;|\n]+/))
     .map(normalizePunchXArea)
-    .filter(Boolean);
-  const candidates = (Array.isArray(customerLocationLabel) ? customerLocationLabel : [customerLocationLabel || ''])
+    .filter(Boolean));
+  const candidates = new Set((Array.isArray(customerLocationLabel) ? customerLocationLabel : [customerLocationLabel || ''])
+    .flatMap(value => String(value || '').split(/[,;|\n]+/))
     .map(normalizePunchXArea)
-    .filter(Boolean);
-  if (!areas.length || !candidates.length) return false;
-  return areas.some(area => candidates.some(candidate =>
-    candidate === area ||
-    (' ' + candidate + ' ').includes(' ' + area + ' ') ||
-    (' ' + area + ' ').includes(' ' + candidate + ' ')
-  ));
+    .filter(Boolean));
+  if (!areas.size || !candidates.size) return false;
+  return Array.from(areas).some(area => candidates.has(area));
 }
 
 
