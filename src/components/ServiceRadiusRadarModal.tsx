@@ -45,8 +45,8 @@ export default function ServiceRadiusRadarModal({
 
   if (!isOpen) return null;
 
-  const centerLat = centerLocation.lat || 12.9716;
-  const centerLng = centerLocation.lng || 77.5946;
+  const centerLat = Number.isFinite(centerLocation.lat) ? centerLocation.lat : 22.9734;
+  const centerLng = Number.isFinite(centerLocation.lng) ? centerLocation.lng : 78.6569;
 
   const centerAreaLabels = buildPunchXCustomerAreaLabels({
     area: centerLocation.area, city: centerLocation.city, district: centerLocation.district,
@@ -80,7 +80,7 @@ export default function ServiceRadiusRadarModal({
 
   // Do not filter on distance or a circular boundary.
   const visibleItems = processedItems;
-  const totalWithinServiceRadius = processedItems.filter(item => item.isWithinZone).length;
+  const totalServiceableAreas = processedItems.filter(item => item.isWithinZone).length;
   const maxDisplayDistance = Math.max(1, ...processedItems.map(item => Number(item.distanceKm) || 0));
 
   const handleRefresh = async () => {
@@ -156,7 +156,7 @@ export default function ServiceRadiusRadarModal({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 bg-[#c5a059]/10 border border-[#c5a059]/30 px-3 py-1 rounded-full text-[#e9c176] font-mono text-[11px] font-bold">
               <span>Area matches:</span>
-              <span className="text-white font-extrabold">{totalWithinServiceRadius}</span>
+              <span className="text-white font-extrabold">{totalServiceableAreas}</span>
               <span className="text-zinc-400">of {visibleItems.length} shown</span>
             </div>
 
@@ -223,7 +223,7 @@ export default function ServiceRadiusRadarModal({
                 const dLat = item.coords.lat - centerLat;
                 const dLng = item.coords.lng - centerLng;
                 
-                // Normalizing named area to radius percent
+                // Spread location pins for visualization only; this is not a service boundary.
                 const distanceRatio = Math.min((Number(item.distanceKm) || 0) / maxDisplayDistance, 1);
                 const angle = Math.atan2(dLat, dLng);
                 const radiusPx = distanceRatio * 150; // max radius inside 380px box
@@ -232,7 +232,7 @@ export default function ServiceRadiusRadarModal({
                 const topPos = -Math.sin(angle) * radiusPx; // invert Y for screen coords
 
                 const isSelected = selectedItem?.id === item.id;
-                const isWithin15Km = item.isWithinZone;
+                const isServiceable = item.isWithinZone;
 
                 const itemAny = item as any;
                 const displayName = itemAny.name || itemAny.workerName || itemAny.category || 'Specialist';
@@ -260,7 +260,7 @@ export default function ServiceRadiusRadarModal({
                         {displayAvatar ? (
                           <img src={displayAvatar} alt={displayName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                         ) : (
-                          <MapPin className={`w-3.5 h-3.5 ${isWithin15Km ? 'text-[#e9c176]' : 'text-red-400'}`} />
+                          <MapPin className={`w-3.5 h-3.5 ${isServiceable ? 'text-[#e9c176]' : 'text-red-400'}`} />
                         )}
                       </div>
                     </div>
