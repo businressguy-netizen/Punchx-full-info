@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, Home, MapPin, Plus, ShoppingBag, Trash2, UserRound, Wallet, X } from 'lucide-react';
 import { AppScreen, Worker } from '../types';
 import { calculateDistanceKm, getServiceRadiusKm, isSameServiceCity } from '../lib/location';
+import { auth } from '../lib/firebase';
 import { calculatePunchXPricing, formatINR } from '../config/punchxCommerce';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
 import { fetchApprovedProfessionals } from '../services/professionalDirectory';
@@ -38,6 +39,8 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const [chooseWorker,setChooseWorker]=useState(false);
   const [warranty,setWarranty]=useState(false);
   const [note,setNote]=useState('');
+  const [geofenceError,setGeofenceError]=useState('');
+  const [validatingGeofence,setValidatingGeofence]=useState(false);
 
   const customerGeo = useMemo(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } }, []);
   const serviceRadiusKm = getServiceRadiusKm(customerGeo?.city || customerGeo?.area);
@@ -73,13 +76,26 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const valid=cart.length>0&&validAddress&&date&&time;
 
   const removeItem=(id:string)=>{const next=cart.filter(item=>item.id!==id);setCart(next);saveJSON('punchx_cart',next);};
-  const saveAndPay=()=>{
-    if(!valid)return;
-    setCitizenAddress(addressText);setBookingDate(date);setBookingTime(time);
-    saveJSON('punchx_residential_address',address);localStorage.setItem('punchx_residential_address_label',addressText);
-    const selected=customWorker||selectedWorker;
-    saveJSON('punchx_pending_booking',{cart,bookingTiming:cart[0]?.bookingTiming||'later',serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
-    onTransition('payment');
+  const saveAndPay=async()=>{
+    if(!valid||validatingGeofence)return;
+    setGeofenceError('');
+    if(!customerGeo){setGeofenceError('Enable location access and detect your service area before continuing.');return;}
+    setValidatingGeofence(true);
+    try {
+      const token=auth.currentUser?await auth.currentUser.getIdToken():'';
+      const response=await fetch('/api/maps/geocode',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify({address:addressText,area:address.villageArea})});
+      if(!response.ok)throw new Error('ADDRESS_UNVERIFIED');
+      const resolved=await response.json();
+      if(typeof resolved.lat!=='number'||typeof resolved.lng!=='number')throw new Error('ADDRESS_UNVERIFIED');
+      const distanceKm=calculateDistanceKm(customerGeo.lat,customerGeo.lng,resolved.lat,resolved.lng);
+      if(distanceKm>serviceRadiusKm){setGeofenceError(`This address is ${distanceKm.toFixed(1)} km from your detected ${customerGeo.city||customerGeo.area||'service area'}. PUNCHX currently serves within ${serviceRadiusKm} km here. Choose an address inside this zone.`);return;}
+      setCitizenAddress(addressText);setBookingDate(date);setBookingTime(time);
+      saveJSON('punchx_residential_address',address);localStorage.setItem('punchx_residential_address_label',addressText);
+      const selected=customWorker||selectedWorker;
+      saveJSON('punchx_pending_booking',{cart,bookingTiming:cart[0]?.bookingTiming||'later',serviceId:cart[0]?.serviceId||null,serviceName:cart.length===1?cart[0].serviceName:`${cart.length} PUNCHX services`,category:cart[0]?.category||'Home Services',description:cart.map(x=>x.serviceName).join(', '),price:serviceValue,address:addressText,residentialAddress:address,addressCoordinates:{lat:resolved.lat,lng:resolved.lng},distanceFromDetectedAreaKm:distanceKm,geofenceArea:customerGeo.area||'',geofenceCity:customerGeo.city||'',geofenceRadiusKm:serviceRadiusKm,serviceAvailabilityChecked:true,serviceAvailable:true,date,time,workerId:selected?.id||null,workerName:selected?.name||null,workerIsDemo:Boolean(selected?.id?.startsWith('demo-')),isPersonalSelection:Boolean(selected),hasWarrantyGuarantee:warranty,warrantyFee,customerTotal:total,note});
+      onTransition('payment');
+    } catch { setGeofenceError('We could not verify this address. Check the address and location permission, then try again.'); }
+    finally { setValidatingGeofence(false); }
   };
 
   return <div id="booking-container" className="min-h-screen bg-[#f7faff] pb-28 text-[#0f172a]">
@@ -93,6 +109,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
       <section className="rounded-3xl border border-[#dbeafe] bg-white p-4 shadow-sm"><label className="text-xs font-black">Special instructions <span className="font-normal text-[#64748b]">(optional)</span><textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Tell the professional anything useful about the visit…" className="mt-2 min-h-20 w-full rounded-xl border border-[#dbeafe] p-3 text-sm outline-none"/></label></section>
       <section className="rounded-3xl border border-[#dbeafe] bg-white p-4 shadow-sm"><div className="flex items-center gap-2"><Wallet className="h-5 w-5 text-[#2563eb]"/><h2 className="font-black">Price summary</h2></div><div className="mt-4 space-y-2 text-sm"><div className="flex justify-between"><span className="text-[#64748b]">Product price</span><span className="font-bold">{formatINR(pricing.serviceValue)}</span></div><div className="flex justify-between"><span className="text-[#64748b]">Visiting fee</span><span className="font-bold">{pricing.visitingFee > 0 ? formatINR(pricing.visitingFee) : 'Free'}</span></div><div className="flex justify-between"><span className="text-[#64748b]">PUNCHX platform/protection fee</span><span className="font-bold">{formatINR(pricing.customerPlatformFee)}</span></div><div className="flex justify-between"><span className="text-[#64748b]">GST (18%)</span><span className="font-bold">{formatINR(pricing.gstAmount)}</span></div>{warranty&&<div className="flex justify-between"><span className="text-[#64748b]">Extended warranty</span><span className="font-bold">₹9</span></div>}<div className="flex justify-between border-t border-[#e5eefb] pt-3 text-base"><span className="font-black">Total</span><span className="font-black text-[#2563eb]">{formatINR(total)}</span></div></div></section>
     </main>
-    <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#dbeafe] bg-white/95 p-3 shadow-[0_-8px_30px_rgba(37,99,235,.12)] backdrop-blur-xl"><div className="mx-auto flex max-w-3xl items-center gap-3"><div className="min-w-0 flex-1"><div className="text-[10px] font-black uppercase tracking-wider text-[#64748b]">Total to pay</div><div className="text-lg font-black">{formatINR(total)}</div></div><button onClick={saveAndPay} disabled={!valid} className="rounded-2xl bg-[#2563eb] px-6 py-3.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">Payment <ArrowRight className="ml-1 inline h-4 w-4"/></button></div></div>
+    {geofenceError&&<div role="alert" className="mx-auto mb-24 max-w-3xl px-3"><div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{geofenceError}</div></div>}
+    <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#dbeafe] bg-white/95 p-3 shadow-[0_-8px_30px_rgba(37,99,235,.12)] backdrop-blur-xl"><div className="mx-auto flex max-w-3xl items-center gap-3"><div className="min-w-0 flex-1"><div className="text-[10px] font-black uppercase tracking-wider text-[#64748b]">Total to pay</div><div className="text-lg font-black">{formatINR(total)}</div></div><button onClick={saveAndPay} disabled={!valid||validatingGeofence} className="rounded-2xl bg-[#2563eb] px-6 py-3.5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40">{validatingGeofence?'Verifying area…':'Payment'} <ArrowRight className="ml-1 inline h-4 w-4"/></button></div></div>
   </div>;
 }
