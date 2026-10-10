@@ -124,7 +124,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        const catOk=!workerCategories.length || workerCategories.some(function(x){return cat.includes(x)||x.includes(cat)});
        if(!catOk)return false;
        // Serviceability is locality-based: do not use GPS distance or a circular radius.
-       const customerAreaLabels=buildPunchXCustomerAreaLabels({area:o.area,locality:o.locality||o.villageArea,sector:o.sector,city:o.customerCity||o.city,district:o.customerDistrict||o.district,state:o.customerState||o.state,pinCode:o.customerPinCode||o.pinCode,address:o.customerAddress||o.address});
+       const residential=o.residentialAddress||o.addressDetails||{};const customerAreaLabels=buildPunchXCustomerAreaLabels({area:o.area||residential.area,locality:o.locality||o.villageArea||residential.villageArea,sector:o.sector,city:o.customerCity||o.city||residential.city,district:o.customerDistrict||o.district||residential.district,state:o.customerState||o.state||residential.state,pinCode:o.customerPinCode||o.pinCode||residential.pinCode,address:o.customerAddress||o.address||residential.fullAddress});
        return isServiceAreaMatch(customerAreaLabels,workerServiceAreas);
      }).sort(function(a,b){
        const at=new Date(a.createdAt||'').getTime() || a.createdTimestamp || 0;
