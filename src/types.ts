@@ -12,6 +12,7 @@ export type AppScreen =
   | 'worker-pending-approval'
   | 'home'
   | 'services-categories' 
+  | 'catalogue'
   | 'providers' 
   | 'provider-details' 
   | 'booking' 

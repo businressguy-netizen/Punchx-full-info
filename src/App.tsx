@@ -19,6 +19,7 @@ import { Analytics } from '@vercel/analytics/react';
 import NamoIDAuthShell from './components/NamoIDAuthShell';
 
 const HomeDashboard = lazy(() => import('./components/Home'));
+const InteractivePriceCatalogue = lazy(() => import('./components/InteractivePriceCatalogue'));
 const ProvidersList = lazy(() => import('./components/ProvidersList'));
 const ProviderDetails = lazy(() => import('./components/ProviderDetails'));
 const ConfirmBooking = lazy(() => import('./components/ConfirmBooking'));
@@ -43,6 +44,7 @@ function AppMain() {
     const rawPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
     const search = window.location.search.toLowerCase();
     if (rawPath === '/auth/callback' || search.includes('code=') || search.includes('state=')) return 'auth-callback';
+    if (rawPath === '/catalogue' || rawPath === '/price-catalogue' || rawPath === '/pricing') return 'catalogue';
     if (rawPath === '/privacy-policy' || rawPath === '/privacy' || search.includes('/privacy-policy') || search.includes('/privacy')) return 'privacy-policy';
     if (rawPath === '/terms-and-conditions' || rawPath === '/terms' || rawPath === '/terms-of-service' || search.includes('/terms-and-conditions') || search.includes('/terms')) return 'terms-and-conditions';
     if (rawPath === '/worker-signup' || search.includes('/worker-signup')) return 'worker-signup';
@@ -54,12 +56,13 @@ function AppMain() {
     const handlePopState = () => {
       const rawPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
       const search = window.location.search.toLowerCase();
-      if (rawPath === '/privacy-policy' || rawPath === '/privacy' || search.includes('/privacy-policy') || search.includes('/privacy')) setCurrentScreen('privacy-policy');
+      if (rawPath === '/catalogue' || rawPath === '/price-catalogue' || rawPath === '/pricing') setCurrentScreen('catalogue');
+      else if (rawPath === '/privacy-policy' || rawPath === '/privacy' || search.includes('/privacy-policy') || search.includes('/privacy')) setCurrentScreen('privacy-policy');
       else if (rawPath === '/terms-and-conditions' || rawPath === '/terms' || rawPath === '/terms-of-service' || search.includes('/terms-and-conditions') || search.includes('/terms')) setCurrentScreen('terms-and-conditions');
       else if (rawPath === '/worker-signup' || search.includes('/worker-signup')) setCurrentScreen('worker-signup');
       else if (rawPath === '/founder' || rawPath === '/leadership' || rawPath === '/founders' || search.includes('/founder') || search.includes('/founders') || search.includes('/leadership')) setCurrentScreen('founder');
       else if (rawPath === '' || rawPath === '/') {
-        if (currentScreen === 'privacy-policy' || currentScreen === 'terms-and-conditions' || currentScreen === 'founder' || currentScreen === 'worker-signup') setCurrentScreen(currentUser ? 'home' : 'panel-select');
+        if (currentScreen === 'privacy-policy' || currentScreen === 'terms-and-conditions' || currentScreen === 'founder' || currentScreen === 'worker-signup' || currentScreen === 'catalogue') setCurrentScreen(currentUser ? 'home' : 'panel-select');
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -217,13 +220,14 @@ function AppMain() {
         else resolvedTarget = 'home';
       } else if (target === 'home' && !currentUser) resolvedTarget = 'panel-select';
 
-      if (resolvedTarget === 'privacy-policy') { window.history.pushState({}, '', '/privacy-policy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      if (resolvedTarget === 'catalogue') { window.history.pushState({}, '', '/catalogue'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      else if (resolvedTarget === 'privacy-policy') { window.history.pushState({}, '', '/privacy-policy'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       else if (resolvedTarget === 'terms-and-conditions') { window.history.pushState({}, '', '/terms-and-conditions'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       else if (resolvedTarget === 'worker-signup') { window.history.pushState({}, '', '/worker-signup'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       else if (resolvedTarget === 'founder') { window.history.pushState({}, '', '/founder'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
       else {
         const currentPath = window.location.pathname.toLowerCase().replace(/\/$/, '');
-        if (['/privacy-policy','/terms-and-conditions','/terms','/privacy','/worker-signup','/founder','/leadership','/founders'].includes(currentPath)) window.history.pushState({}, '', '/');
+        if (['/privacy-policy','/terms-and-conditions','/terms','/privacy','/worker-signup','/founder','/leadership','/founders','/catalogue','/price-catalogue','/pricing'].includes(currentPath)) window.history.pushState({}, '', '/');
       }
       setCurrentScreen(resolvedTarget);
     } catch (navError) { console.error('Navigation transition error:', navError); showToast('⚠️ Navigation error occurred. Please try again.'); }
@@ -237,7 +241,7 @@ function AppMain() {
     } catch { try { localStorage.setItem('punchx_order_history', '[]'); } catch {} }
   }, []);
 
-  const isCitizenExperience = ['home','providers','provider-details','booking','payment','tracking'].includes(currentScreen);
+  const isCitizenExperience = ['home','catalogue','providers','provider-details','booking','payment','tracking'].includes(currentScreen);
   const showWebsiteShell = isCitizenExperience;
   const showAssistant = isCitizenExperience || currentScreen === 'worker-dashboard' || currentScreen === 'admin-dashboard';
 
@@ -285,6 +289,7 @@ function AppMain() {
           {currentScreen === 'otp' && <OtpVerify onTransition={handleTransition} otpCode={otpCode} setOtpCode={setOtpCode} authMethod={authMethod} authTarget={authTarget} activePanelRole={activePanelRole} />}
           {currentScreen === 'customer-setup' && <CustomerLocationSetup onTransition={handleTransition} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} showNotification={showToast} authMethod={authMethod} authTarget={authTarget} />}
           {currentScreen === 'worker-setup' && <WorkerLocationSetup onTransition={handleTransition} showNotification={showToast} authMethod={authMethod} authTarget={authTarget} workerApplication={workerApplication} setWorkerApplicationData={setWorkerApplication} />}
+          {currentScreen === 'catalogue' && <InteractivePriceCatalogue onTransition={handleTransition} onSelectCategory={setSelectedCategory} showNotification={showToast} />}
           {currentScreen === 'home' && <HomeDashboard onTransition={handleTransition} onSelectWorker={setSelectedWorker} onSelectCategory={setSelectedCategory} hasActiveBooking={false} promoApplied={promoApplied} hasClaimedBonus={hasClaimedBonus} hasUsedBonus={hasUsedBonus} onClaimPromo={onClaimPromo} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} onOpenNotificationCenter={() => setIsNotificationCenterOpen(true)} isProfileDrawerOpen={isGlobalProfileOpen} setIsProfileDrawerOpen={setIsGlobalProfileOpen} />}
           {currentScreen === 'providers' && <ProvidersList onTransition={handleTransition} selectedCategory={selectedCategory} onSelectWorker={setSelectedWorker} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
           {currentScreen === 'provider-details' && <ProviderDetails onTransition={handleTransition} selectedWorker={selectedWorker} showNotification={showToast} />}
