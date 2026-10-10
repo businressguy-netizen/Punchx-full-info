@@ -122,7 +122,7 @@ const families: Family[] = [
     {name:'Solar charge controller',unit:'piece',minPrice:900,maxPrice:6500,specification:'PWM/MPPT and current rating',confidence:'C'},
     {name:'Inverter battery 100–200Ah',unit:'piece',minPrice:8500,maxPrice:22000,specification:'Tubular/flat plate and warranty',confidence:'C'},
     {name:'Solar DC cable',unit:'metre',minPrice:25,maxPrice:120,specification:'Gauge and UV-rated insulation',confidence:'C'}]},
-  { match: /clean|housekeep|domestic help/i, products: [
+  { match: /home cleaning|housekeep|domestic help/i, products: [
     {name:'Floor cleaner concentrate',unit:'litre',minPrice:120,maxPrice:650,specification:'Concentration and surface compatibility',confidence:'C'},
     {name:'Bathroom descaler',unit:'litre',minPrice:100,maxPrice:500,specification:'Acid type and surface-safe use',confidence:'C'},
     {name:'Microfibre cloth set',unit:'set',minPrice:100,maxPrice:650,specification:'Count and GSM',confidence:'C'},
