@@ -76,7 +76,7 @@ export const LOCALITY_COORDINATES: Record<string, { lat: number; lng: number; ar
 
 // Calculate Haversine distance between two sets of coordinates in kilometers
 export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return 2.5; // Reasonable default fallback
+  if (![lat1, lon1, lat2, lon2].every(Number.isFinite) || Math.abs(lat1) > 90 || Math.abs(lat2) > 90 || Math.abs(lon1) > 180 || Math.abs(lon2) > 180) return Number.POSITIVE_INFINITY;
   const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -823,3 +823,47 @@ export async function calibrate100PercentAccuracyLocation(
 }
 
 
+
+
+/**
+ * PUNCHX local service coverage policy.
+ * Smaller towns default to a 4 km radius; large urban markets use 8 km.
+ * The radius is centered on the customer's verified GPS location for discovery,
+ * and is recalculated from the resolved city whenever location changes.
+ */
+const PUNCHX_LARGE_CITIES = new Set([
+  'kolkata', 'bengaluru', 'bangalore', 'mumbai', 'delhi', 'new delhi',
+  'hyderabad', 'chennai', 'pune', 'ahmedabad', 'jaipur', 'lucknow',
+  'kanpur', 'nagpur', 'indore', 'bhopal', 'patna', 'ranchi',
+  'bhubaneswar', 'cuttack', 'visakhapatnam', 'vizag', 'surat', 'vadodara',
+  'ludhiana', 'agra', 'nashik', 'coimbatore', 'kochi', 'thiruvananthapuram',
+  'guwahati', 'mysuru', 'mysore', 'noida', 'gurugram', 'gurgaon',
+  'faridabad', 'ghaziabad', 'durgapur', 'asansol', 'siliguri'
+]);
+
+export function normalizePunchXCity(value?: string): string {
+  return String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/^(city of|town of)\s+/, '');
+}
+
+export function getServiceRadiusKm(city?: string): 4 | 8 {
+  const normalized = normalizePunchXCity(city);
+  if (!normalized) return 4;
+  if (PUNCHX_LARGE_CITIES.has(normalized)) return 8;
+  // Accept a full reverse-geocoded address while requiring whole city-name matches.
+  for (const largeCity of PUNCHX_LARGE_CITIES) {
+    if (normalized.split(' ').includes(largeCity) || normalized.startsWith(largeCity + ' ')) return 8;
+  }
+  return 4;
+}
+
+export function isSameServiceCity(customerCity?: string, professionalLocation?: string): boolean {
+  const city = normalizePunchXCity(customerCity);
+  const location = normalizePunchXCity(professionalLocation);
+  if (!city || !location) return false;
+  return location === city || (' ' + location + ' ').includes(' ' + city + ' ');
+}
