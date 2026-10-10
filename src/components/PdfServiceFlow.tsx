@@ -5,7 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { AppScreen } from '../types';
 import { isCategoryMatching } from '../data/categories';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { calculateDistanceKm, getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords } from '../lib/location';
+import { calculateDistanceKm, getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords, getServiceRadiusKm } from '../lib/location';
 
 type Service = {
   id: string;
@@ -51,7 +51,6 @@ interface Props {
 }
 
 const DEMO_PROFESSIONALS_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_PROFESSIONALS === 'true';
-const RADIUS_KM = 15;
 const STEPS = ['services', 'details', 'location', 'datetime', 'summary'] as const;
 type Step = typeof STEPS[number];
 
@@ -197,7 +196,7 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
       const skillMatch = isCategoryMatching(pro.categories || pro.category, service.category) || pro.category.toLowerCase() === service.category.toLowerCase();
       if (!skillMatch) return false;
       const proCoords = pro.location || getCoordinatesForAddressOrSector(pro.address, pro.area, pro.sector);
-      return calculateDistanceKm(coords.lat, coords.lng, proCoords.lat, proCoords.lng) <= RADIUS_KM;
+      return calculateDistanceKm(coords.lat, coords.lng, proCoords.lat, proCoords.lng) <= getServiceRadiusKm(area?.city || area?.area);
     }).sort((a, b) => b.rating - a.rating);
   };
 
@@ -208,7 +207,7 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
       const matches = getMatchingProfessionals(service, coords);
       setMatchingCount(matches.length);
       if (matches.length === 0) {
-        setUnavailableReason(`No eligible ${service.category.toLowerCase()} professional is currently available within the ${RADIUS_KM} km PUNCHX service range.`);
+        setUnavailableReason(`No eligible ${service.category.toLowerCase()} professional is currently available within the ${getServiceRadiusKm(area?.city || area?.area)} km PUNCHX service range.`);
         return false;
       }
       return true;
@@ -237,7 +236,8 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
       const serviceCenter = area || coords;
       if (!serviceCenter) { setAddressError('Choose a service area before confirming the visit address.'); return false; }
       const centerDistance = calculateDistanceKm(serviceCenter.lat, serviceCenter.lng, coords.lat, coords.lng);
-      if (centerDistance > RADIUS_KM) { setAddressError(`This residential address is ${centerDistance.toFixed(1)} km from the detected service area and is outside the ${RADIUS_KM} km PUNCHX range.`); return false; }
+      const serviceRadiusKm = getServiceRadiusKm(area?.city || area?.area);
+      if (centerDistance > serviceRadiusKm) { setAddressError(`This residential address is ${centerDistance.toFixed(1)} km from the detected service area and is outside the ${serviceRadiusKm} km PUNCHX range.`); return false; }
       if (selected) {
         const matches = getMatchingProfessionals(selected, coords); setMatchingCount(matches.length);
         if (matches.length === 0) { setAddressError('This exact address is not currently serviceable for the selected service. Please change the address or choose another service.'); return false; }
