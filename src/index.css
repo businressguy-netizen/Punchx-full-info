@@ -166,7 +166,7 @@ body { overflow-x:clip; }
 img,video,canvas,svg,iframe { max-width:100%; }
 img,video,canvas { height:auto; }
 button,input,textarea,select { max-width:100%; min-width:0; }
-input,textarea,select { width:100%; }
+textarea,select { max-width:100%; }
 button,a,[role="button"] { overflow-wrap:anywhere; }
 h1,h2,h3,h4,h5,h6,p,span,label,small,strong,em,li,td,th { overflow-wrap:anywhere; }
 pre,code { white-space:pre-wrap; overflow-wrap:anywhere; }
