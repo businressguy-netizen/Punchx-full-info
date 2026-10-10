@@ -5,7 +5,7 @@ import { AppScreen, Worker } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { isServiceAreaMatch } from '../lib/location';
+import { buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
 import { fetchApprovedProfessionals } from '../services/professionalDirectory';
 
 interface ProvidersListProps {
@@ -42,7 +42,10 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const [available, setAvailable] = useState(false);
   const [bookingTiming, setBookingTiming] = useState<'instant'|'later'>('instant');
   const [geo] = useState<{lat:number;lng:number;area?:string;city?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
-  const customerAreaLabels = [geo?.area, geo?.city].filter(Boolean).map(String);
+  const customerAreaLabels = useMemo(() => {
+    let saved:any={};try{saved=JSON.parse(localStorage.getItem('punchx_residential_address')||'{}');}catch{}
+    return buildPunchXCustomerAreaLabels({area:geo?.area,city:geo?.city,locality:saved.villageArea,district:saved.district,state:saved.state,pinCode:saved.pinCode,address:saved.fullAddress});
+  }, [geo]);
 
   useEffect(() => {
     let active = true;
