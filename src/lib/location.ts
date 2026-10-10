@@ -150,8 +150,9 @@ export function checkIsWithin15KmRadius(
   }
 
   const distanceKm = calculateDistanceKm(originCoords.lat, originCoords.lng, targetCoords.lat, targetCoords.lng);
+  const radiusKm = getServiceRadiusKm(typeof origin === 'string' ? origin : getStoredCustomerCity());
   return {
-    isWithin15Km: distanceKm <= 15.0,
+    isWithin15Km: distanceKm <= radiusKm,
     distanceKm
   };
 }
@@ -180,13 +181,14 @@ export function isSameAreaOrNearby(
   const wCoords = workerCoords?.lat ? workerCoords : getCoordinatesForAddressOrSector(workerAddress);
 
   const dist = calculateDistanceKm(cCoords.lat, cCoords.lng, wCoords.lat, wCoords.lng);
-  const isWithin15Km = dist <= 15.0;
+  const radiusKm = getServiceRadiusKm(customerAddress || getStoredCustomerCity());
+  const isWithin15Km = dist <= radiusKm;
 
   if (isWithin15Km) {
     return {
       isMatch: true,
       distanceKm: dist,
-      matchedArea: `${dist} km away (Inside 15km Zone)`,
+      matchedArea: `${dist} km away (Inside ${radiusKm} km Zone)`,
       isWithin15Km: true
     };
   }
@@ -194,7 +196,7 @@ export function isSameAreaOrNearby(
   return {
     isMatch: false,
     distanceKm: dist,
-    matchedArea: `${dist} km away (Outside 15km Zone)`,
+    matchedArea: `${dist} km away (Outside ${radiusKm} km Zone)`,
     isWithin15Km: false
   };
 }
@@ -595,7 +597,7 @@ export async function fetchGoogleMapsConfig(): Promise<GoogleMapsConfig> {
     mapId: 'PUNCHX_MAP_ID',
     attributionId: 'gmp_mcp_codeassist_v1_aistudio',
     defaultCenter: { lat: 22.5726, lng: 88.3639 },
-    maxRadiusKm: 15.0
+    maxRadiusKm: 4.0
   };
 }
 
@@ -644,7 +646,7 @@ export async function fetchGoogleMapsRoute(
     directDistanceKm: directKm,
     durationMinutes: etaMins,
     etaText: `${etaMins} mins`,
-    isWithin15Km: roadKm <= 15.0,
+    isWithin15Km: roadKm <= getServiceRadiusKm(getStoredCustomerCity()),
     isLiveGoogleRoute: false,
     waypoints: [origin, destination],
     origin,
