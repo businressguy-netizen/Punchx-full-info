@@ -11,7 +11,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     apiKey: browserKey,
     mapId: process.env.PUNCHX_MAP_ID || '',
     attributionId: 'gmp_mcp_codeassist_v1_aistudio',
-    defaultCenter: { lat: 22.5726, lng: 88.3639 },
-    maxRadiusKm: 15.0
+    defaultCenter: { lat: 22.9734, lng: 78.6569 },
+    serviceAreaMode: 'india-named-areas'
   });
 }
