@@ -202,7 +202,7 @@ export function isSameAreaOrNearby(
 }
 
 // Reverse Geocode using multiple accurate sources (Google Maps Platform, OpenStreetMap, BigDataCloud & Backend API)
-export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ address: string; area: string; city: string; sector: string; accuracyScore?: number }> {
+export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ address: string; area: string; city: string; district: string; state: string; postalCode: string; sector: string; accuracyScore?: number }> {
   // 1. Primary High-Precision: Google Maps Platform Backend API (/api/maps/geocode)
   try {
     const token = await getAuthToken();
@@ -220,7 +220,10 @@ export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ 
         return {
           address: data.address,
           area: data.area || extractAreaFromAddress(data.address),
-          city: data.city || 'Kolkata',
+          city: data.city || '',
+          district: data.district || '',
+          state: data.state || '',
+          postalCode: data.postalCode || '',
           sector: data.sector || getSectorFromAddress(data.address, data.area, lat, lng),
           accuracyScore: data.accuracyScore || 100
         };
@@ -256,9 +259,8 @@ export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ 
           addrObj.village ||
           addrObj.municipality ||
           addrObj.county ||
-          addrObj.state ||
-          'Kolkata';
-        const state = addrObj.state || 'West Bengal';
+          ''; 
+        const state = addrObj.state || '';
         const postcode = addrObj.postcode || '';
 
         const parts = [
@@ -277,6 +279,9 @@ export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ 
           address: fullAddress,
           area: resolvedArea,
           city: city,
+          district: addrObj.state_district || addrObj.district || addrObj.county || '',
+          state,
+          postalCode: addrObj.postcode || '',
           sector: getSectorFromAddress(fullAddress, resolvedArea, lat, lng),
           accuracyScore: 98
         };
@@ -293,7 +298,7 @@ export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ 
       const bdc = await bdcRes.json();
       if (bdc) {
         const locality = bdc.locality || '';
-        const city = bdc.city || bdc.principalSubdivision || 'Kolkata';
+        const city = bdc.city || bdc.locality || '';
         const state = bdc.principalSubdivision || '';
         const country = bdc.countryName || 'India';
         const area = locality || bdc.principalSubdivision || city;
@@ -303,6 +308,9 @@ export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ 
           address: fullAddr,
           area: area || extractAreaFromAddress(fullAddr),
           city: city,
+          district: bdc.localityInfo?.administrative?.[0]?.name || '',
+          state,
+          postalCode: bdc.postcode || '',
           sector: getSectorFromAddress(fullAddr, area, lat, lng),
           accuracyScore: 95
         };
@@ -314,13 +322,16 @@ export async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ 
 
   // 4. Default coordinates representation
   const areaName = `Locality (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`;
-  const cityName = "Kolkata";
-  const formattedAddress = `GPS Position (${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E), Kolkata, West Bengal`;
+  const cityName = "";
+  const formattedAddress = `GPS Position (${lat.toFixed(4)}°, ${lng.toFixed(4)}°)`;
 
   return {
     address: formattedAddress,
     area: areaName,
     city: cityName,
+    district: '',
+    state: '',
+    postalCode: '',
     sector: getSectorFromAddress(formattedAddress, areaName, lat, lng),
     accuracyScore: 90
   };
