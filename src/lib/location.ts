@@ -870,6 +870,34 @@ export function isSameServiceCity(customerCity?: string, professionalLocation?: 
   return location === city || (' ' + location + ' ').includes(' ' + city + ' ');
 }
 
+/**
+ * Area-based serviceability. This intentionally does not calculate a circle or
+ * use distance: the worker chooses the localities/areas they actually cover.
+ */
+export function normalizePunchXArea(value?: string): string {
+  return String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/^(area|locality|neighbourhood|neighborhood)\s+/, '');
+}
+
+export function isServiceAreaMatch(customerLocationLabel: string | string[] | undefined, serviceAreas: string[] | undefined): boolean {
+  const areas = (Array.isArray(serviceAreas) ? serviceAreas : [])
+    .map(normalizePunchXArea)
+    .filter(Boolean);
+  const candidates = (Array.isArray(customerLocationLabel) ? customerLocationLabel : [customerLocationLabel || ''])
+    .map(normalizePunchXArea)
+    .filter(Boolean);
+  if (!areas.length || !candidates.length) return false;
+  return areas.some(area => candidates.some(candidate =>
+    candidate === area ||
+    (' ' + candidate + ' ').includes(' ' + area + ' ') ||
+    (' ' + area + ' ').includes(' ' + candidate + ' ')
+  ));
+}
+
 
 export function getStoredCustomerCity(): string {
   try {
