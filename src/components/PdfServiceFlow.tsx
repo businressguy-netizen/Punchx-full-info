@@ -5,7 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { AppScreen } from '../types';
 import { isCategoryMatching } from '../data/categories';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { calculateDistanceKm, getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords, getServiceRadiusKm } from '../lib/location';
+import { getAccurateCurrentPosition, getCoordinatesForAddressOrSector, reverseGeocodeCoords, isServiceAreaMatch } from '../lib/location';
 
 type Service = {
   id: string;
@@ -33,6 +33,8 @@ type Professional = {
   address?: string;
   area?: string;
   sector?: string;
+  serviceAreas?: string[];
+  geofenceAreas?: string[];
   location?: { lat: number; lng: number };
   isDemo?: boolean;
 };
@@ -88,6 +90,8 @@ function normalizeProfessional(id: string, data: any): Professional {
     address: String(data.address || ''),
     area: String(data.area || ''),
     sector: String(data.sector || ''),
+    serviceAreas: Array.isArray(data.serviceAreas) ? data.serviceAreas.map(String) : Array.isArray(data.geofenceAreas) ? data.geofenceAreas.map(String) : undefined,
+    geofenceAreas: Array.isArray(data.geofenceAreas) ? data.geofenceAreas.map(String) : undefined,
     location: data.location && typeof data.location.lat === 'number' && typeof data.location.lng === 'number' ? data.location : undefined,
     isDemo: false,
   };
@@ -108,6 +112,8 @@ function workerToSelection(worker: Professional) {
     address: worker.address,
     area: worker.area,
     sector: worker.sector,
+    serviceAreas: worker.serviceAreas,
+    geofenceAreas: worker.geofenceAreas,
     location: worker.location,
   };
 }
@@ -189,14 +195,13 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
     setAddressParts(prev => prev.house ? prev : { house: parts[0] || '', street: parts[1] || '', locality: parts[2] || '', pin: parts.find(part => /\b\d{6}\b/.test(part))?.match(/\b\d{6}\b/)?.[0] || '', landmark: '' });
   }, [citizenAddress]);
 
-  const getMatchingProfessionals = (service: Service, coords: { lat: number; lng: number } | null = area) => {
-    if (!coords) return [];
+  const getMatchingProfessionals = (service: Service, customerAreaLabels: string[] = [area?.area, area?.sector, area?.city, area?.address].filter(Boolean) as string[]) => {
     return professionals.filter(pro => {
       if (!pro.available) return false;
       const skillMatch = isCategoryMatching(pro.categories || pro.category, service.category) || pro.category.toLowerCase() === service.category.toLowerCase();
       if (!skillMatch) return false;
-      const proCoords = pro.location || getCoordinatesForAddressOrSector(pro.address, pro.area, pro.sector);
-      return calculateDistanceKm(coords.lat, coords.lng, proCoords.lat, proCoords.lng) <= getServiceRadiusKm(area?.city || area?.area);
+      const workerAreas = pro.serviceAreas || pro.geofenceAreas || [pro.area, pro.sector].filter(Boolean);
+      return isServiceAreaMatch(customerAreaLabels, workerAreas);
     }).sort((a, b) => b.rating - a.rating);
   };
 
@@ -204,10 +209,10 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
     setChecking(true); setUnavailableReason('');
     try {
       if (!coords) { setUnavailableReason('We could not determine your service area. Choose a location and try again.'); return false; }
-      const matches = getMatchingProfessionals(service, coords);
+      const matches = getMatchingProfessionals(service);
       setMatchingCount(matches.length);
       if (matches.length === 0) {
-        setUnavailableReason(`No eligible ${service.category.toLowerCase()} professional is currently available within the ${getServiceRadiusKm(area?.city || area?.area)} km PUNCHX service range.`);
+        setUnavailableReason(`No eligible ${service.category.toLowerCase()} professional currently covers ${area.area || area.city || 'this locality'}.`);
         return false;
       }
       return true;
@@ -226,20 +231,21 @@ export default function PdfServiceFlow({ onTransition, selectedCategory, onSelec
     setAddressValidating(true); setAddressError('');
     try {
       let coords: { lat: number; lng: number } | null = null;
+      let resolvedLabels: string[] = [addressParts.locality, fullAddress].filter(Boolean);
       const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
       try {
         const response = await fetch('/api/maps/geocode', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ address: fullAddress, landmark: addressParts.landmark, area: addressParts.locality }) });
-        if (response.ok) { const data = await response.json(); if (typeof data.lat === 'number' && typeof data.lng === 'number') coords = { lat: data.lat, lng: data.lng }; }
+        if (response.ok) {
+          const data = await response.json();
+          if (typeof data.lat === 'number' && typeof data.lng === 'number') coords = { lat: data.lat, lng: data.lng };
+          resolvedLabels = [addressParts.locality, data.area, data.sector, data.city, fullAddress].filter(Boolean).map(String);
+        }
       } catch (error) { console.warn('PUNCHX address geocode fallback:', error); }
       if (!coords) coords = getCoordinatesForAddressOrSector(fullAddress, addressParts.locality);
       setAddressCoordinates(coords);
-      const serviceCenter = area || coords;
-      if (!serviceCenter) { setAddressError('Choose a service area before confirming the visit address.'); return false; }
-      const centerDistance = calculateDistanceKm(serviceCenter.lat, serviceCenter.lng, coords.lat, coords.lng);
-      const serviceRadiusKm = getServiceRadiusKm(area?.city || area?.area);
-      if (centerDistance > serviceRadiusKm) { setAddressError(`This residential address is ${centerDistance.toFixed(1)} km from the detected service area and is outside the ${serviceRadiusKm} km PUNCHX range.`); return false; }
+      if (!area) { setAddressError('Choose a service area before confirming the visit address.'); return false; }
       if (selected) {
-        const matches = getMatchingProfessionals(selected, coords); setMatchingCount(matches.length);
+        const matches = getMatchingProfessionals(selected, resolvedLabels); setMatchingCount(matches.length);
         if (matches.length === 0) { setAddressError('This exact address is not currently serviceable for the selected service. Please change the address or choose another service.'); return false; }
       }
       setAddressConfirmed(true); setCitizenAddress(fullAddress);
