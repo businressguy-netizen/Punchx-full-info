@@ -11,7 +11,7 @@ interface ServiceRadiusRadarModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode: 'customer' | 'worker';
-  centerLocation: { lat: number; lng: number; address?: string; name?: string };
+  centerLocation: { lat: number; lng: number; address?: string; name?: string; city?: string; area?: string };
   providers?: Worker[];
   workers?: Worker[];
   orders?: OrderRecord[];
