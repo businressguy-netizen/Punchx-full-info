@@ -5,7 +5,7 @@ import { auth, db } from '../lib/firebase';
 import { OrderRecord } from '../types';
 import { collection, doc, onSnapshot, runTransaction, updateDoc, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
-import { calculateDistanceKm, getAccurateCurrentPosition, reverseGeocodeCoords } from '../lib/location';
+import { calculateDistanceKm, getAccurateCurrentPosition, reverseGeocodeCoords, getServiceRadiusKm } from '../lib/location';
 import './worker-partner-panel.css';
 
 type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
@@ -26,7 +26,7 @@ const parseDate=(value:unknown):Date|null=>{if(value&&typeof value==='object'&&t
 const isToday=(value:unknown)=>{const s=String(value??'').trim().toLowerCase();if(s==='today')return true;const d=parseDate(value);if(!d)return false;const n=new Date();return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate();};
 const isWithinDays=(value:unknown,days:number)=>{const d=parseDate(value);if(!d)return false;const diff=Date.now()-d.getTime();return diff>=0&&diff<=days*86400000;};
 const safeNumber=(v:unknown)=>{const n=Number(v);return Number.isFinite(n)?n:0;};
-const GEOFENCE_RADIUS_KM=15;
+
 const isInstantOrderRecord=(o:OrderRecord)=>Boolean(o.isInstantOrder)||o.bookingType==='INSTANT'||Boolean(o.emergencyETA)||Number(o.emergencySurcharge||0)>0||['instant','sos','emergency'].includes(normalise((o as any).orderType||(o as any).priority));
 
 export default function WorkerPartnerPanel({onTransition,showNotification}:{onTransition?:(s:any)=>void;showNotification?:(m:string)=>void}) {
@@ -59,7 +59,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        if(cancelled)return;
        const next={lat,lng,area:resolved.area||'Local area',city:resolved.city||'',sector:resolved.sector||'',updatedAt:new Date().toISOString()};
        setGeo(next);setGeoError('');
-       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,sector:next.sector,geofenceArea:next.area,geofenceRadiusKm:GEOFENCE_RADIUS_KM,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
+       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,sector:next.sector,geofenceArea:next.area,geofenceRadiusKm:getServiceRadiusKm(next.city || next.area),geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
        await setDoc(doc(db,'users',uid),payload,{merge:true});
        await setDoc(doc(db,'workerApplications',String(userProfile?.applicationId||uid)),payload,{merge:true});
      }catch(error){if(!cancelled)setGeoError('Live location could not be resolved right now.');}
@@ -114,7 +114,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
        const catOk=!workerCategories.length || workerCategories.some(function(x){return cat.includes(x)||x.includes(cat)});
        if(!catOk)return false;
        const customerLoc=o.customerLocation;
-       if(customerLoc&&geo){return calculateDistanceKm(geo.lat,geo.lng,customerLoc.lat,customerLoc.lng)<=GEOFENCE_RADIUS_KM;}
+       if(customerLoc&&geo){return calculateDistanceKm(geo.lat,geo.lng,customerLoc.lat,customerLoc.lng)<=getServiceRadiusKm(geo.city || geo.area);}
        const oa=normalise(o.area), os=normalise(o.sector);
        if(oa||os)return (!workerArea || !oa || oa===workerArea) || (!!workerSector && !!os && workerSector===os);
        return true;
@@ -308,7 +308,7 @@ function HomeView(p:any){
     <div className="wx-geofence-copy">
      <span className="wx-section-label">LIVE GEOFENCING</span>
      <h3>{p.geo?.area||p.area||'Service zone unavailable'}</h3>
-     <p>{p.geo?.city||'Location not resolved'}{p.geo?.sector?' · '+p.geo.sector:''} · {GEOFENCE_RADIUS_KM} km service radius</p>
+     <p>{p.geo?.city||'Location not resolved'}{p.geo?.sector?' · '+p.geo.sector:''} · {getServiceRadiusKm(p.geo?.city || p.geo?.area)} km service radius</p>
      <small>{p.geoLoading?'Detecting your live location…':p.geoError||'Your current GPS position determines the active service zone.'}</small>
     </div>
    </div>
