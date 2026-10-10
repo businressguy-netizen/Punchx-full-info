@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, Home, MapPin, Plus, ShoppingBag, Trash2, UserRound, Wallet, X } from 'lucide-react';
 import { AppScreen, Worker } from '../types';
-import { buildPunchXCustomerAreaLabels, isServiceAreaMatch } from '../lib/location';
+import { buildPunchXCustomerAreaLabels, isPotentialServiceAreaMatch, isServiceAreaMatch } from '../lib/location';
 import { auth } from '../lib/firebase';
 import { calculatePunchXPricing, formatINR } from '../config/punchxCommerce';
 import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
@@ -59,7 +59,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
         if (timing === 'instant' && worker.isOnline !== true) return false;
         const serviceAreas = worker.serviceAreas || worker.geofenceAreas || [worker.area, worker.sector].filter(Boolean) as string[];
         const detectedLabels = [customerGeo?.area, customerGeo?.city].filter(Boolean) as string[];
-        return !detectedLabels.length || isServiceAreaMatch(detectedLabels, serviceAreas);
+        return !detectedLabels.length || isPotentialServiceAreaMatch(detectedLabels, serviceAreas);
       });
       setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...visible] : visible);
     }).catch(() => {
