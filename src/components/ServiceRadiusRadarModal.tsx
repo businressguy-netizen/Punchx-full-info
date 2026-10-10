@@ -42,8 +42,9 @@ export default function ServiceRadiusRadarModal({
   useEffect(() => {
     if (isOpen) {
       setSelectedItem(null);
+      setFilterRadius(serviceRadiusKm);
     }
-  }, [isOpen]);
+  }, [isOpen, serviceRadiusKm]);
 
   if (!isOpen) return null;
 
