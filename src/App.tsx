@@ -62,7 +62,7 @@ function AppMain() {
       else if (rawPath === '/worker-signup' || search.includes('/worker-signup')) setCurrentScreen('worker-signup');
       else if (rawPath === '/founder' || rawPath === '/leadership' || rawPath === '/founders' || search.includes('/founder') || search.includes('/founders') || search.includes('/leadership')) setCurrentScreen('founder');
       else if (rawPath === '' || rawPath === '/') {
-        if (currentScreen === 'privacy-policy' || currentScreen === 'terms-and-conditions' || currentScreen === 'founder' || currentScreen === 'worker-signup') setCurrentScreen(currentUser ? 'home' : 'panel-select');
+        if (currentScreen === 'privacy-policy' || currentScreen === 'terms-and-conditions' || currentScreen === 'founder' || currentScreen === 'worker-signup' || currentScreen === 'catalogue') setCurrentScreen(currentUser ? 'home' : 'panel-select');
       }
     };
     window.addEventListener('popstate', handlePopState);
