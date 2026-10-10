@@ -67,12 +67,13 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
       subcategoryName: subcategory.name,
     })))
   ), []);
-  const products = useMemo(() => selectedCategory ? getProductsForCategory(selectedCategory) : [], [selectedCategory]);
-  const filteredProducts = useMemo(() => {
-    const needle = normalize(query);
-    return products.filter(product => (!showQuoteOnly || product.quoteRequired) &&
-      (!needle || [product.name, product.specification, product.unit, selectedCategory?.name || ''].some(value => normalize(value).includes(needle))));
-  }, [products, query, showQuoteOnly, selectedCategory]);
+  // Derive these inexpensive catalogue filters directly. Memoizing against the
+  // selectedCategory object triggered React Compiler's preserve-manual-memoization
+  // rule because that object is resolved from the category list on each render.
+  const products = selectedCategory ? getProductsForCategory(selectedCategory) : [];
+  const needle = normalize(query);
+  const filteredProducts = products.filter(product => (!showQuoteOnly || product.quoteRequired) &&
+    (!needle || [product.name, product.specification, product.unit, selectedCategory?.name || ''].some(value => normalize(value).includes(needle))));
   const filteredServices = useMemo(() => {
     const needle = normalize(query);
     return allServices.filter(service => service.categoryId === selectedCategoryId &&
