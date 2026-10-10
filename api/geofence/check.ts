@@ -10,11 +10,7 @@ function matchesArea(customerLabels: string[], workerAreas: string[]): boolean {
   const candidates = customerLabels.map(normalizeArea).filter(Boolean);
   const areas = workerAreas.map(normalizeArea).filter(Boolean);
   if (!candidates.length || !areas.length) return false;
-  return areas.some(area => candidates.some(candidate =>
-    candidate === area ||
-    (' ' + candidate + ' ').includes(' ' + area + ' ') ||
-    (' ' + area + ' ').includes(' ' + candidate + ' ')
-  ));
+  return areas.some(area => candidates.includes(area));
 }
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
