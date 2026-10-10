@@ -15,12 +15,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const originLng = Number(origin.lng);
     if (!Number.isFinite(originLat) || !Number.isFinite(originLng) || Math.abs(originLat) > 90 || Math.abs(originLng) > 180) return res.status(400).json({ error: 'Valid origin coordinates are required' });
     const city = String(origin.city || origin.area || req.body?.city || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-    const largeCities = new Set(['kolkata','bengaluru','bangalore','mumbai','delhi','new delhi','hyderabad','chennai','pune','ahmedabad','jaipur','lucknow','kanpur','nagpur','indore','bhopal','patna','ranchi','bhubaneswar','cuttack','visakhapatnam','vizag','surat','vadodara','ludhiana','agra','nashik','coimbatore','kochi','thiruvananthapuram','guwahati','mysuru','mysore','noida','gurugram','gurgaon','faridabad','ghaziabad','durgapur','asansol','siliguri']);
-    const radiusKm = largeCities.has(city) || [...largeCities].some(name => city.startsWith(name + ' ')) ? 8 : 4;
+    const normalizeArea = (value: unknown) => String(value || '').normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+      .replace(/^(pin code|pincode)\s+/, 'pin ').replace(/^(area|locality|neighbourhood|neighborhood)\s+/, 'locality ');
+    const expandArea = (value: unknown): string[] => {
+      const raw=String(value||'').trim(); if(!raw)return [];
+      if(/^(pin(?:\s*code|code)?|state|district|city|locality|area|village|ward|sector)\s*:/i.test(raw))return [normalizeArea(raw)];
+      return raw.split(/[,;|\n]+/).map(normalizeArea).filter(Boolean);
+    };
+    const labels = (point:any):string[] => {
+      const out:string[]=[];
+      const add=(v:any,q?:string)=>{const t=String(v||'').trim();if(t){out.push(t);if(q)out.push(q+': '+t);}};
+      add(point?.area,'AREA');add(point?.locality,'LOCALITY');add(point?.sector,'SECTOR');add(point?.city,'CITY');
+      add(point?.district,'DISTRICT');add(point?.state,'STATE');
+      const pin=String(point?.postalCode||point?.pinCode||'').trim();if(/^\d{6}$/.test(pin))out.push(pin,'PIN: '+pin);
+      const c=String(point?.city||'').trim(),st=String(point?.state||'').trim(),d=String(point?.district||'').trim();
+      if(c&&st)out.push('CITY: '+c+', '+st);if(d&&st)out.push('DISTRICT: '+d+', '+st);
+      if(point?.address)out.push(String(point.address));
+      return out;
+    };
+    const matchesArea = (customer:any, worker:any):boolean|null => {
+      const workerAreas=Array.isArray(worker?.serviceAreas)?worker.serviceAreas:Array.isArray(worker?.geofenceAreas)?worker.geofenceAreas:[];
+      if(!workerAreas.length)return null;
+      const candidates=new Set(labels(customer).flatMap(expandArea));
+      return workerAreas.flatMap(expandArea).some((area:string)=>candidates.has(area));
+    };
 
     const results = destinations.map((dest: any, index: number) => {
-      const destLat = dest.lat || 12.9716;
-      const destLng = dest.lng || 77.5946;
+      const destLat = Number(dest.lat);
+      const destLng = Number(dest.lng);
+      if (!Number.isFinite(destLat) || !Number.isFinite(destLng) || Math.abs(destLat) > 90 || Math.abs(destLng) > 180) {
+        return { id: dest.id || `dest_${index}`, name: dest.name || dest.workerName || dest.customerName || `Target ${index + 1}`, category: dest.category || dest.skill || 'Specialist', lat: null, lng: null, distanceKm: null, serviceableByArea: matchesArea(origin, dest), isWithin15Km: null, durationMinutes: null, etaText: 'Location unavailable', bearingDeg: null };
+      }
 
       const dLat = ((destLat - originLat) * Math.PI) / 180;
       const dLon = ((destLng - originLng) * Math.PI) / 180;
@@ -32,7 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const distanceKm = Math.round(6371 * c * 10) / 10;
-      const isWithin15Km = distanceKm <= radiusKm;
+      const serviceableByArea = matchesArea(origin, dest);
       const etaMins = Math.max(4, Math.round(distanceKm * 3.2));
 
       // Bearing angle in degrees (-180 to 180)
@@ -49,26 +74,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         lat: destLat,
         lng: destLng,
         distanceKm,
-        isWithin15Km,
+        serviceableByArea,
+        isWithin15Km: serviceableByArea,
         durationMinutes: etaMins,
         etaText: `${etaMins} mins`,
         bearingDeg
       };
     });
 
-    // Filter and sort by distance
-    const within15KmList = results.filter(r => r.isWithin15Km).sort((a, b) => a.distanceKm - b.distanceKm);
+    // Keep all valid targets; distance is for navigation only and never gates serviceability.
+    const allResults = results.sort((a:any, b:any) => (Number(a.distanceKm) || Number.POSITIVE_INFINITY) - (Number(b.distanceKm) || Number.POSITIVE_INFINITY));
+    const serviceableCount = allResults.filter((r:any) => r.serviceableByArea === true).length;
 
     return res.json({
       success: true,
       origin: { lat: originLat, lng: originLng },
       totalChecked: destinations.length,
-      totalWithin15Km: within15KmList.length,
-      maxRadiusKm: radiusKm,
-      radiusKm,
+      totalServiceableByArea: serviceableCount,
+      serviceAreaMode: 'named-area',
       city,
-      results: within15KmList,
-      allResults: results
+      results: allResults,
+      allResults
     });
   } catch (err: any) {
     console.error("Distance matrix error:", err);
