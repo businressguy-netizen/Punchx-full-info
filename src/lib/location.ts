@@ -132,32 +132,24 @@ export function getStoredCustomerCoordinates(citizenAddress?: string): { lat: nu
   return getCoordinatesForAddressOrSector(citizenAddress);
 }
 
-// Check if a target location is within 15 km of origin
+// Legacy name retained for compatibility. Distance is informational; named areas decide coverage.
 export function checkIsWithin15KmRadius(
-  origin: { lat: number; lng: number } | string | undefined,
-  target: { lat: number; lng: number } | string | undefined
+  origin: ({ lat: number; lng: number } & PunchXAreaContext) | string | undefined,
+  target: ({ lat: number; lng: number } & PunchXAreaContext) | string | undefined
 ): { isWithin15Km: boolean; distanceKm: number } {
-  let originCoords: { lat: number; lng: number };
-  let targetCoords: { lat: number; lng: number };
-
-  if (typeof origin === 'object' && origin && typeof origin.lat === 'number' && typeof origin.lng === 'number') {
-    originCoords = origin;
-  } else {
-    originCoords = getStoredCustomerCoordinates(typeof origin === 'string' ? origin : undefined);
-  }
-
-  if (typeof target === 'object' && target && typeof target.lat === 'number' && typeof target.lng === 'number') {
-    targetCoords = target;
-  } else {
-    targetCoords = getCoordinatesForAddressOrSector(typeof target === 'string' ? target : undefined);
-  }
-
-  const distanceKm = calculateDistanceKm(originCoords.lat, originCoords.lng, targetCoords.lat, targetCoords.lng);
-  const radiusKm = getServiceRadiusKm(typeof origin === 'string' ? origin : getStoredCustomerCity());
-  return {
-    isWithin15Km: distanceKm <= radiusKm,
-    distanceKm
+  const labelsFor = (value: typeof origin): string[] => {
+    if (typeof value === 'string') return buildPunchXCustomerAreaLabels({ address: value });
+    if (value && typeof value === 'object') return buildPunchXCustomerAreaLabels(value);
+    return [];
   };
+  const originLabels = labelsFor(origin);
+  const targetLabels = labelsFor(target);
+  let distanceKm = Number.POSITIVE_INFINITY;
+  if (origin && typeof origin === 'object' && target && typeof target === 'object' &&
+      Number.isFinite(origin.lat) && Number.isFinite(origin.lng) && Number.isFinite(target.lat) && Number.isFinite(target.lng)) {
+    distanceKm = calculateDistanceKm(origin.lat, origin.lng, target.lat, target.lng);
+  }
+  return { isWithin15Km: isServiceAreaMatch(originLabels, targetLabels), distanceKm };
 }
 
 // Extract main area/locality from address string
@@ -173,34 +165,24 @@ export function extractAreaFromAddress(address: string): string {
   return parts[0];
 }
 
-// Check if customer area and worker area are in the same location or within 15 km proximity
+// Legacy name retained: exact locality matching replaces proximity/radius matching.
 export function isSameAreaOrNearby(
   customerAddress?: string,
   workerAddress?: string,
   customerCoords?: { lat: number; lng: number },
   workerCoords?: { lat: number; lng: number }
 ): { isMatch: boolean; distanceKm: number; matchedArea?: string; isWithin15Km: boolean } {
-  const cCoords = customerCoords?.lat ? customerCoords : getStoredCustomerCoordinates(customerAddress);
-  const wCoords = workerCoords?.lat ? workerCoords : getCoordinatesForAddressOrSector(workerAddress);
-
-  const dist = calculateDistanceKm(cCoords.lat, cCoords.lng, wCoords.lat, wCoords.lng);
-  const radiusKm = getServiceRadiusKm(customerAddress || getStoredCustomerCity());
-  const isWithin15Km = dist <= radiusKm;
-
-  if (isWithin15Km) {
-    return {
-      isMatch: true,
-      distanceKm: dist,
-      matchedArea: `${dist} km away (Inside ${radiusKm} km Zone)`,
-      isWithin15Km: true
-    };
-  }
-
+  const customerArea = extractAreaFromAddress(customerAddress || '');
+  const workerArea = extractAreaFromAddress(workerAddress || '');
+  const isMatch = Boolean(customerArea && workerArea && normalizePunchXArea(customerArea) === normalizePunchXArea(workerArea));
+  const distanceKm = customerCoords && workerCoords
+    ? calculateDistanceKm(customerCoords.lat, customerCoords.lng, workerCoords.lat, workerCoords.lng)
+    : Number.POSITIVE_INFINITY;
   return {
-    isMatch: false,
-    distanceKm: dist,
-    matchedArea: `${dist} km away (Outside ${radiusKm} km Zone)`,
-    isWithin15Km: false
+    isMatch,
+    distanceKm,
+    matchedArea: isMatch ? customerArea : undefined,
+    isWithin15Km: isMatch
   };
 }
 
