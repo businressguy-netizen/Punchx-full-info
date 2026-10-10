@@ -1283,21 +1283,33 @@ function getPunchXServiceRadiusKm(city?: string): 4 | 8 {
   // Server-authoritative PUNCHX service-area validation before checkout.
   app.post("/api/geofence/check", requireFirebaseUser, (req, res) => {
     const body = req.body || {};
-    const normalizeArea = (value: unknown) => String(value || "").normalize("NFKD").toLowerCase()
-      .replace(/[^a-z0-9]+/g, " ").trim().replace(/^(area|locality|neighbourhood|neighborhood)\s+/, "");
-    const splitLabels = (value: unknown) => String(value || "").split(/[,;|\n]+/).map(normalizeArea).filter(Boolean);
-    const customerLabels = [body.customerArea, body.customerCity, body.customerSector, body.customerAddress].flatMap(splitLabels);
-    const workerAreas = (Array.isArray(body.workerServiceAreas) ? body.workerServiceAreas : []).flatMap(splitLabels);
+    const normalizeArea = (value: unknown) => String(value || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+      .replace(/^(pin code|pincode)\s+/, "pin ")
+      .replace(/^(area|locality|neighbourhood|neighborhood)\s+/, "locality ");
+    const expandArea = (value: unknown) => {
+      const raw = String(value || "").trim();
+      if (!raw) return [];
+      if (/^(pin(?:\s*code|code)?|state|district|city|locality|area|village|ward|sector)\s*:/i.test(raw)) return [normalizeArea(raw)];
+      return raw.split(/[,;|\n]+/).map(normalizeArea).filter(Boolean);
+    };
+    const labels: string[] = [];
+    const addLabel = (value: unknown, qualifier?: string) => { const raw = String(value || "").trim(); if (raw) { labels.push(raw); if (qualifier) labels.push(qualifier + ": " + raw); } };
+    addLabel(body.customerArea, "AREA"); addLabel(body.customerLocality, "LOCALITY"); addLabel(body.customerSector, "SECTOR");
+    addLabel(body.customerCity, "CITY"); addLabel(body.customerDistrict, "DISTRICT"); addLabel(body.customerState, "STATE");
+    const pin = String(body.customerPinCode || "").trim(); if (/^\d{6}$/.test(pin)) labels.push(pin, "PIN: " + pin, "PINCODE: " + pin);
+    const city = String(body.customerCity || "").trim(), state = String(body.customerState || "").trim(), district = String(body.customerDistrict || "").trim();
+    if (city && state) labels.push("CITY: " + city + ", " + state);
+    if (district && state) labels.push("DISTRICT: " + district + ", " + state);
+    addLabel(body.customerAddress);
+    const customerLabels = Array.from(new Set(labels.flatMap(expandArea)));
+    const workerAreas = (Array.isArray(body.workerServiceAreas) ? body.workerServiceAreas : []).flatMap(expandArea);
     if (!customerLabels.length || !workerAreas.length) {
       return res.status(400).json({ success: false, serviceable: false, error: "A verified customer locality and configured worker service areas are required." });
     }
     const matchedArea = workerAreas.find((area: string) => customerLabels.includes(area)) || null;
     const serviceable = Boolean(matchedArea);
     return res.json({
-      success: true,
-      serviceable,
-      matchType: "named-area",
-      matchedArea,
+      success: true, serviceable, matchType: "named-area", matchedArea,
       message: serviceable ? "The address matches a configured PunchX service area." : "The address is outside the professional's configured service areas."
     });
   });
