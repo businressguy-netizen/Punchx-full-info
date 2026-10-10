@@ -9,6 +9,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let fullAddress = address || '';
     let area = '';
     let city = '';
+    let district = '';
+    let state = '';
+    let postalCode = '';
 
     if ((!lat || !lng) && address && address.trim().length > 2) {
       if (mapsKey) {
@@ -23,7 +26,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             lng = result.geometry?.location?.lng;
             for (const comp of result.address_components || []) {
               if (!area && (comp.types.includes('sublocality') || comp.types.includes('neighborhood'))) area = comp.long_name;
-              if (!city && (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2'))) city = comp.long_name;
+              if (!city && comp.types.includes('locality')) city = comp.long_name;
+              if (!district && comp.types.includes('administrative_area_level_2')) district = comp.long_name;
+              if (!state && comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+              if (!postalCode && comp.types.includes('postal_code')) postalCode = comp.long_name;
             }
           }
         } catch (error) {
@@ -45,7 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               fullAddress = result.display_name || fullAddress;
               const a = result.address || {};
               area = a.sublocality || a.neighbourhood || a.suburb || a.residential || a.road || a.quarter || a.city_district || area;
-              city = a.city || a.town || a.village || a.county || city;
+              city = a.city || a.town || a.village || city;
+              district = a.state_district || a.district || a.county || district;
+              state = a.state || state;
+              postalCode = a.postcode || postalCode;
             }
           }
         } catch (error) {
@@ -84,7 +93,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           fullAddress = result.formatted_address || fullAddress;
           for (const comp of result.address_components || []) {
             if (!area && (comp.types.includes('sublocality') || comp.types.includes('neighborhood'))) area = comp.long_name;
-            if (!city && (comp.types.includes('locality') || comp.types.includes('administrative_area_level_2'))) city = comp.long_name;
+            if (!city && comp.types.includes('locality')) city = comp.long_name;
+            if (!district && comp.types.includes('administrative_area_level_2')) district = comp.long_name;
+            if (!state && comp.types.includes('administrative_area_level_1')) state = comp.long_name;
+            if (!postalCode && comp.types.includes('postal_code')) postalCode = comp.long_name;
           }
         }
       } catch (error) {
@@ -103,7 +115,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             fullAddress = fullAddress || data.display_name;
             const a = data.address || {};
             area = area || a.sublocality || a.neighbourhood || a.suburb || a.residential || a.road || '';
-            city = city || a.city || a.town || a.village || a.county || '';
+            city = city || a.city || a.town || a.village || '';
+            district = district || a.state_district || a.district || a.county || '';
+            state = state || a.state || '';
+            postalCode = postalCode || a.postcode || '';
           }
         }
       } catch (error) {
@@ -147,6 +162,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       address: normalizedAddress,
       area: rawArea,
       city: normalizedCity,
+      district,
+      state,
+      postalCode,
       sector,
       lat: typeof lat === 'number' && Number.isFinite(lat) ? lat : null,
       lng: typeof lng === 'number' && Number.isFinite(lng) ? lng : null,
