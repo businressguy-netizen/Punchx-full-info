@@ -49,7 +49,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const [geoError,setGeoError]=useState('');
  const [serviceAreasDraft,setServiceAreasDraft]=useState<string>(()=>{
    const saved=Array.isArray(userProfile?.serviceAreas)?userProfile.serviceAreas:Array.isArray(userProfile?.geofenceAreas)?userProfile.geofenceAreas:[];
-   return saved.length?saved.join(', '):[userProfile?.area,userProfile?.sector].filter(Boolean).join(', ');
+   return saved.length?saved.join('\n'):[userProfile?.area,userProfile?.sector].filter(Boolean).join('\n');
  });
  const [savingServiceAreas,setSavingServiceAreas]=useState(false);
  const name=userProfile?.name||'Professional';
@@ -91,7 +91,7 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
    const configured=Array.isArray(userProfile?.serviceAreas)?userProfile.serviceAreas:Array.isArray(userProfile?.geofenceAreas)?userProfile.geofenceAreas:[];
    return configured.map((x:any)=>String(x).trim()).filter(Boolean).length?configured.map((x:any)=>String(x).trim()).filter(Boolean):[userProfile?.area,userProfile?.sector].map((x:any)=>String(x||'').trim()).filter(Boolean);
  },[userProfile]);
- useEffect(function(){setServiceAreasDraft(workerServiceAreas.join(', '));},[workerServiceAreas.join('|')]);
+ useEffect(function(){setServiceAreasDraft(workerServiceAreas.join('\n'));},[workerServiceAreas.join('|')]);
  const mapStatus=function(s?:string):Status{
    if(['Done','COMPLETED'].includes(s||'')) return 'COMPLETED';
    if(['Cancelled','CANCELLED'].includes(s||'')) return 'CANCELLED';
@@ -157,12 +157,15 @@ export default function WorkerPartnerPanel({onTransition,showNotification}:{onTr
  const filtered=useMemo(function(){return orders.filter(function(o){return (filter==='ALL'||(filter==='NEW'&&o.status==='NEW')||(filter==='ACCEPTED'&&o.status==='ACCEPTED')||(filter==='TRAVELLING'&&o.status==='TRAVELLING')||(filter==='ARRIVED'&&o.status==='ARRIVED')||(filter==='SERVICE_STARTED'&&o.status==='SERVICE_STARTED')||(filter==='COMPLETED'&&o.status==='COMPLETED')||(filter==='CANCELLED'&&o.status==='CANCELLED'))&&(o.id+' '+o.customer+' '+o.service+' '+o.address).toLowerCase().includes(query.toLowerCase())})},[orders,filter,query]);
  const saveServiceAreas=async function(){
    if(!uid||savingServiceAreas)return;
-   const areas=Array.from(new Set(serviceAreasDraft.split(/[\\n,;]+/).map(x=>x.trim()).filter(Boolean)));
-   if(!areas.length){showNotification?.('Enter at least one locality or service area before saving.');return;}
+   const areas=Array.from(new Set(serviceAreasDraft.split(/[\\n;]+/).map(x=>x.trim()).filter(Boolean)));
+   if(!areas.length){showNotification?.('Enter at least one service-area rule before saving.');return;}
+   const invalidPin=areas.find(x=>/^(pin(?:\\s*code|code)?)\\s*:/i.test(x)&&!/^pin(?:\\s*code|code)?\\s*:\\s*\\d{6}$/i.test(x));
+   if(invalidPin){showNotification?.('Use a valid six-digit PIN, for example: PIN: 700001.');return;}
+   if(areas.length>100){showNotification?.('You can configure up to 100 service-area rules.');return;}
    setSavingServiceAreas(true);
    const updatedAt=new Date().toISOString();
    try{
-     const patch={serviceAreas:areas,geofenceAreas:areas,geofenceArea:areas.join(', '),serviceAreaUpdatedAt:updatedAt,updatedAt};
+     const patch={serviceAreas:areas,geofenceAreas:areas,geofenceArea:areas.join('; '),serviceAreaMode:'india-named-areas',serviceAreaUpdatedAt:updatedAt,updatedAt};
      await setDoc(doc(db,'users',uid),patch,{merge:true});
      await setDoc(doc(db,'workerApplications',String(userProfile?.applicationId||uid)),patch,{merge:true});
      await refreshProfile?.();
@@ -342,8 +345,8 @@ function HomeView(p:any){
    </div>
   </section>
   <section className="wx-card wx-service-area-editor">
-   <div className="wx-card-head"><div><span className="wx-section-label">SERVICE AREA BOUNDARY</span><h3>Choose the localities you cover</h3><p>Enter area, neighbourhood, ward or town names separated by commas. Jobs outside these named areas will not appear in your new-job queue.</p></div></div>
-   <label className="wx-service-area-label">Covered areas<textarea value={p.serviceAreasDraft||''} onChange={function(e:any){p.setServiceAreasDraft(e.target.value)}} rows={3} placeholder="e.g. Nabadwip, Mayapur, Bablari" /></label>
+   <div className="wx-card-head"><div><span className="wx-section-label">SERVICE AREA BOUNDARY</span><h3>Choose the localities you cover</h3><p>Set coverage anywhere in India. Add one rule per line; jobs match these areas, not a circular distance.</p><p className="wx-area-format-help">Examples: <b>LOCALITY: Mayapur</b>, <b>CITY: Kolkata, West Bengal</b>, <b>DISTRICT: Nadia, West Bengal</b>, <b>STATE: West Bengal</b>, <b>PIN: 700001</b>.</p></div></div>
+   <label className="wx-service-area-label">Covered areas<textarea value={p.serviceAreasDraft||''} onChange={function(e:any){p.setServiceAreasDraft(e.target.value)}} rows={5} placeholder={'LOCALITY: Mayapur\nCITY: Kolkata, West Bengal\nDISTRICT: Nadia, West Bengal\nPIN: 741302'} /></label>
    <div className="wx-service-area-foot"><span>{p.serviceAreas?.length||0} named area(s) · no circular radius</span><button className="wx-primary" onClick={p.saveServiceAreas} disabled={p.savingServiceAreas}>{p.savingServiceAreas?'Saving areas…':'Save service areas'} <Save size={15}/></button></div>
   </section>
   <div className="wx-stats"><Stat label="Today’s orders" value={p.today.length} icon={ClipboardList}/><Stat label="Completed" value={p.completed} icon={CheckCircle2}/><Stat label="Pending" value={p.pending} icon={Clock3}/><Stat label="Cancelled" value={p.cancelled} icon={CircleAlert}/><Stat label="Working hours" value="—" icon={BriefcaseBusiness}/><Stat label="Avg. order" value={p.today.filter((o:any)=>o.earning!==null).length?money(p.today.filter((o:any)=>o.earning!==null).reduce((s:number,o:any)=>s+(o.earning||0),0)/p.today.filter((o:any)=>o.earning!==null).length):"—"} icon={TrendingUp}/></div>
