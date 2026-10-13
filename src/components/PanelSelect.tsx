@@ -33,7 +33,7 @@ export default function PanelSelect({ onSelectPanel, showNotification }: PanelSe
             <Sparkles className="h-3.5 w-3.5" /> PUNCHX UNIFIED PLATFORM
           </div>
           <h1 className="text-3xl font-black tracking-[-0.04em] text-[#0f172a] sm:text-5xl">Select Your PunchX Workspace</h1>
-          <p className="mt-4 max-w-lg text-sm font-medium leading-6 text-[#64748b] sm:text-base">Book verified neighborhood professionals or sign in as an authorized specialist partner.</p>
+          <p className="mt-4 max-w-lg text-sm font-medium leading-6 text-[#64748b] sm:text-base">Book local professionals or sign in as a service professional.</p>
         </motion.div>
 
         {/* Dual Cards: Customer vs Specialist */}
