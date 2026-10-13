@@ -154,7 +154,7 @@ export default function CitizenHomeCatalog({
           {cat.name}
         </span>
         <span className="flex items-center gap-1 text-[9px] font-bold text-emerald-600">
-          <Clock className="h-3 w-3" /> 45 min
+          <Info className="h-3 w-3" /> View details
         </span>
       </motion.button>
     );
@@ -324,7 +324,7 @@ export default function CitizenHomeCatalog({
                     {cat.shortDesc}
                   </span>
                   <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
-                    <Clock className="h-3 w-3" /> 45 min
+                    <Info className="h-3 w-3" /> View details
                     <span className="ml-auto flex items-center gap-0.5 text-amber-500">
 
                     </span>
@@ -367,7 +367,7 @@ export default function CitizenHomeCatalog({
         <section className="py-10 grid gap-3 sm:grid-cols-3">
           {[
             { icon: <ShieldCheck className="h-5 w-5 text-blue-600" />,
-              title: 'Verified professionals', desc: 'Every pro is background-checked and skill-verified.' },
+              title: 'Professional details', desc: '[VERIFICATION STEPS: confirm with founders before publishing a verification standard].' },
             { icon: <CalendarDays className="h-5 w-5 text-violet-600" />,
               title: 'Easy booking flow', desc: 'Pick service → facility → exact work → confirm.' },
             { icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
@@ -427,7 +427,7 @@ export default function CitizenHomeCatalog({
               <div className="h-24 w-24 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-5 ring-4 ring-white shadow-md">
                 <UserRound className="h-10 w-10" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">{citizenName || 'PunchX Citizen'}</h3>
+              <h3 className="text-xl font-bold text-gray-900">{citizenName || 'PunchX Customer'}</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8 text-left">
                 <div className="rounded-2xl bg-gray-50 p-4 border border-gray-100">
@@ -436,7 +436,7 @@ export default function CitizenHomeCatalog({
                 </div>
                 <div className="rounded-2xl bg-gray-50 p-4 border border-gray-100">
                   <div className="flex items-center gap-2 mb-1"><ShieldCheck className="h-4 w-4 text-emerald-500" /><span className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Account Status</span></div>
-                  <div className="text-sm font-semibold text-gray-800 ml-6">Verified Citizen</div>
+                  <div className="text-sm font-semibold text-gray-800 ml-6">Customer account</div>
                 </div>
               </div>
               
