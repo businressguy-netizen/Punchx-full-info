@@ -122,7 +122,7 @@ function AppMain() {
   const [workerApplication, setWorkerApplication] = useState<WorkerApplication | null>(null);
   const [selectedCategory, setSelectedCategory] = useState('AC Repair');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
-  const [citizenName, setCitizenName] = useState('PunchX Citizen');
+  const [citizenName, setCitizenName] = useState('PunchX Customer');
   const [citizenAddress, setCitizenAddress] = useState('');
   const [authMethod, setAuthMethod] = useState<'phone' | 'gmail'>('phone');
   const [authTarget, setAuthTarget] = useState('');
