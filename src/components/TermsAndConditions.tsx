@@ -723,7 +723,7 @@ export default function TermsAndConditions({ onTransition, showNotification }: T
             <div className="rounded-2xl bg-gradient-to-r from-[#0d1c3d] to-[#0a152e] border border-zinc-800 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="space-y-1 text-center sm:text-left">
                 <h4 className="text-sm font-bold text-white">Review Data Governance</h4>
-                <p className="text-xs text-zinc-400">Discover our strict security protocols, verification safeguards, and zero data selling guarantee.</p>
+                <p className="text-xs text-zinc-400">Review our privacy policy and the current service and verification terms.</p>
               </div>
               <button
                 onClick={() => {
