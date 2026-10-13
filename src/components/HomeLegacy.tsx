@@ -202,8 +202,8 @@ export default function HomeDashboard(props: HomeProps) {
 
         <section className="rounded-3xl border border-[#c5a059]/20 bg-[#0a152e] p-5 sm:p-8 shadow-xl">
           <p className="text-xs font-bold tracking-widest text-[#c5a059] uppercase">PunchX Marketplace</p>
-          <h1 className="mt-2 text-3xl sm:text-5xl font-black leading-tight">Book trusted local professionals.</h1>
-          <p className="mt-3 max-w-2xl text-sm sm:text-base text-gray-300">Find verified professionals for everyday services, compare options and book from one place.</p>
+          <h1 className="mt-2 text-3xl sm:text-5xl font-black leading-tight">Connecting people with trusted local professionals.</h1>
+          <p className="mt-3 max-w-2xl text-sm sm:text-base text-gray-300">Explore local professionals for everyday services, compare available options and book from one place.</p>
           <div className="mt-5 flex flex-col sm:flex-row gap-3"><button type="button" onClick={handleOpenCategories} className="min-h-12 px-6 rounded-xl bg-[#c5a059] text-black font-black">Find a Service</button><button type="button" onClick={() => onTransition('worker-signup')} className="min-h-12 px-6 rounded-xl border border-white/15 text-white font-bold">Join as a Professional</button></div>
         </section>
 
@@ -212,7 +212,7 @@ export default function HomeDashboard(props: HomeProps) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">{CATEGORIES.map(cat => <button key={cat.id} type="button" onClick={() => handleCategoryClick(cat.name)} className="min-h-24 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left hover:border-[#c5a059]/60 hover:bg-[#c5a059]/10 focus:outline-none focus:ring-2 focus:ring-[#c5a059]"><CategoryIcon category={cat.name} className="w-7 h-7 mb-2 text-[#e9c176]" /><span className="block text-sm font-bold">{cat.name}</span></button>)}</div>
         </section>
 
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3"><div className="rounded-2xl border border-white/10 p-5 bg-[#0a152e]"><ShieldCheck className="text-[#e9c176]"/><h3 className="font-bold mt-3">Verified professionals</h3><p className="text-xs text-gray-400 mt-1">Connect with approved service providers.</p></div><div className="rounded-2xl border border-white/10 p-5 bg-[#0a152e]"><CreditCard className="text-[#e9c176]"/><h3 className="font-bold mt-3">Secure booking</h3><p className="text-xs text-gray-400 mt-1">Keep booking and payment steps clear.</p></div><div className="rounded-2xl border border-white/10 p-5 bg-[#0a152e]"><Navigation className="text-[#e9c176]"/><h3 className="font-bold mt-3">Service tracking</h3><p className="text-xs text-gray-400 mt-1">Follow active jobs from your account.</p></div></section>
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-3"><div className="rounded-2xl border border-white/10 p-5 bg-[#0a152e]"><ShieldCheck className="text-[#e9c176]"/><h3 className="font-bold mt-3">Local professionals</h3><p className="text-xs text-gray-400 mt-1">Explore available local service providers.</p></div><div className="rounded-2xl border border-white/10 p-5 bg-[#0a152e]"><CreditCard className="text-[#e9c176]"/><h3 className="font-bold mt-3">Secure booking</h3><p className="text-xs text-gray-400 mt-1">Keep booking and payment steps clear.</p></div><div className="rounded-2xl border border-white/10 p-5 bg-[#0a152e]"><Navigation className="text-[#e9c176]"/><h3 className="font-bold mt-3">Service tracking</h3><p className="text-xs text-gray-400 mt-1">Follow active jobs from your account.</p></div></section>
       </main>
 
       <ServiceCategoryModal
