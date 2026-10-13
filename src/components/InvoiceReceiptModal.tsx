@@ -160,7 +160,7 @@ export default function InvoiceReceiptModal({
 
           {/* Official Seal & Notes */}
           <div className="p-4 rounded-xl border border-dashed border-zinc-300 text-[10px] text-zinc-500 leading-relaxed font-mono">
-            <strong>Warranty Terms:</strong> This tax invoice serves as your official warranty proof. If recurring issues occur on the serviced fixture within 30 days of this date, contact 1800-PUNCHX-24 for complimentary repair revisit.
+            <strong>Warranty Terms:</strong> [WARRANTY TERMS: confirm with founders before publishing]. This invoice does not itself establish a warranty or complimentary revisit unless those terms are confirmed for the booking.
           </div>
         </div>
       </div>
