@@ -207,7 +207,9 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
             categories: application.categories,
             skill: application.categories?.[0] || 'Electrician',
             experienceYears,
-            visitingFee: Number(visitingFee),
+            visitingFee: Number(minimumVisitingFee),
+            minimumVisitingFee: Number(minimumVisitingFee),
+            maximumVisitingFee: Number(maximumVisitingFee),
             isProfileCompleted: true,
             applicationId: application.id,
             updatedAt: new Date().toISOString()
