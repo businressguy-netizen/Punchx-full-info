@@ -313,7 +313,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
                   <Briefcase className="w-3.5 h-3.5" /> What service do you provide?
                 </label>
                 <p className="text-[11px] text-zinc-400">
-                  Select one or multiple categories from our 50 verified trades.
+                  Select one or more service categories.
                 </p>
               </div>
               <button
@@ -479,7 +479,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
             </div>
 
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              By registering as a PunchX Authority Worker, you agree to background identity screening, safety compliance protocols, and data privacy safeguards.
+              By registering, you agree to the professional onboarding terms shown by PunchX. [ONBOARDING AND VERIFICATION REQUIREMENTS: confirm with founders].
             </p>
 
             <label className="flex items-start gap-3 cursor-pointer pt-1">
@@ -557,28 +557,28 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
                 <section className="space-y-1">
                   <h4 className="font-bold text-white text-sm">1. Professional Code of Conduct & Punctuality</h4>
                   <p>
-                    All registered technicians ("Workers") agree to maintain peak professional decorum when visiting citizen premises. Workers must arrive within the designated service window, display official PunchX digital badges, and adhere strictly to requested diagnostic procedures.
+                    Professionals must follow the service terms and respect customer property and privacy. [SERVICE WINDOW, BADGE AND CONDUCT RULES: confirm with founders].
                   </p>
                 </section>
 
                 <section className="space-y-1">
                   <h4 className="font-bold text-white text-sm">2. Identity Verification & Background Screening</h4>
                   <p>
-                    By submitting your application, you consent to background identity validation via official government credentials. PunchX reserves the right to suspend or reject any profile containing fraudulent qualifications or unverified records.
+                    [VERIFICATION STEPS AND DOCUMENT REQUIREMENTS: confirm with founders before requiring or promising specific checks].
                   </p>
                 </section>
 
                 <section className="space-y-1">
                   <h4 className="font-bold text-white text-sm">3. Security Hand-Off OTP & Proof Protocol</h4>
                   <p>
-                    Workers are strictly prohibited from initiating work without verifying the 4-digit site OTP provided by the citizen. Furthermore, workers must upload valid photographic proof of work completion before requesting payout release.
+                    [JOB START, OTP AND COMPLETION-PROOF REQUIREMENTS: confirm with founders].
                   </p>
                 </section>
 
                 <section className="space-y-1">
                   <h4 className="font-bold text-white text-sm">4. Financial Terms, Earnings & Payouts</h4>
                   <p>
-                    Service earnings will be credited directly to the worker's verified account upon successful completion and citizen sign-off. PunchX levies a standard enterprise technology fee of 10% on gross bookings.
+                    Earnings, wallet balances, commissions and payout timing follow the applicable professional terms. [COMMISSION RATE AND PAYOUT RULES: confirm with founders].
                   </p>
                 </section>
 
