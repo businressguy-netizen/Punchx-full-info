@@ -69,7 +69,7 @@ export default function WebsiteNavbar({
     setMobileOpen(false);
     setCategoryModalOpen(false);
     onTransition('providers');
-    showNotification(`Showing verified PunchX professionals for ${name}.`);
+    showNotification(`Showing local PunchX professionals for ${name}.`);
   };
 
   const signOut = async () => {
@@ -175,15 +175,15 @@ export default function WebsiteNavbar({
               <div className="relative">
                 <button onClick={() => setProfileOpen(v => !v)} className="flex h-10 items-center gap-2 rounded-xl bg-[#17191d] px-2.5 text-white transition hover:bg-[#24272d]" aria-label="Open profile">
                   <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg bg-white/10">{userProfile?.photoURL ? <img src={userProfile.photoURL} alt="Profile" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}</div>
-                  <span className="hidden max-w-24 truncate text-xs font-extrabold sm:block">{citizenName || userProfile?.name || 'Citizen'}</span>
+                  <span className="hidden max-w-24 truncate text-xs font-extrabold sm:block">{citizenName || userProfile?.name || 'Customer'}</span>
                   <ChevronDown className={`h-3.5 w-3.5 transition ${profileOpen ? 'rotate-180' : ''}`} />
                 </button>
                 <AnimatePresence>
                   {profileOpen && (
                     <motion.div initial={{ opacity: 0, y: 7, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 7, scale: .98 }} className="absolute right-0 top-[calc(100%+8px)] w-72 rounded-3xl border border-black/5 bg-white p-3 shadow-[0_24px_70px_rgba(24,24,30,.14)]">
                       <div className="rounded-2xl bg-[#f7f5ff] p-3">
-                        <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-[#17191d] text-white">{userProfile?.photoURL ? <img src={userProfile.photoURL} alt="Profile" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}</div><div className="min-w-0"><div className="truncate text-xs font-black">{citizenName || 'PunchX Citizen'}</div><div className="truncate text-[10px] text-[#848994]">{citizenAddress || 'Service address not set'}</div></div></div>
-                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-1 text-[9px] font-extrabold text-[#5b45c7] ring-1 ring-[#7358d7]/10"><ShieldCheck className="h-3 w-3" /> PunchX verified account</div>
+                        <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-[#17191d] text-white">{userProfile?.photoURL ? <img src={userProfile.photoURL} alt="Profile" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}</div><div className="min-w-0"><div className="truncate text-xs font-black">{citizenName || 'PunchX Customer'}</div><div className="truncate text-[10px] text-[#848994]">{citizenAddress || 'Service address not set'}</div></div></div>
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-1 text-[9px] font-extrabold text-[#5b45c7] ring-1 ring-[#7358d7]/10"><ShieldCheck className="h-3 w-3" /> PunchX account</div>
                       </div>
                       <div className="mt-2 space-y-1">
                         <button onClick={() => { setProfileOpen(false); onOpenProfile?.(); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><UserRound className="h-4 w-4 text-[#7358d7]" /> Manage account & bookings</button>
