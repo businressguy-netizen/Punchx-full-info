@@ -44,7 +44,7 @@ export default function PanelSelect({ onSelectPanel, showNotification }: PanelSe
             <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#2563eb]/7 blur-3xl transition-all duration-500 group-hover:bg-[#38bdf8]/12" />
             <div className="relative flex flex-col items-center text-center flex-1">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-700">
-                <User className="h-3 w-3" /> Citizen Workspace
+                <User className="h-3 w-3" /> Customer Workspace
               </div>
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] text-[#2563eb] shadow-sm mb-4 transition-transform duration-300 group-hover:scale-105">
                 <User className="h-8 w-8" />
