@@ -51,7 +51,7 @@ export default function PanelSelect({ onSelectPanel, showNotification }: PanelSe
               </div>
               <h2 className="text-xl font-extrabold tracking-tight text-[#0f172a]">Customer Portal</h2>
               <p className="mt-2 text-xs sm:text-sm text-[#64748b] mb-6 leading-relaxed">
-                Book verified professionals for AC, electrical, plumbing, carpentry, and 50+ home services with live GPS tracking.
+                Explore local professionals for AC, electrical, plumbing, carpentry and other home services. Tracking availability depends on the booking.
               </p>
             </div>
             <button onClick={() => { showNotification(`Opening Customer portal...`); onSelectPanel('customer', 'login'); }} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2563eb] px-5 py-4 text-sm font-extrabold text-white shadow-[0_12px_30px_rgba(37,99,235,.24)] transition-all hover:bg-[#1d4ed8] hover:shadow-[0_16px_34px_rgba(37,99,235,.30)] active:scale-[.99]">
