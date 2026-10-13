@@ -1,11 +1,11 @@
 {
-  "name": "PunchX — Trusted Home Services at Your Fingertips",
+  "name": "PunchX: Connecting people with trusted local professionals",
   "short_name": "PunchX",
-  "description": "India's on-demand home services platform. Book verified professionals instantly.",
+  "description": "A marketplace being built to connect customers with local service professionals.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#07122a",
-  "theme_color": "#07122a",
+  "theme_color": "#f7f8fa",
   "orientation": "portrait",
   "icons": [
     {
@@ -13,6 +13,12 @@
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "categories": ["lifestyle", "utilities"],
