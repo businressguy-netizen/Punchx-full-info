@@ -53,7 +53,7 @@ export default function Auth({ onTransition, showNotification, setAuthMethodDeta
   const role = roleLabels[activePanelRole];
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f7faff] text-[#0f172a] px-5 py-7 sm:px-8">
+    <main className="punchx-auth-screen relative min-h-screen overflow-hidden bg-[#f7faff] text-[#0f172a] px-5 py-7 sm:px-8">
       <style>{`
         @keyframes punchx-auth-drift { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(28px,-20px,0); } }
         @keyframes punchx-auth-grid { from { background-position: 0 0; } to { background-position: 44px 44px; } }

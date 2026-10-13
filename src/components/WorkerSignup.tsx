@@ -197,7 +197,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
   };
 
   return (
-    <div id="worker-signup-screen" className="min-h-screen bg-[#07122a] text-[#e1e3e4] font-sans py-10 px-4 sm:px-6 relative">
+    <div id="worker-signup-screen" className="punchx-worker-signup min-h-screen bg-[#07122a] text-[#e1e3e4] font-sans py-10 px-4 sm:px-6 relative">
       
       {/* Top Navigation */}
       <div className="max-w-4xl mx-auto flex justify-between items-center mb-6">

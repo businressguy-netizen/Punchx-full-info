@@ -1,0 +1,141 @@
+/* Shared PunchX UI consistency layer.
+   Visual-only overrides: no booking, authentication, payment, or data logic changes. */
+:root {
+  --px-market-bg:#f7f7fb;
+  --px-market-card:#ffffff;
+  --px-market-text:#16181d;
+  --px-market-muted:#737781;
+  --px-market-border:rgba(20,24,32,.09);
+  --px-market-purple:#6d4ee6;
+  --px-market-purple-dark:#5636cf;
+  --px-market-lilac:#eee9ff;
+  --px-market-green:#087b5a;
+  --px-market-green-soft:#e8f7f1;
+}
+
+/* Authentication / onboarding: violet actions, calm surfaces, clear focus. */
+.punchx-auth-screen {
+  background:
+    radial-gradient(circle at 12% 10%,rgba(109,78,230,.12),transparent 30%),
+    radial-gradient(circle at 90% 78%,rgba(8,123,90,.09),transparent 28%),
+    linear-gradient(180deg,#fff 0%,#f7f7fb 100%) !important;
+  color:var(--px-market-text) !important;
+}
+.punchx-auth-screen [class*="bg-[#2563eb]"] { background-color:var(--px-market-purple)!important; }
+.punchx-auth-screen [class*="hover:bg-[#1d4ed8]"]:hover { background-color:var(--px-market-purple-dark)!important; }
+.punchx-auth-screen [class*="text-[#2563eb]"],
+.punchx-auth-screen [class*="text-[#1e40af]"] { color:var(--px-market-purple)!important; }
+.punchx-auth-screen [class*="border-[#bfdbfe]"],
+.punchx-auth-screen [class*="border-[#dbeafe]"] { border-color:rgba(109,78,230,.18)!important; }
+.punchx-auth-screen [class*="bg-[#eff6ff]"] { background:#f2efff!important; }
+.punchx-auth-screen [class*="shadow-[0_30px_90px"] { box-shadow:0 24px 70px rgba(43,34,89,.12)!important; }
+.punchx-auth-screen button,
+.punchx-auth-screen a,
+.punchx-auth-screen input,
+.punchx-auth-screen textarea,
+.punchx-auth-screen select { -webkit-tap-highlight-color:transparent; }
+.punchx-auth-screen button:focus-visible,
+.punchx-auth-screen a:focus-visible,
+.punchx-auth-screen input:focus-visible,
+.punchx-auth-screen textarea:focus-visible,
+.punchx-auth-screen select:focus-visible {
+  outline:3px solid rgba(109,78,230,.28)!important;
+  outline-offset:2px;
+}
+.punchx-auth-screen [class*="text-[#64748b]"] { color:#737781!important; }
+
+/* Worker registration: replace the legacy dark/gold form with the same light marketplace system. */
+.punchx-worker-signup {
+  background:
+    radial-gradient(circle at 8% 0%,rgba(109,78,230,.10),transparent 28%),
+    radial-gradient(circle at 95% 85%,rgba(8,123,90,.07),transparent 25%),
+    var(--px-market-bg)!important;
+  color:var(--px-market-text)!important;
+}
+.punchx-worker-signup [class*="bg-[#11192e]"],
+.punchx-worker-signup [class*="bg-[#0a152e]"],
+.punchx-worker-signup [class*="bg-[#07122a]"] {
+  background:#fff!important;
+  color:var(--px-market-text)!important;
+}
+.punchx-worker-signup [class*="border-[#c5a059]"],
+.punchx-worker-signup [class*="border-zinc-800"] { border-color:var(--px-market-border)!important; }
+.punchx-worker-signup [class*="text-[#e9c176]"] { color:var(--px-market-purple)!important; }
+.punchx-worker-signup [class*="bg-[#c5a059]"] { background:var(--px-market-purple)!important;color:#fff!important; }
+.punchx-worker-signup [class*="hover:bg-[#e9c176]"]:hover { background:var(--px-market-purple-dark)!important;color:#fff!important; }
+.punchx-worker-signup [class*="text-zinc-400"],
+.punchx-worker-signup [class*="text-zinc-500"],
+.punchx-worker-signup [class*="text-zinc-600"] { color:#737781!important; }
+.punchx-worker-signup [class*="text-zinc-300"] { color:#555b66!important; }
+.punchx-worker-signup [class*="text-white"] { color:#20232a; }
+.punchx-worker-signup [class*="bg-rose-500/10"] { background:#fff1f2!important; }
+.punchx-worker-signup [class*="text-rose-300"] { color:#be123c!important; }
+.punchx-worker-signup [class*="border-rose-500/30"] { border-color:#fecdd3!important; }
+.punchx-worker-signup input,
+.punchx-worker-signup textarea,
+.punchx-worker-signup select {
+  background:#fff!important;
+  color:var(--px-market-text)!important;
+  border-color:#dfe1e8!important;
+  border-radius:12px!important;
+  min-height:44px;
+}
+.punchx-worker-signup input::placeholder,
+.punchx-worker-signup textarea::placeholder { color:#9297a2!important; }
+.punchx-worker-signup input:focus,
+.punchx-worker-signup textarea:focus,
+.punchx-worker-signup select:focus { border-color:var(--px-market-purple)!important;box-shadow:0 0 0 3px rgba(109,78,230,.12)!important; }
+.punchx-worker-signup button { transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease; }
+.punchx-worker-signup button:focus-visible,
+.punchx-worker-signup a:focus-visible,
+.punchx-worker-signup input:focus-visible,
+.punchx-worker-signup textarea:focus-visible,
+.punchx-worker-signup select:focus-visible { outline:3px solid rgba(109,78,230,.26)!important;outline-offset:2px; }
+.punchx-worker-signup button[class*="bg-[#c5a059]"] { box-shadow:0 8px 20px rgba(109,78,230,.18)!important; }
+.punchx-worker-signup button[class*="bg-[#c5a059]"]:hover { transform:translateY(-1px); }
+@media(max-width:640px) {
+  .punchx-worker-signup { padding:20px 12px!important; }
+  .punchx-worker-signup > .max-w-4xl:nth-child(2) { padding:20px!important;border-radius:22px!important; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .punchx-worker-signup button { transition:none!important; }
+}
+
+/* Professional workspace: retain the high-contrast sidebar while aligning actions and trust cues. */
+:root {
+  --wx-brand:#6d4ee6;
+  --wx-brand2:#5636cf;
+  --wx-sidebar:#211747;
+}
+.wx-app { background:#f7f7fb!important;color:#16181d!important; }
+.wx-sidebar { background:linear-gradient(180deg,#211747 0%,#171136 100%)!important; }
+.wx-sidebar nav button.active,
+.wx-sidebar nav button:hover { background:rgba(109,78,230,.24)!important;color:#fff!important; }
+.wx-sidebar nav button.active { box-shadow:inset 3px 0 #a995ff!important; }
+.wx-brand span { color:#c4b5fd!important; }
+.wx-header { background:rgba(255,255,255,.94)!important; }
+.wx-hero {
+  background:linear-gradient(125deg,#f0ecff 0%,#fff 56%,#eaf8f2 100%)!important;
+  color:#16181d!important;
+  border:1px solid rgba(109,78,230,.10);
+  box-shadow:0 12px 32px rgba(36,31,65,.08)!important;
+}
+.wx-hero p,
+.wx-hero-earn span,
+.wx-hero-earn small { color:#737781!important; }
+.wx-pill { color:#087b5a!important;background:#e8f7f1!important;border-color:#c9eddf!important; }
+.wx-pill i { background:#0f9f72!important; }
+.wx-primary { background:linear-gradient(135deg,#6d4ee6,#5636cf)!important;color:#fff!important; }
+.wx-primary:hover:not(:disabled) { filter:brightness(1.04);box-shadow:0 8px 20px rgba(109,78,230,.2)!important; }
+.wx-card { border-color:rgba(20,24,32,.08)!important;box-shadow:0 8px 28px rgba(36,31,65,.045); }
+.wx-app button:focus-visible,
+.wx-app a:focus-visible,
+.wx-app input:focus-visible,
+.wx-app select:focus-visible,
+.wx-app textarea:focus-visible { outline:3px solid rgba(109,78,230,.28)!important;outline-offset:2px; }
+.wx-app input:focus,
+.wx-app select:focus,
+.wx-app textarea:focus { border-color:#8c72ed!important;box-shadow:0 0 0 3px rgba(109,78,230,.10); }
+@media(prefers-reduced-motion:reduce) {
+  .wx-app *, .wx-app *::before, .wx-app *::after { scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important; }
+}
