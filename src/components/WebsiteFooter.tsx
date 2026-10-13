@@ -31,7 +31,7 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {[
             [Clock3, 'Smart dispatch', 'Match a professional to your service need and preferred timing.'],
-            [ShieldCheck, 'Verified network', 'Identity, skills and service history stay visible before you book.'],
+            [ShieldCheck, 'Clear service details', 'Review the service details and booking terms before you confirm.'],
             [CheckCircle2, 'Clear checkout', 'See the booking total, add-ons and payment mode before confirming.'],
             [Navigation2Icon, 'Service tracking', 'Follow active jobs from assignment to arrival with live updates.'],
           ].map(([Icon, title, desc]) => (
@@ -47,11 +47,11 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
           <div>
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-1"><img src={PUNCHX_LOGO} alt="PunchX" className="h-full w-full rounded-xl object-contain" /></div>
-              <div><div className="text-xl font-black tracking-[-0.03em]">PunchX</div><div className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Citizen × professional network</div></div>
+              <div><div className="text-xl font-black tracking-[-0.03em]">PunchX</div><div className="text-[9px] font-bold uppercase tracking-[0.16em] text-white/45">Customer × professional network</div></div>
             </div>
-            <p className="mt-4 max-w-md text-xs leading-6 text-white/60">A service marketplace that helps citizens discover local professionals, book transparently, and stay connected throughout the service journey.</p>
+            <p className="mt-4 max-w-md text-xs leading-6 text-white/60">A service marketplace being built to help customers discover local professionals, understand booking details, and stay connected throughout the service journey.</p>
             <div className="mt-5 flex flex-wrap gap-2">
-              {['Verified profiles', 'Transparent pricing', 'Live service status'].map(x => <span key={x} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[9px] font-bold text-white/70">{x}</span>)}
+              {['Local service options', 'Booking details', 'Service status'].map(x => <span key={x} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[9px] font-bold text-white/70">{x}</span>)}
             </div>
           </div>
 
@@ -66,9 +66,8 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b9adff]">PunchX support</div>
             <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.045] p-4">
-              <div className="flex items-center gap-2 text-xs font-black"><Phone className="h-4 w-4 text-[#b9adff]" /> 24/7 service support</div>
-              <div className="mt-2 text-sm font-black">1800-PUNCHX-24</div>
-              <div className="mt-4 flex items-center gap-2 text-[10px] text-white/55"><Mail className="h-3.5 w-3.5" /> punchxservice@gmail.com</div>
+              <div className="flex items-center gap-2 text-xs font-black"><Mail className="h-4 w-4 text-[#b9adff]" /> Contact PunchX</div>
+              <a className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-white underline underline-offset-4" href="mailto:punchxservice@gmail.com">punchxservice@gmail.com</a>
               <button onClick={() => showNotification('Support request entry point is available from your PunchX account.')} className="mt-4 flex w-full items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs font-black text-[#17191d] transition hover:bg-[#efeff2]">Open support flow <ArrowRight className="h-4 w-4" /></button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -122,9 +121,9 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
           <button onClick={() => setRefundOpen(false)} className="rounded-xl bg-white/5 p-2 text-white/70 hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
         <div className="space-y-3 pt-4 text-xs leading-5 text-white/65">
-          <p><strong className="text-white">Service guarantee:</strong> eligibility depends on the service and the applicable booking terms shown at checkout.</p>
-          <p><strong className="text-white">Cancellation:</strong> the booking screen shows the applicable cancellation and refund information before confirmation.</p>
-          <p><strong className="text-white">Payment disputes:</strong> use the support flow from your booking/account to submit the order details.</p>
+          <p><strong className="text-white">Refund policy:</strong> [REFUND POLICY: confirm with founders before publishing].</p>
+          <p><strong className="text-white">Cancellation:</strong> [CANCELLATION POLICY: confirm with founders before publishing].</p>
+          <p><strong className="text-white">Payment disputes:</strong> contact <a className="underline underline-offset-4" href="mailto:punchxservice@gmail.com">punchxservice@gmail.com</a> while the formal dispute process is confirmed.</p>
         </div>
       </div>
     );
