@@ -583,9 +583,9 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
                 </section>
 
                 <section className="space-y-1">
-                  <h4 className="font-bold text-white text-sm">5. Citizen Data Privacy & Non-Disclosure</h4>
+                  <h4 className="font-bold text-white text-sm">5. Customer Data Privacy & Non-Disclosure</h4>
                   <p>
-                    Citizen addresses, phone numbers, and structural details disclosed during service dispatches are confidential. Workers are legally bound not to store, share, or contact citizens outside the PunchX platform.
+                    Customer contact and property details shared for a service are confidential. Professionals must follow the applicable PunchX privacy terms and use customer information only for the service.
                   </p>
                 </section>
 
