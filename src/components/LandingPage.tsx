@@ -195,7 +195,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
 
         <section id="how-it-works" className="bg-slate-950 py-20 text-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center"><p className="text-sm font-black uppercase tracking-wider text-orange-400">Simple & Secure</p><h2 className="mt-3 text-3xl font-black sm:text-4xl">How PunchX Works</h2><p className="mt-4 text-slate-400">From finding a professional to completing the job, PunchX keeps the service journey simple and transparent.</p></div>
+            <div className="mx-auto max-w-2xl text-center"><p className="text-sm font-black uppercase tracking-wider text-orange-400">A clear service journey</p><h2 className="mt-3 text-3xl font-black sm:text-4xl">How PunchX Works</h2><p className="mt-4 text-slate-400">From finding a professional to completing the job, PunchX keeps the service journey simple and transparent.</p></div>
             <div className="mt-14 grid gap-6 md:grid-cols-4">
               {[
                 ['01', 'Select Service & Location', 'Choose the work you need and provide your service location.'],
