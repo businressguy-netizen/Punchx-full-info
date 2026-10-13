@@ -85,9 +85,9 @@ export default function SimpleCustomerHome({ onTransition, onSelectCategory, cit
       <main className="mx-auto max-w-7xl px-4 sm:px-6">
         <section className="pt-5">
           <div className="rounded-[28px] bg-[#213145] p-6 text-white shadow-lg sm:p-9">
-            <div className="flex items-center gap-2 text-xs font-bold text-white/75"><ShieldCheck className="h-4 w-4 text-[#38bdf8]" /> Verified local professionals</div>
-            <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">Book a verified professional for every home need.</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Browse the complete 50-service catalogue. Every service branch, facility and exact work has a dedicated visual so you can recognise the job before booking.</p>
+            <div className="flex items-center gap-2 text-xs font-bold text-white/75"><ShieldCheck className="h-4 w-4 text-[#38bdf8]" /> Local service professionals</div>
+            <h1 className="mt-3 max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">Find local help for everyday home services.</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/70">Explore service categories and review the details available before booking.</p>
             <div className="mt-6 flex items-center gap-2 rounded-2xl bg-white p-2"><Search className="ml-2 h-5 w-5 text-[#64748b]" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search AC repair, fan, tap, cleaning..." className="min-w-0 flex-1 bg-transparent px-1 py-3 text-sm font-semibold text-[#0f172a] outline-none" /><button onClick={() => onTransition('providers')} className="rounded-xl bg-[#2563eb] px-4 py-3 text-xs font-black text-white">Browse</button></div>
           </div>
         </section>
