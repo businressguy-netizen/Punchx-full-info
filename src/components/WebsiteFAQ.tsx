@@ -104,7 +104,7 @@ export default function WebsiteFAQ() {
       <div className="space-y-3 pt-2">
         {filteredFaqs.length === 0 ? (
           <div className="text-center py-10 text-zinc-500 text-xs font-mono">
-            No questions matched your search query. Try another term or contact our 24/7 helpline at 1800-PUNCHX-24 or PUNCHXSERVICE@GMAIL.COM.
+            No questions matched your search. Try another term or email punchxservice@gmail.com.
           </div>
         ) : (
           filteredFaqs.map((faq, idx) => {
