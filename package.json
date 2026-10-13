@@ -13,7 +13,8 @@
     "start": "node dist/server.cjs",
     "lint": "eslint .",
     "lint:typecheck": "tsc --noEmit",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "node --test"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.3.1",
