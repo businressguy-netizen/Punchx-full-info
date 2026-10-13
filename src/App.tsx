@@ -38,6 +38,8 @@ const Founder = lazy(() => import('./components/Founder'));
 const AuthCallback = lazy(() => import('./components/AuthCallback'));
 
 function AppMain() {
+  // Keep the static, crawlable landing visible until React has committed its first screen.
+  useEffect(() => { document.documentElement.classList.add('app-mounted'); }, []);
   const { currentUser, userProfile, isLoadingProfile } = useAuth();
   // Native app wrappers pass a role-specific query parameter so each APK opens its own login.
   const urlPunchxAppMode = new URLSearchParams(window.location.search).get('punchxApp')?.toLowerCase();
