@@ -182,7 +182,7 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
 
         transaction.update(ref, {
           workerId: uid,
-          workerName: userProfile?.name || 'Verified Professional',
+          workerName: userProfile?.name || 'Professional',
           workerPhone: userProfile?.phone || '',
           status: 'In-Progress',
           workerOutForWork: false,
@@ -263,7 +263,7 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <div>
             <div className="flex items-center gap-2 font-bold text-xl">PUNCHX <span className="text-sm font-medium text-slate-500">Professional</span></div>
-            <div className="text-xs text-slate-500">{userProfile?.name || 'Verified Professional'}</div>
+            <div className="text-xs text-slate-500">{userProfile?.name || 'Professional'}</div>
           </div>
           <div className="hidden md:flex items-center gap-6 mr-auto ml-10">
             <button onClick={() => setActiveTab('home')} className={`text-sm font-bold ${activeTab === 'home' ? 'text-blue-600' : 'text-slate-500'}`}>Home</button>
@@ -345,7 +345,7 @@ export default function WorkerDashboard({ onTransition, showNotification }: Work
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4">
                 <UserRound size={32} />
               </div>
-              <h3 className="text-xl font-bold">{userProfile?.name || 'Verified Professional'}</h3>
+              <h3 className="text-xl font-bold">{userProfile?.name || 'Professional'}</h3>
               <p className="text-slate-500">{userProfile?.phone || 'No phone provided'}</p>
               
               <div className="grid grid-cols-2 gap-4 w-full mt-6 text-left">
@@ -430,7 +430,7 @@ function Info({ label, value }: { label: string; value: string }) {
   return <div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</div><div className="mt-1 text-slate-800">{value}</div></div>;
 }
 
-function JobCard({ job, uid, busy, onOpen }: { job: OrderRecord; uid: string; busy: boolean; onOpen: () => void }) {
+function JobCard({ job, uid, busy, onOpen }: { job: OrderRecord; uid: string; busy: boolean; onOpen: () => void; key?: React.Key }) {
   const assigned = job.workerId === uid;
   return <button onClick={onOpen} className="w-full rounded-2xl bg-white p-5 text-left shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md">
     <div className="flex items-start justify-between gap-3"><div><div className="font-bold">{job.category || 'Service'}</div><div className="mt-1 text-xs text-slate-500">#{job.id.slice(0, 10)}</div></div><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assigned ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{busy ? 'Updating…' : assigned ? job.status : 'NEW'}</span></div>
