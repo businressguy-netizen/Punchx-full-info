@@ -18,6 +18,9 @@ const RECOVERY_KEY = 'punchx-runtime-recovery-v4';
 const CHUNK_ERROR_RE = /failed to fetch dynamically imported module|importing a module script failed|loading chunk|chunkloaderror|dynamically imported module/i;
 
 export class ErrorBoundary extends React.Component<Props, State> {
+  // These declarations describe React's inherited members without emitting class fields.
+  declare public props: Readonly<Props>;
+  declare public setState: (state: Partial<State> | null, callback?: () => void) => void;
   public state: State = { hasError: false, error: null, errorInfo: null };
 
   public static getDerivedStateFromError(error: Error): State {
