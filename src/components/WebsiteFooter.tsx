@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle2, ChevronRight, Clock3, Navigation2, Gift, Mail, MapPin, Phone, ShieldCheck, Sparkles, Wrench, X } from 'lucide-react';
+import { ArrowRight, CheckCircle2, ChevronRight, Clock3, Navigation2, Gift, Mail, MapPin, ShieldCheck, Sparkles, Wrench, X } from 'lucide-react';
 import { AppScreen } from '../types';
 import PUNCHX_LOGO from '../assets/logo';
 import { PUNCHX_50_CATEGORIES } from '../data/categories';
