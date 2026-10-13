@@ -367,7 +367,7 @@ export default function CitizenHomeCatalog({
         <section className="py-10 grid gap-3 sm:grid-cols-3">
           {[
             { icon: <ShieldCheck className="h-5 w-5 text-blue-600" />,
-              title: 'Professional details', desc: '[VERIFICATION STEPS: confirm with founders before publishing a verification standard].' },
+              title: 'Professional information', desc: 'Review the available profile information before booking.' },
             { icon: <CalendarDays className="h-5 w-5 text-violet-600" />,
               title: 'Easy booking flow', desc: 'Pick service → facility → exact work → confirm.' },
             { icon: <CheckCircle2 className="h-5 w-5 text-emerald-600" />,
