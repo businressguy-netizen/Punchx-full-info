@@ -100,7 +100,7 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
             <button onClick={() => onTransition('founder')} className="hover:text-white">Founding team</button>
             <button onClick={() => onTransition('terms-and-conditions')} className="hover:text-white">Terms</button>
             <button onClick={() => onTransition('privacy-policy')} className="hover:text-white">Privacy</button>
-            <button onClick={() => showNotification('Accessibility controls are planned for the next citizen release.')} className="hover:text-white">Accessibility</button>
+            <button onClick={() => showNotification('Accessibility support details: [CONFIRM WITH FOUNDERS].')} className="hover:text-white">Accessibility</button>
           </div>
         </div>
       </div>
