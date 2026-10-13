@@ -124,10 +124,10 @@ export default function Splash({ onTransition }: SplashProps) {
 
         <motion.div initial={{ y:22, opacity:0 }} animate={{ y:0, opacity:1 }} transition={{ delay:.25, duration:.55 }} className="mt-16">
           <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-white/90 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#2563eb] shadow-[0_8px_25px_rgba(37,99,235,.1)] backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5" /> Trusted local services
+            <Sparkles className="h-3.5 w-3.5" /> Local service marketplace
           </div>
           <motion.h1 initial={{ letterSpacing:'-.06em' }} animate={{ letterSpacing:'-.025em' }} transition={{ delay:.35, duration:.6 }} className="text-4xl font-black tracking-tight text-[#0f172a]">PUNCH<span className="text-[#2563eb]">X</span></motion.h1>
-          <p className="mt-2 text-sm font-medium text-[#64748b]">Verified professionals. Simple booking. Better service.</p>
+          <p className="mt-2 text-sm font-medium text-[#64748b]">Connecting people with trusted local professionals.</p>
         </motion.div>
 
         <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} transition={{ delay:.75, duration:.45 }} className="mt-8 flex items-center gap-2 text-[11px] font-semibold text-[#64748b]">
