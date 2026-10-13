@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "lint:typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "test": "node --test"
+    "test": "node --test tests/static-seo.test.mjs"
   },
   "dependencies": {
     "@google-cloud/firestore": "^9.3.1",
