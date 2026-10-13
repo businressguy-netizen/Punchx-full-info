@@ -139,9 +139,9 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
           <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-orange-100 blur-3xl" />
           <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 lg:px-8 lg:pb-28">
             <div className="mx-auto max-w-4xl text-center">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-2 text-xs font-bold text-orange-700 shadow-sm"><span className="h-2 w-2 rounded-full bg-green-500" />Verified professionals. Transparent service.</div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">Book Verified Local Service <span className="text-orange-500">Professionals Near You</span></h1>
-              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Upfront pricing, background-checked technicians, and platform-backed quality assurance.</p>
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-2 text-xs font-bold text-orange-700 shadow-sm"><span className="h-2 w-2 rounded-full bg-green-500" />Local services with clear booking details.</div>
+              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">Find Local Service <span className="text-orange-500">Professionals Near You</span></h1>
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Upfront pricing, profile details reviewed technicians, and platform-backed quality assurance.</p>
 
               <div className="mx-auto mt-10 max-w-4xl rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
                 <form onSubmit={(event) => { event.preventDefault(); findProfessionals(); }} className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
@@ -164,7 +164,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
         <section className="border-b border-slate-100 bg-white">
           <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-3 sm:px-6 lg:px-8">
             {[
-              ['✓', 'Verified Professionals', 'Identity, contact, and trade skill credentials audited'],
+              ['✓', 'Local Professionals', 'Review available professional details before booking'],
               ['₹', 'Upfront Pricing', 'Transparent rates with zero doorstep renegotiation'],
               ['🛡️', 'Dispute Resolution', 'Dedicated support & service quality guarantee on every booking'],
             ].map(([icon, title, text]) => (
@@ -199,7 +199,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
             <div className="mt-14 grid gap-6 md:grid-cols-4">
               {[
                 ['01', 'Select Service & Location', 'Choose the work you need and provide your service location.'],
-                ['02', 'Instant Professional Match', 'Discover suitable verified professionals available for your job.'],
+                ['02', 'Instant Professional Match', 'Discover suitable local professionals available for your job.'],
                 ['03', 'Transparent Execution & Digital Invoice', 'Track the service and receive a digital record of the work.'],
                 ['04', 'Secure Payment & Review', 'Complete payment securely and share your service experience.'],
               ].map(([step, title, text]) => <article key={step} className="rounded-2xl border border-white/10 bg-white/5 p-6"><span className="text-sm font-black text-orange-400">{step}</span><h3 className="mt-4 font-bold">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-400">{text}</p></article>)}
