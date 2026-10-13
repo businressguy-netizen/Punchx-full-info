@@ -156,7 +156,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
                 </form>
               </div>
 
-              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-500"><span>✓ Local service categories</span><span>✓ Booking details</span><span>✓ Payment options shown at checkout</span></div>
+              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-500"><span>✓ Local service categories</span><span>✓ Booking details</span><span>✓ Payment methods shown in the booking flow</span></div>
             </div>
           </div>
         </section>
