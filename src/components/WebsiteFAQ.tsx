@@ -14,13 +14,13 @@ export default function WebsiteFAQ() {
     },
     {
       category: 'Safety',
-      question: 'How are technicians vetted and verified before visiting my residence?',
-      answer: 'Every PunchX service partner undergoes a rigorous 4-stage onboarding protocol: (1) Government Aadhaar & identity validation, (2) Criminal record & local police background clearance, (3) Practical trade competency examination by senior guild inspectors, and (4) Standardized customer safety & hygiene training. Every specialist wears a verified PunchX digital photo badge and uniform.'
+      question: 'How are professionals verified before a booking?',
+      answer: '[VERIFICATION STEPS: confirm with founders]. PunchX should publish the actual checks used before making a specific verification claim.'
     },
     {
       category: 'Warranty',
-      question: 'What is the PunchX 30-Day Service Guarantee and how does it work?',
-      answer: 'All completed repairs and maintenance tasks come backed by our unconditional 30-Day Revisit Guarantee. If any serviced electrical circuit, AC compressor unit, or plumbing joint develops recurring issues within 30 days of service closure, our team will dispatch a master specialist for a complimentary re-inspection and resolution at zero extra labor cost.'
+      question: 'What warranty or revisit policy applies to a service?',
+      answer: '[WARRANTY AND REVISIT POLICY: confirm with founders]. Any applicable terms should be shown before a booking is confirmed.'
     },
     {
       category: 'Dispatch',
@@ -35,12 +35,12 @@ export default function WebsiteFAQ() {
     {
       category: 'Safety',
       question: 'What is the 4-Digit Security OTP Gate and why is it important?',
-      answer: 'To protect customer security and verify technician identity, our system issues a unique 4-digit numeric verification OTP upon booking. You share this code with the technician only when they arrive at your physical doorstep. Entering this code on the worker portal is mandatory to unlock the job ledger and start work.'
+      answer: 'Booking and completion confirmation steps depend on the current booking flow. [CONFIRM OTP PURPOSE AND TIMING WITH FOUNDERS].'
     },
     {
       category: 'Corporate',
       question: 'Does PunchX provide Annual Maintenance Contracts (AMC) for apartment complexes and offices?',
-      answer: 'Yes. PunchX Corporate Care delivers customized maintenance contracts for residential societies, gated villas, co-working spaces, and retail hubs with dedicated on-site technicians, scheduled monthly electrical & pump inspections, and guaranteed 15-minute emergency SLAs.'
+      answer: '[BUSINESS OR CORPORATE SERVICE AVAILABILITY: confirm with founders].'
     }
   ];
 
@@ -66,7 +66,7 @@ export default function WebsiteFAQ() {
             Frequently Asked Questions
           </h2>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-            Everything you need to know about our verified technicians, guarantees, and pricing.
+            Answers about services, booking, safety and pricing.
           </p>
         </div>
 
@@ -167,7 +167,7 @@ export default function WebsiteFAQ() {
             className="px-4 py-2 rounded-xl bg-[#c5a059] hover:bg-[#e9c176] text-black text-xs font-bold transition-all flex items-center gap-1.5 shadow-md"
           >
             <Phone className="w-3.5 h-3.5" />
-            <span>Call 1800-PUNCHX</span>
+            <span>Email punchxservice@gmail.com</span>
           </a>
         </div>
       </div>
