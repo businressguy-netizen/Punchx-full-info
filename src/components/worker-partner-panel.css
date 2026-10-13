@@ -742,3 +742,23 @@
 .wx-status.wx-online-toggle.online{background:#dc2626!important;background-image:linear-gradient(135deg,#ef4444,#b91c1c)!important;color:#fff!important;border-color:#b91c1c!important}
 .wx-status.wx-online-toggle i{display:inline-block!important;flex:0 0 8px!important;width:8px!important;height:8px!important;background:#fff!important;border-radius:50%!important;animation:wx-availability-pulse 1.35s ease-in-out infinite!important;will-change:transform,box-shadow}
 .wx-status.wx-online-toggle.is-saving i{animation:wx-availability-saving .7s linear infinite!important}
+
+
+/* Shared PunchX visual system refinements (UI-only; preserve worker workflow logic). */
+:root{--wx-brand:#6d4ee6;--wx-brand2:#5636cf;--wx-sidebar:#211747}
+.wx-app{background:#f7f7fb!important;color:#16181d!important}
+.wx-sidebar{background:linear-gradient(180deg,#211747 0%,#171136 100%)!important}
+.wx-sidebar nav button.active,.wx-sidebar nav button:hover{background:rgba(109,78,230,.24)!important;color:#fff!important}
+.wx-sidebar nav button.active{box-shadow:inset 3px 0 #a995ff!important}
+.wx-brand span{color:#c4b5fd!important}
+.wx-header{background:rgba(255,255,255,.94)!important}
+.wx-hero{background:linear-gradient(125deg,#f0ecff 0%,#fff 56%,#eaf8f2 100%)!important;color:#16181d!important;border:1px solid rgba(109,78,230,.10);box-shadow:0 12px 32px rgba(36,31,65,.08)!important}
+.wx-hero p,.wx-hero-earn span,.wx-hero-earn small{color:#737781!important}
+.wx-pill{color:#087b5a!important;background:#e8f7f1!important;border-color:#c9eddf!important}
+.wx-pill i{background:#0f9f72!important}
+.wx-primary{background:linear-gradient(135deg,#6d4ee6,#5636cf)!important;color:#fff!important}
+.wx-primary:hover:not(:disabled){filter:brightness(1.04);box-shadow:0 8px 20px rgba(109,78,230,.2)!important}
+.wx-card{border-color:rgba(20,24,32,.08)!important;box-shadow:0 8px 28px rgba(36,31,65,.045)}
+.wx-app button:focus-visible,.wx-app a:focus-visible,.wx-app input:focus-visible,.wx-app select:focus-visible,.wx-app textarea:focus-visible{outline:3px solid rgba(109,78,230,.28)!important;outline-offset:2px}
+.wx-app input:focus,.wx-app select:focus,.wx-app textarea:focus{border-color:#8c72ed!important;box-shadow:0 0 0 3px rgba(109,78,230,.10)}
+@media(prefers-reduced-motion:reduce){.wx-app *,.wx-app *::before,.wx-app *::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
