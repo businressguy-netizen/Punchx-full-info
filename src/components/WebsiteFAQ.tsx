@@ -34,7 +34,7 @@ export default function WebsiteFAQ() {
     },
     {
       category: 'Safety',
-      question: 'What is the 4-Digit Security OTP Gate and why is it important?',
+      question: 'How is a booking or completed job confirmed?',
       answer: 'Booking and completion confirmation steps depend on the current booking flow. [CONFIRM OTP PURPOSE AND TIMING WITH FOUNDERS].'
     },
     {
