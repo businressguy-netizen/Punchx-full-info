@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#07122a"/>
-  <text x="8" y="44" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="32" fill="#ffffff">P</text>
-  <text x="30" y="44" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="32" fill="#c5a059">X</text>
-  <rect x="8" y="50" width="48" height="2" rx="1" fill="#c5a059" opacity="0.6"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">PunchX</title>
+  <rect width="64" height="64" rx="14" fill="#f7f8fa"/>
+  <path d="M12 12h20c11 0 18 6 18 16S43 44 32 44h-8v8H12V12zm12 11v9h8c4 0 6-1 6-4s-2-5-6-5h-8z" fill="#17191d"/>
+  <path d="M48 40l4 4 4-4 4 4-4 4 4 4-4 4-4-4-4 4-4-4 4-4-4-4z" fill="#4f46e5" transform="translate(-3 -1)"/>
 </svg>
