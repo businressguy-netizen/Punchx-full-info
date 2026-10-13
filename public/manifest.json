@@ -4,7 +4,7 @@
   "description": "A marketplace being built to connect customers with local service professionals.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#07122a",
+  "background_color": "#f7f8fa",
   "theme_color": "#f7f8fa",
   "orientation": "portrait",
   "icons": [
