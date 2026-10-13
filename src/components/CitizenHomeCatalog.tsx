@@ -126,7 +126,7 @@ export default function CitizenHomeCatalog({
   }, [searchOpen]);
 
   /* ── Render a single service card ── */
-  const ServiceCard = ({ catId, index, color }: { catId: string; index: number; color: typeof GROUP_COLORS[0] }) => {
+  const ServiceCard = ({ catId, index, color }: { catId: string; index: number; color: typeof GROUP_COLORS[0]; key?: React.Key }) => {
     const cat = PUNCHX_50_CATEGORIES.find(c => c.id === catId);
     if (!cat) return null;
     const IconComp = ICON_MAP[cat.iconName] || Wrench;
