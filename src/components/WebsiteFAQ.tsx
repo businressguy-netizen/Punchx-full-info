@@ -10,7 +10,7 @@ export default function WebsiteFAQ() {
     {
       category: 'Pricing',
       question: 'How does PunchX pricing work? Are there any hidden fees?',
-      answer: 'PunchX operates with complete upfront price transparency. A flat standard inspection & visiting fee of ₹199 is applied, which is fully adjusted against the final service bill if you proceed with the work. Master technician labor and genuine spare parts are itemized and approved by you before physical execution begins. There are zero surge traps or hidden conveyance costs.'
+      answer: '[SERVICE PRICE RANGES, VISIT FEES AND PLATFORM FEES: confirm with founders]. The final amount and any applicable fees should be reviewed before booking confirmation.'
     },
     {
       category: 'Safety',
@@ -24,13 +24,13 @@ export default function WebsiteFAQ() {
     },
     {
       category: 'Dispatch',
-      question: 'How quickly will a technician arrive at my doorstep in Kolkata?',
-      answer: 'Our smart GPS radar allocates the nearest available on-duty master technician in your neighborhood sector. Average arrival time across Kolkata is 15–30 minutes for emergency dispatches, with live real-time turn-by-turn tracking available directly on your customer tracking screen.'
+      question: 'When will the professional arrive?',
+      answer: 'Arrival timing depends on the service, availability and booking details. Tracking availability depends on the booking. [CONFIRM SERVICE-AREA AND ETA PROMISES WITH FOUNDERS].'
     },
     {
       category: 'Payments',
       question: 'When do I need to pay, and what payment methods are accepted?',
-      answer: 'No advance payment is needed to book. You only pay once the technician finishes the service to your satisfaction, shows digital photo proof, and collects your completion signature. We accept all major UPI apps (GPay, PhonePe, Paytm), credit/debit cards, net banking, and cash on delivery.'
+      answer: 'Payment options can include online payment and cash where applicable. The available methods and payment timing should be confirmed in the checkout flow. [CONFIRM PAYMENT TERMS WITH FOUNDERS].'
     },
     {
       category: 'Safety',
@@ -157,13 +157,13 @@ export default function WebsiteFAQ() {
           </div>
           <div>
             <h4 className="text-sm font-bold text-white">Have a specific emergency or enterprise question?</h4>
-            <p className="text-xs text-zinc-400">Our concierge support team is available 24/7 across Kolkata.</p>
+            <p className="text-xs text-zinc-400">Contact PunchX by email for questions about services and bookings.</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <a
-            href="tel:1800786249"
+            href="mailto:punchxservice@gmail.com"
             className="px-4 py-2 rounded-xl bg-[#c5a059] hover:bg-[#e9c176] text-black text-xs font-bold transition-all flex items-center gap-1.5 shadow-md"
           >
             <Phone className="w-3.5 h-3.5" />
