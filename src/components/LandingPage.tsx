@@ -85,7 +85,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
   const selectCategory = (category: Category): void => {
     onSelectCategory(category.name);
     setQuery(category.name);
-    showNotification(`✓ ${category.name} selected. Find a verified professional next.`);
+    showNotification(`✓ ${category.name} selected. Find a local professional next.`);
     onTransition('providers');
   };
 
@@ -141,7 +141,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
             <div className="mx-auto max-w-4xl text-center">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-2 text-xs font-bold text-orange-700 shadow-sm"><span className="h-2 w-2 rounded-full bg-green-500" />Local services with clear booking details.</div>
               <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">Find Local Service <span className="text-orange-500">Professionals Near You</span></h1>
-              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Upfront pricing, profile details reviewed technicians, and platform-backed quality assurance.</p>
+              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Explore local service options and review available booking details before confirming.</p>
 
               <div className="mx-auto mt-10 max-w-4xl rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
                 <form onSubmit={(event) => { event.preventDefault(); findProfessionals(); }} className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
@@ -156,7 +156,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
                 </form>
               </div>
 
-              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-500"><span>✓ Identity verified</span><span>✓ Transparent pricing</span><span>✓ Digital invoices</span><span>✓ Secure payments</span></div>
+              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-500"><span>✓ Local service categories</span><span>✓ Booking details</span><span>✓ Payment options shown at checkout</span></div>
             </div>
           </div>
         </section>
@@ -165,8 +165,8 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
           <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-3 sm:px-6 lg:px-8">
             {[
               ['✓', 'Local Professionals', 'Review available professional details before booking'],
-              ['₹', 'Upfront Pricing', 'Transparent rates with zero doorstep renegotiation'],
-              ['🛡️', 'Dispute Resolution', 'Dedicated support & service quality guarantee on every booking'],
+              ['₹', 'Pricing details', '[SERVICE PRICE RANGES: confirm with founders]'],
+              ['🛡️', 'Service support', '[DISPUTE AND REFUND PROCESS: confirm with founders]'],
             ].map(([icon, title, text]) => (
               <article key={title} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 text-xl">{icon}</div>
@@ -201,29 +201,29 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
                 ['01', 'Select Service & Location', 'Choose the work you need and provide your service location.'],
                 ['02', 'Instant Professional Match', 'Discover suitable local professionals available for your job.'],
                 ['03', 'Transparent Execution & Digital Invoice', 'Track the service and receive a digital record of the work.'],
-                ['04', 'Secure Payment & Review', 'Complete payment securely and share your service experience.'],
+                ['04', 'Payment & review', 'Use the payment options shown for your booking and share feedback where available.'],
               ].map(([step, title, text]) => <article key={step} className="rounded-2xl border border-white/10 bg-white/5 p-6"><span className="text-sm font-black text-orange-400">{step}</span><h3 className="mt-4 font-bold">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-400">{text}</p></article>)}
             </div>
           </div>
         </section>
 
         <section id="partner" className="bg-orange-50 py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="overflow-hidden rounded-3xl bg-orange-500 p-8 text-white shadow-xl sm:p-12"><div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]"><div><span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold">FOR SERVICE PROFESSIONALS</span><h2 className="mt-5 max-w-3xl text-3xl font-black sm:text-4xl">Are you a skilled electrician, plumber, or technician?</h2><p className="mt-5 max-w-2xl leading-7 text-orange-50">Partner with PunchX to get direct customer bookings, flexible hours, and weekly payouts.</p></div><button id="partner-signup-btn" type="button" onClick={openPartner} className="whitespace-nowrap rounded-xl bg-white px-6 py-4 text-sm font-black text-orange-600 shadow-lg hover:bg-orange-50">Register as a Service Partner</button></div></div></div>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="overflow-hidden rounded-3xl bg-orange-500 p-8 text-white shadow-xl sm:p-12"><div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]"><div><span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold">FOR SERVICE PROFESSIONALS</span><h2 className="mt-5 max-w-3xl text-3xl font-black sm:text-4xl">Are you a skilled electrician, plumber, or technician?</h2><p className="mt-5 max-w-2xl leading-7 text-orange-50">Partner with PunchX to explore customer bookings and digital work opportunities. Wallet, commission and payout terms: [CONFIRM WITH FOUNDERS].</p></div><button id="partner-signup-btn" type="button" onClick={openPartner} className="whitespace-nowrap rounded-xl bg-white px-6 py-4 text-sm font-black text-orange-600 shadow-lg hover:bg-orange-50">Register as a Service Partner</button></div></div></div>
         </section>
 
         <section id="faq" className="bg-white py-20">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8"><div className="text-center"><p className="text-sm font-black uppercase tracking-wider text-orange-500">FAQ</p><h2 className="mt-3 text-3xl font-black text-slate-950 sm:text-4xl">Frequently Asked Questions</h2></div><div className="mt-10 space-y-3">
             {[
-              ['How does PunchX verify professionals?', 'PunchX is designed to collect and verify professional identity, contact details, and relevant trade information before professionals are presented as verified service partners.'],
-              ['Can I see pricing before booking?', 'PunchX is designed around upfront service pricing so customers can understand the expected service cost before confirming a booking.'],
-              ['What happens if there is a service issue?', 'Customers can contact PunchX support regarding eligible service issues and disputes so the platform can review the booking and coordinate resolution.'],
-              ['How can I become a PunchX service partner?', 'Use the service partner registration option and submit your professional information for the onboarding and verification process.'],
+              ['How does PunchX verify professionals?', '[VERIFICATION STEPS: confirm with founders]. PunchX will describe the process here after the steps are confirmed.'],
+              ['Can I see pricing before booking?', '[SERVICE PRICE RANGES AND FEES: confirm with founders]. Review the final price and applicable fees shown in the booking flow.'],
+              ['What happens if there is a service issue?', '[SUPPORT, CANCELLATION AND DISPUTE PROCESS: confirm with founders]. Contact punchxservice@gmail.com while the process is being finalized.'],
+              ['How can I become a PunchX service partner?', 'Use the professional registration option. [ONBOARDING AND VERIFICATION STEPS: confirm with founders].'],
             ].map(([question, answer]) => <details key={question} className="group rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer list-none font-bold text-slate-950"><span className="flex items-center justify-between gap-4">{question}<span className="text-xl text-orange-500">+</span></span></summary><p className="mt-4 text-sm leading-7 text-slate-600">{answer}</p></details>)}
           </div></div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-slate-950 text-white"><div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8"><div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4"><div><div className="text-2xl font-black tracking-tight">PUNCH<span className="text-orange-500">X</span></div><p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Connecting you with trusted professionals for everyday services.</p></div><div><h2 className="font-bold">Services</h2><ul className="mt-4 space-y-3 text-sm text-slate-400">{categories.map((category) => <li key={category.id}><button type="button" onClick={() => selectCategory(category)} className="hover:text-white">{category.name}</button></li>)}</ul></div><div><h2 className="font-bold">Company & Legal</h2><ul className="mt-4 space-y-3 text-sm text-slate-400"><li><a href="#about" className="hover:text-white">About Us</a></li><li><button type="button" onClick={openPartner} className="hover:text-white">Become a Partner</button></li><li><a href="#contact" className="hover:text-white">Contact & Support</a></li><li><button type="button" onClick={() => onTransition('privacy-policy')} className="hover:text-white">Privacy Policy</button></li><li><button type="button" onClick={() => onTransition('terms-and-conditions')} className="hover:text-white">Terms & Conditions</button></li><li><button type="button" onClick={() => showNotification('Refund/Cancellation Policy available soon')} className="hover:text-white">Refund / Cancellation Policy</button></li><li><button type="button" onClick={() => showNotification('Cookie Policy available soon')} className="hover:text-white">Cookie Policy</button></li></ul></div><div><h2 className="font-bold">Popular Searches</h2><p className="mt-4 text-sm leading-7 text-slate-400">Electrician near me, plumber near me, AC repair, appliance repair, home cleaning, carpenter, painting services, local professionals, verified technicians, home services in Kolkata and West Bengal.</p></div></div><div className="mt-12 border-t border-white/10 pt-6 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4"><span>© 2026 PunchX. All rights reserved.</span></div></div></footer>
+      <footer className="border-t border-slate-200 bg-slate-950 text-white"><div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8"><div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4"><div><div className="text-2xl font-black tracking-tight">PUNCH<span className="text-orange-500">X</span></div><p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Connecting you with trusted professionals for everyday services.</p></div><div><h2 className="font-bold">Services</h2><ul className="mt-4 space-y-3 text-sm text-slate-400">{categories.map((category) => <li key={category.id}><button type="button" onClick={() => selectCategory(category)} className="hover:text-white">{category.name}</button></li>)}</ul></div><div><h2 className="font-bold">Company & Legal</h2><ul className="mt-4 space-y-3 text-sm text-slate-400"><li><a href="#about" className="hover:text-white">About Us</a></li><li><button type="button" onClick={openPartner} className="hover:text-white">Become a Partner</button></li><li><a href="#contact" className="hover:text-white">Contact & Support</a></li><li><button type="button" onClick={() => onTransition('privacy-policy')} className="hover:text-white">Privacy Policy</button></li><li><button type="button" onClick={() => onTransition('terms-and-conditions')} className="hover:text-white">Terms & Conditions</button></li><li><button type="button" onClick={() => showNotification('Refund/Cancellation Policy available soon')} className="hover:text-white">Refund / Cancellation Policy</button></li><li><button type="button" onClick={() => showNotification('Cookie Policy available soon')} className="hover:text-white">Cookie Policy</button></li></ul></div><div><h2 className="font-bold">Popular Searches</h2><p className="mt-4 text-sm leading-7 text-slate-400">Electrician near me, plumber near me, AC repair, appliance repair, home cleaning, carpenter, painting services, local professionals, local professionals and home services.</p></div></div><div className="mt-12 border-t border-white/10 pt-6 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4"><span>© 2026 PunchX. All rights reserved.</span></div></div></footer>
 
       {locationModal && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="location-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setLocationModal(false); }}><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between"><div><p className="text-sm font-bold text-orange-500">SERVICE LOCATION</p><h2 id="location-modal-title" className="mt-1 text-2xl font-black">Where do you need a professional?</h2></div><button type="button" onClick={() => setLocationModal(false)} className="rounded-xl p-2 text-xl text-slate-500 hover:bg-slate-100" aria-label="Close location selector">×</button></div><div className="mt-6 space-y-4"><select value={location} onChange={(event) => setLocation(event.target.value)} className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"><option value="">Choose a city</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><input inputMode="numeric" maxLength={6} placeholder="Or enter 6-digit Pincode" className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-orange-500" /><button type="button" onClick={() => { setLocationModal(false); showNotification(`📍 Location selected: ${locationName ?? 'Pincode'}`); }} className="w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-white hover:bg-orange-600">Continue</button></div></div></div>}
 
