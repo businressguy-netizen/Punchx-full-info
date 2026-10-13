@@ -74,3 +74,6 @@ createRoot(rootElement).render(
     </ErrorBoundary>
   </StrictMode>,
 );
+
+// Hide the static, crawlable landing content only after the React app mounts.
+document.documentElement.classList.add('app-mounted');
