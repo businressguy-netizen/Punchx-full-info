@@ -215,13 +215,13 @@ export default function CitizenHomeCatalog({
 
             <div className="relative z-10">
               <div className="flex items-center gap-2 text-xs font-semibold text-blue-200">
-                <ShieldCheck className="h-4 w-4" /> Verified local professionals
+                <ShieldCheck className="h-4 w-4" /> Local service professionals
               </div>
               <h1 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight">
                 What service do<br className="sm:hidden" /> you need today?
               </h1>
               <p className="mt-2 max-w-md text-sm text-blue-100/80 leading-relaxed">
-                Book verified professionals for home, vehicle, and personal care services.
+                Explore local professionals for home, vehicle, and personal care services.
               </p>
 
               {/* Search bar */}
@@ -250,8 +250,8 @@ export default function CitizenHomeCatalog({
         {/* ── INFO PILLS ── */}
         <section className="flex gap-2 overflow-x-auto py-3 no-scrollbar">
           {[
-            { icon: <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />, text: 'Background-verified pros' },
-            { icon: <Clock className="h-3.5 w-3.5 text-blue-600" />, text: 'Avg. 45 min response' },
+            { icon: <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />, text: 'Service details before booking' },
+            
             { icon: <MapPin className="h-3.5 w-3.5 text-violet-600" />, text: residential || 'Add address for visits' },
           ].map((pill, i) => (
             <div key={i} className="flex shrink-0 items-center gap-2 rounded-full border border-gray-100
