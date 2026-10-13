@@ -24,7 +24,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'citizen' | 'worker' | 'admin' }> = ({ children, activeRole = 'citizen' }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'citizen' | 'worker' | 'admin' }> = ({ children, activeRole = 'citizen' }: { children: React.ReactNode; activeRole?: 'citizen' | 'worker' | 'admin' }) => {
   const [currentUser, setCurrentUser] = useState<NamoIDUserInfo | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   
