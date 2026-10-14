@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { UserProfile } from '../types';
+import { UserProfile, UserRole } from '../types';
 import { NamoIDUserInfo } from '@namoidhq/js';
 
 interface AuthContextType {
@@ -19,7 +19,7 @@ interface AuthContextType {
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  loginWithNamoID: (identity: NamoIDUserInfo, role?: 'citizen' | 'worker' | 'admin', idToken?: string, accessToken?: string) => Promise<UserProfile | null>;
+  loginWithNamoID: (identity: NamoIDUserInfo, role?: UserRole, idToken?: string, accessToken?: string) => Promise<UserProfile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -122,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
 
   const fetchOrCreateProfile = async (
     identity: NamoIDUserInfo,
-    role: 'citizen' | 'worker' | 'admin' = activeRole,
+    role: UserRole = activeRole,
     overrideUid?: string
   ): Promise<UserProfile> => {
     const extractedName = identity.name || 
