@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
     }
   };
 
-  const loginWithNamoID = async (identity: NamoIDUserInfo, role?: 'citizen' | 'worker' | 'admin', idToken?: string, accessToken?: string) => {
+  const loginWithNamoID = async (identity: NamoIDUserInfo, role?: UserRole, idToken?: string, accessToken?: string) => {
     let firebaseUid: string | null = null;
     let tokenExchangeError = '';
 
