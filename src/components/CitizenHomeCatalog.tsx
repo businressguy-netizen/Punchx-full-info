@@ -224,6 +224,17 @@ export default function CitizenHomeCatalog({
                 Explore local professionals for home, vehicle, and personal care services.
               </p>
 
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <button type="button" onClick={() => { setQuery(''); setSearchOpen(true); }}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-lg transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-700">
+                  <Wrench className="h-4 w-4" /> Book a Service <ArrowRight className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => onTransition('worker-signup')}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/40 bg-white/10 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white">
+                  <UserRound className="h-4 w-4" /> Become a Professional
+                </button>
+              </div>
+
               {/* Search bar */}
               <button
                 type="button"
