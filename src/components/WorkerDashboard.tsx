@@ -430,7 +430,7 @@ function Info({ label, value }: { label: string; value: string }) {
   return <div className="rounded-xl bg-slate-50 p-3"><div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</div><div className="mt-1 text-slate-800">{value}</div></div>;
 }
 
-function JobCard({ job, uid, busy, onOpen }: { job: OrderRecord; uid: string; busy: boolean; onOpen: () => void }) {
+function JobCard({ job, uid, busy, onOpen }: { job: OrderRecord; uid: string; busy: boolean; onOpen: () => void; key?: React.Key }) {
   const assigned = job.workerId === uid;
   return <button onClick={onOpen} className="w-full rounded-2xl bg-white p-5 text-left shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md">
     <div className="flex items-start justify-between gap-3"><div><div className="font-bold">{job.category || 'Service'}</div><div className="mt-1 text-xs text-slate-500">#{job.id.slice(0, 10)}</div></div><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${assigned ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>{busy ? 'Updating…' : assigned ? job.status : 'NEW'}</span></div>
