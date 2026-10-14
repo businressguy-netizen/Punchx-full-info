@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Trash2, Home } from 'lucide-react';
 import PUNCHX_LOGO from '../assets/logo';
 
@@ -17,7 +17,7 @@ interface State {
 const RECOVERY_KEY = 'punchx-runtime-recovery-v4';
 const CHUNK_ERROR_RE = /failed to fetch dynamically imported module|importing a module script failed|loading chunk|chunkloaderror|dynamically imported module/i;
 
-export class ErrorBoundary extends Component<Props, State> {
+export class ErrorBoundary extends React.Component<Props, State> {
   public state: State = { hasError: false, error: null, errorInfo: null };
 
   public static getDerivedStateFromError(error: Error): State {
