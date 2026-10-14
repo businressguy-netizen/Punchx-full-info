@@ -258,6 +258,24 @@ export default function CitizenHomeCatalog({
           </motion.div>
         </section>
 
+        <section aria-label="Booking transparency" className="grid gap-3 py-4 sm:grid-cols-3">
+          <article className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="text-sm font-black text-slate-900">Know who you book</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Review each professional's available profile and approval status. Approval alone is not a promise of background checks or certification.</p>
+            <button onClick={() => onTransition('terms-and-conditions')} className="mt-2 text-xs font-bold text-blue-700 underline underline-offset-4">Read booking terms</button>
+          </article>
+          <article className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+            <div className="text-sm font-black text-slate-900">Review the price first</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Check the itemised total before confirming. Parts, materials, or additional work may cost extra when not included in the displayed quote.</p>
+            <button onClick={() => onTransition('catalogue')} className="mt-2 text-xs font-bold text-blue-700 underline underline-offset-4">View price catalogue</button>
+          </article>
+          <article className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
+            <div className="text-sm font-black text-slate-900">Need help with a booking?</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Send your booking ID, scheduled time, and issue to our published support email for review.</p>
+            <a href="mailto:punchxservice@gmail.com?subject=Booking%20support" className="mt-2 inline-block text-xs font-bold text-blue-700 underline underline-offset-4">Contact support</a>
+          </article>
+        </section>
+
         {/* ── INFO PILLS ── */}
         <section className="flex gap-2 overflow-x-auto py-3 no-scrollbar">
           {[
