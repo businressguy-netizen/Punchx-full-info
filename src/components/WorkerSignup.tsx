@@ -142,7 +142,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
     setIsLocating(false);
     if (loc && loc.address) {
       setAddress(loc.address);
-      if (loc.locality && !area) setArea(loc.locality);
+      if (loc.area && !area) setArea(loc.area);
       if (loc.city && !city) setCity(loc.city);
       showNotification(`📍 Worker address detected: ${loc.address}`);
     }
