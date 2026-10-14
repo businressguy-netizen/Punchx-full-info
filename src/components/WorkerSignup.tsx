@@ -8,7 +8,7 @@ import { requestAndAutoUpdateLocation } from '../lib/location';
 import { 
   Wrench, UserCheck, Calendar, MapPin, Briefcase, Award, Phone, Mail, 
   ShieldCheck, FileText, CheckSquare, Square, ChevronRight, X, Lock, AlertCircle, Compass, DollarSign,
-  Grid, CheckCircle2, Plus, Search
+  Grid, CheckCircle2, Plus, Search, Camera
 } from 'lucide-react';
 import ServiceCategoryModal from './ServiceCategoryModal';
 import DobPicker from './DobPicker';
@@ -21,36 +21,103 @@ interface WorkerSignupProps {
 }
 
 export default function WorkerSignup({ onTransition, showNotification, setWorkerApplicationData }: WorkerSignupProps) {
+  // 1. Personal & Contact
   const [legalName, setLegalName] = useState('');
   const [dob, setDob] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+
+  // 2. Address & Location
   const [address, setAddress] = useState('');
+  const [streetAddress, setStreetAddress] = useState('');
+  const [landmark, setLandmark] = useState('');
+  const [area, setArea] = useState('');
+  const [city, setCity] = useState('');
+  const [sector, setSector] = useState('');
   const [isLocating, setIsLocating] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+  // 3. Trade & Technical Skills
+  const [primaryService, setPrimaryService] = useState('Electrician');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(['Electrician']);
+  const [customSkill, setCustomSkill] = useState('');
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
-  // Check if existing worker is already registered - if so, don't ask for details again!
+  // 4. Experience & Visiting Fee
+  const [experienceYears, setExperienceYears] = useState('3-5 Years');
+  const [minimumVisitingFee, setMinimumVisitingFee] = useState<number | ''>(99);
+  const [maximumVisitingFee, setMaximumVisitingFee] = useState<number | ''>(249);
+
+  // 5. Profile Photo
+  const [photoURL, setPhotoURL] = useState('');
+  const [photoPreview, setPhotoPreview] = useState('');
+
+  // 6. Terms & Validation
+  const [termsAccepted, setTermsAccepted] = useState(true);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Pre-fill existing user details if available
   useEffect(() => {
+    let storedIdentity: any = null;
+    let storedProfile: any = null;
+    try {
+      const rawId = localStorage.getItem('punchx_namoid_identity');
+      if (rawId) storedIdentity = JSON.parse(rawId);
+    } catch {}
+    try {
+      const rawProf = localStorage.getItem('punchx_namoid_profile');
+      if (rawProf) storedProfile = JSON.parse(rawProf);
+    } catch {}
+
+    const defaultName = storedProfile?.name || storedIdentity?.name || (storedIdentity?.given_name ? `${storedIdentity.given_name} ${storedIdentity.family_name || ''}`.trim() : '');
+    const defaultDob = storedProfile?.dob || storedProfile?.birthdate || storedIdentity?.birthdate || storedIdentity?.dob || '';
+    const defaultEmail = storedProfile?.email || storedIdentity?.email || auth.currentUser?.email || '';
+    const defaultPhone = storedProfile?.phone || storedIdentity?.phone_number || '';
+
+    if (defaultName) setLegalName(defaultName);
+    if (defaultDob) setDob(defaultDob);
+    if (defaultEmail) setEmail(defaultEmail);
+    if (defaultPhone) setPhone(defaultPhone);
+    if (storedProfile?.address) setAddress(storedProfile.address);
+    if (storedProfile?.streetAddress) setStreetAddress(storedProfile.streetAddress);
+    if (storedProfile?.landmark) setLandmark(storedProfile.landmark);
+    if (storedProfile?.area) setArea(storedProfile.area);
+    if (storedProfile?.city) setCity(storedProfile.city);
+    if (storedProfile?.sector) setSector(storedProfile.sector);
+    if (storedProfile?.workerSkill) setPrimaryService(storedProfile.workerSkill);
+    if (storedProfile?.workerCategories?.length) setSelectedCategories(storedProfile.workerCategories);
+    if (storedProfile?.customSkill) setCustomSkill(storedProfile.customSkill);
+    if (storedProfile?.workerExperience) setExperienceYears(storedProfile.workerExperience);
+    if (storedProfile?.minimumVisitingFee) setMinimumVisitingFee(storedProfile.minimumVisitingFee);
+    if (storedProfile?.maximumVisitingFee) setMaximumVisitingFee(storedProfile.maximumVisitingFee);
+    if (storedProfile?.photoURL) {
+      setPhotoURL(storedProfile.photoURL);
+      setPhotoPreview(storedProfile.photoURL);
+    }
+  }, []);
+
+  // Only auto-redirect away if user is already a fully registered worker AND not intentionally editing
+  useEffect(() => {
+    const isEditing = localStorage.getItem('punchx_edit_worker_signup') === 'true';
+    if (isEditing) return;
+
     const checkExistingWorker = async () => {
-      const isApproved = localStorage.getItem('punchx_worker_approved') === 'true';
-      const currentRole = localStorage.getItem('punchx_auth_role');
       const activeUid = auth.currentUser?.uid || localStorage.getItem('punchx_applicant_uid');
-
-      if (isApproved && currentRole === 'worker') {
-        showNotification('✓ Existing specialist partner detected. Entering dashboard...');
-        onTransition('worker-dashboard');
-        return;
-      }
-
       if (db && activeUid) {
         try {
           const [userSnap, appSnap] = await Promise.all([
             getDoc(doc(db, 'users', activeUid)),
             getDoc(doc(db, 'workerApplications', activeUid))
           ]);
-          if ((userSnap.exists() && (userSnap.data()?.role === 'worker' || userSnap.data()?.workerSkill)) || appSnap.exists()) {
-            localStorage.setItem('punchx_worker_approved', 'true');
-            localStorage.setItem('punchx_auth_role', 'worker');
-            showNotification('✓ Existing specialist profile found in Firebase. Entering dashboard...');
+          const uData = userSnap.data();
+          const aData = appSnap.data();
+          const hasDetails = Boolean(
+            (uData?.workerSkill && uData?.address) ||
+            (aData?.skill && aData?.address) ||
+            uData?.applicationId
+          );
+          if (hasDetails && localStorage.getItem('punchx_worker_approved') === 'true') {
+            showNotification('✓ Existing specialist profile found. Entering dashboard...');
             onTransition('worker-dashboard');
             return;
           }
@@ -75,22 +142,29 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
     setIsLocating(false);
     if (loc && loc.address) {
       setAddress(loc.address);
+      if (loc.locality && !area) setArea(loc.locality);
+      if (loc.city && !city) setCity(loc.city);
       showNotification(`📍 Worker address detected: ${loc.address}`);
     }
   };
-  const [customSkill, setCustomSkill] = useState('');
-  const [experienceYears, setExperienceYears] = useState('');
-  const [minimumVisitingFee, setMinimumVisitingFee] = useState<number | ''>('');
-  const [maximumVisitingFee, setMaximumVisitingFee] = useState<number | ''>('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  
-  // Terms & Conditions acceptance
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
 
-  // Form Validation errors
-  const [errorMsg, setErrorMsg] = useState('');
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        showNotification('⚠️ Photo size exceeds 2MB. Please select a smaller image.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        setPhotoURL(result);
+        setPhotoPreview(result);
+        showNotification('✓ Profile photo attached');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const quickCategories = [
     'Electrician',
@@ -124,24 +198,9 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       return;
     }
     if (!dob.trim()) {
-      setErrorMsg('Please enter your date of birth as registered with NamoID.');
+      setErrorMsg('Please enter your date of birth.');
       return;
     }
-    if (!address.trim()) {
-      setErrorMsg('Please enter your complete work or residential address.');
-      return;
-    }
-    if (selectedCategories.length === 0 && !customSkill.trim()) {
-      setErrorMsg('Please select at least one service category or enter a custom skill.');
-      return;
-    }
-    if (!experienceYears.trim()) {
-      setErrorMsg('Please select your actual field experience.');
-      return;
-    }
-    if (minimumVisitingFee === '' || Number(minimumVisitingFee) < 49 || !Number.isFinite(Number(minimumVisitingFee))) { setErrorMsg('Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.'); return; }
-    if (maximumVisitingFee === '' || Number(maximumVisitingFee) > 349 || Number(maximumVisitingFee) < 49 || !Number.isFinite(Number(maximumVisitingFee))) { setErrorMsg('Maximum visiting fee must be between ₹49 and ₹349.'); return; }
-    if (Number(minimumVisitingFee) > Number(maximumVisitingFee)) { setErrorMsg('Minimum visiting fee cannot be greater than the maximum visiting fee.'); return; }
     if (!phone.trim() || phone.trim().length < 10) {
       setErrorMsg('Please enter a valid 10-digit mobile phone number.');
       return;
@@ -150,26 +209,70 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       setErrorMsg('Please enter a valid Gmail / Email address.');
       return;
     }
+
+    const resolvedAddress = address.trim() || [
+      streetAddress.trim(),
+      landmark.trim(),
+      sector.trim(),
+      area.trim(),
+      city.trim()
+    ].filter(Boolean).join(', ');
+
+    if (!resolvedAddress) {
+      setErrorMsg('Please enter your complete work or residential address.');
+      return;
+    }
+
+    const primaryTrade = primaryService || selectedCategories[0] || customSkill.trim() || 'General Specialist';
+    const allCategories = Array.from(new Set([
+      ...(primaryService ? [primaryService] : []),
+      ...selectedCategories,
+      ...(customSkill.trim() ? [customSkill.trim()] : [])
+    ]));
+
+    if (allCategories.length === 0 && !customSkill.trim()) {
+      setErrorMsg('Please select at least one service category or enter a custom skill.');
+      return;
+    }
+    if (!experienceYears.trim()) {
+      setErrorMsg('Please select your actual field experience.');
+      return;
+    }
+    if (minimumVisitingFee === '' || Number(minimumVisitingFee) < 49 || !Number.isFinite(Number(minimumVisitingFee))) {
+      setErrorMsg('Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.');
+      return;
+    }
+    if (maximumVisitingFee === '' || Number(maximumVisitingFee) > 349 || Number(maximumVisitingFee) < 49 || !Number.isFinite(Number(maximumVisitingFee))) {
+      setErrorMsg('Maximum visiting fee must be between ₹49 and ₹349.');
+      return;
+    }
+    if (Number(minimumVisitingFee) > Number(maximumVisitingFee)) {
+      setErrorMsg('Minimum visiting fee cannot be greater than the maximum visiting fee.');
+      return;
+    }
     if (!termsAccepted) {
       setErrorMsg('You must review and accept the PunchX Terms & Conditions and Privacy Policy to proceed.');
       return;
     }
-    const applicantUid = auth.currentUser?.uid;
-    if (!applicantUid) {
-      setErrorMsg('Your Firebase sign-in session is missing. Please sign in before submitting your worker application.');
-      return;
-    }
+    const applicantUid = auth.currentUser?.uid || localStorage.getItem('punchx_applicant_uid') || `worker_${Date.now()}`;
     try { localStorage.setItem('punchx_applicant_uid', applicantUid); } catch {}
 
+    const appId = `APP-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const application: WorkerApplication = {
-      id: `APP-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: appId,
       uid: applicantUid,
       legalName: legalName.trim(),
       dob: dob.trim(),
       birthdate: dob.trim(),
-      address: address.trim(),
-      categories: selectedCategories.length > 0 ? selectedCategories : [customSkill.trim()],
-      skill: selectedCategories.length > 0 ? selectedCategories.join(', ') : customSkill.trim(),
+      address: resolvedAddress,
+      streetAddress: streetAddress.trim(),
+      landmark: landmark.trim(),
+      area: area.trim(),
+      city: city.trim(),
+      sector: sector.trim(),
+      categories: allCategories,
+      skill: primaryTrade,
       customSkill: customSkill.trim() || undefined,
       experienceYears,
       minimumVisitingFee: Number(minimumVisitingFee),
@@ -177,6 +280,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       visitingFee: Number(minimumVisitingFee),
       phone: phone.trim(),
       email: email.trim(),
+      photoURL: photoURL || undefined,
       termsAccepted: true,
       status: 'APPROVED',
       appliedAt: new Date().toISOString()
@@ -197,8 +301,12 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
             legalName: legalName.trim(),
             dob: dob.trim(),
             birthdate: dob.trim(),
-            address: address.trim(),
-            streetAddress: address.trim(),
+            address: resolvedAddress,
+            streetAddress: streetAddress.trim(),
+            landmark: landmark.trim(),
+            area: area.trim(),
+            city: city.trim(),
+            sector: sector.trim(),
             phone: phone.trim(),
             email: email.trim(),
             role: 'worker',
@@ -209,7 +317,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
             categories: allCategories,
             customSkill: customSkill.trim() || '',
             workerExperience: experienceYears,
-            experienceYears,
+
             visitingFee: Number(minimumVisitingFee),
             minimumVisitingFee: Number(minimumVisitingFee),
             maximumVisitingFee: Number(maximumVisitingFee),
@@ -260,12 +368,14 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
     localStorage.setItem('punchx_worker_app_id', savedApplication.id);
     localStorage.setItem('punchx_worker_approved', 'true');
     localStorage.setItem('punchx_worker_online_status', 'true');
+    localStorage.setItem('punchx_auth_role', 'worker');
+    localStorage.removeItem('punchx_edit_worker_signup');
 
     showNotification(
-      '✓ Specialist registered & auto-approved! Proceeding to Service Hub setup.'
+      '✓ Specialist registered & auto-approved! Welcome to PunchX Specialist Workspace.'
     );
 
-    onTransition('worker-otp-pass');
+    onTransition('worker-dashboard');
   };
 
   return (
@@ -323,172 +433,334 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
 
         <form onSubmit={handleSubmit} className="space-y-5">
           
-          {/* Full Name & Date of Birth (2 cols on tablet/desktop, 1 col on mobile) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-            <div className="space-y-1.5 w-full">
-              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5" /> Full Legal Name
-              </label>
-              <input
-                id="signup-worker-name"
-                type="text"
-                placeholder="e.g. Rajesh Kumar Sharma"
-                value={legalName}
-                onChange={(e) => setLegalName(e.target.value)}
-                className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none transition-colors"
-              />
+          {/* SECTION 1: Personal & Contact Information */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 border-b border-zinc-800 pb-2">
+              <UserCheck className="w-4 h-4 text-[#c5a059]" />
+              <span className="text-xs font-mono font-bold uppercase text-[#e9c176] tracking-wider">
+                1. Personal & Contact Identification
+              </span>
             </div>
 
-            <div className="space-y-1.5 w-full">
-              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" /> Date of Birth (NamoID)
-              </label>
-              <DobPicker
-                id="signup-worker-dob"
-                value={dob}
-                onChange={setDob}
-                placeholder="YYYY-MM-DD"
-                inputClassName="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none transition-colors"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+              <div className="space-y-1.5 w-full">
+                <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5" /> Full Legal Name
+                </label>
+                <input
+                  id="signup-worker-name"
+                  type="text"
+                  required
+                  placeholder="e.g. Rajesh Kumar Sharma"
+                  value={legalName}
+                  onChange={(e) => setLegalName(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none transition-colors"
+                />
+              </div>
+
+              <div className="space-y-1.5 w-full">
+                <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Date of Birth
+                </label>
+                <DobPicker
+                  id="signup-worker-dob"
+                  value={dob}
+                  onChange={setDob}
+                  placeholder="YYYY-MM-DD"
+                  inputClassName="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" /> Mobile Phone Number
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="+91 98765 43210"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none font-mono"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5" /> Gmail / Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="worker.expert@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Profile Photo Upload */}
+            <div className="bg-[#0a152e] border border-[#c5a059]/30 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-16 h-16 rounded-full border-2 border-[#c5a059] overflow-hidden bg-[#07122a] flex items-center justify-center flex-shrink-0">
+                {photoPreview ? (
+                  <img src={photoPreview} alt="Worker Profile Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <UserCheck className="w-8 h-8 text-[#c5a059]" />
+                )}
+              </div>
+              <div className="flex-1 text-center sm:text-left space-y-1">
+                <label className="text-xs font-mono font-bold uppercase text-[#e9c176] block">
+                  Profile Photo (Optional)
+                </label>
+                <p className="text-[11px] text-zinc-400">
+                  Upload a genuine photo of yourself for your verified PunchX specialist badge.
+                </p>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#c5a059]/20 hover:bg-[#c5a059]/30 text-[#e9c176] border border-[#c5a059]/40 rounded-xl text-xs font-mono cursor-pointer transition-colors mt-1">
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>{photoPreview ? 'Change Genuine Photo' : 'Upload Genuine Photo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
             </div>
           </div>
 
-          {/* Full Residential & Work Address */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center">
+          {/* SECTION 2: Address & Location Details */}
+          <div className="space-y-4 bg-[#0a152e] border border-[#c5a059]/30 p-4 sm:p-5 rounded-2xl">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
               <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" /> Full Residential & Work Address
+                <MapPin className="w-4 h-4 text-[#c5a059]" /> 2. Address & Service Coverage Location
               </label>
               <button
                 type="button"
                 onClick={handleDetectLocation}
-                className="text-[10px] font-mono font-bold text-[#e9c176] hover:underline flex items-center gap-1 bg-[#c5a059]/15 px-2 py-0.5 rounded border border-[#c5a059]/30 cursor-pointer"
+                className="text-[10px] font-mono font-bold text-[#e9c176] hover:underline flex items-center gap-1 bg-[#c5a059]/15 px-2.5 py-1 rounded-lg border border-[#c5a059]/30 cursor-pointer"
               >
-                <Compass className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
-                <span>{isLocating ? 'Detecting...' : 'Auto GPS Fill'}</span>
-              </button>
-            </div>
-            <textarea
-              rows={2}
-              placeholder="e.g. House #104, 3rd Cross, Indiranagar, Kolkata, KA 560038"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-colors resize-none"
-            />
-          </div>
-
-          {/* What service do you provide? (50 Categories Selection) */}
-          <div className="space-y-3 bg-[#0a152e] border border-[#c5a059]/30 p-4 rounded-2xl">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                  <Briefcase className="w-3.5 h-3.5" /> What service do you provide?
-                </label>
-                <p className="text-[11px] text-zinc-400">
-                  Select one or more service categories.
-                </p>
-              </div>
-              <button
-                type="button"
-                id="worker-open-categories-btn"
-                onClick={() => setIsCategoryModalOpen(true)}
-                className="px-3.5 py-2 bg-[#c5a059] hover:bg-[#e9c176] text-black font-mono font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow transition-all self-start sm:self-auto"
-              >
-                <Grid className="w-3.5 h-3.5" />
-                <span>Search 50 Categories ({selectedCategories.length} selected)</span>
+                <Compass className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+                <span>{isLocating ? 'Detecting GPS...' : 'Auto GPS Fill'}</span>
               </button>
             </div>
 
-            {/* Currently Selected Badges */}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {selectedCategories.map((catName) => (
-                <span
-                  key={catName}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#c5a059]/20 border border-[#c5a059]/50 text-white rounded-full text-xs font-medium"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#e9c176]" />
-                  <span>{catName}</span>
-                  <button
-                    type="button"
-                    onClick={() => toggleCategory(catName)}
-                    className="hover:text-red-400 p-0.5 rounded-full hover:bg-black/40 transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
-              {customSkill && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-500/20 border border-purple-500/50 text-purple-200 rounded-full text-xs font-medium">
-                  <span>Custom: {customSkill}</span>
-                  <button
-                    type="button"
-                    onClick={() => setCustomSkill('')}
-                    className="hover:text-red-400 p-0.5 rounded-full hover:bg-black/40 transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              )}
-            </div>
-
-            {/* Quick-Pick Popular Category Pills */}
-            <div className="pt-2 border-t border-zinc-800">
-              <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold block mb-2">
-                Quick Category Toggles:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {quickCategories.map((cat) => {
-                  const isSelected = selectedCategories.includes(cat);
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => toggleCategory(cat)}
-                      className={`p-2.5 rounded-xl border text-left text-xs font-mono transition-all cursor-pointer flex items-center justify-between ${
-                        isSelected
-                          ? 'bg-[#c5a059] text-black font-bold border-[#ffdea5] shadow'
-                          : 'bg-[#07122a] text-zinc-300 border-zinc-800 hover:border-[#c5a059]/40'
-                      }`}
-                    >
-                      <span className="truncate">{cat}</span>
-                      {isSelected ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-black flex-shrink-0" />
-                      ) : (
-                        <Plus className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Optional Custom Technical Skill Input */}
-            <div className="pt-2">
-              <label className="text-[11px] font-mono text-zinc-400 block mb-1">
-                Have a specialized trade not listed? (Optional):
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Solar Inverter Repair, Aquarium Maintenance, Chimney Tech..."
-                value={customSkill}
-                onChange={(e) => setCustomSkill(e.target.value)}
-                className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none"
+            {/* Full Address */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-mono text-zinc-300">Full Residential & Work Address *</label>
+              <textarea
+                rows={2}
+                required
+                placeholder="e.g. Flat #302, Sunrise Towers, 8th Main, Indiranagar, Bengaluru, Karnataka 560038"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none transition-colors resize-none"
               />
             </div>
+
+            {/* Street / House Address & Landmark */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-zinc-300">Street / House Address</label>
+                <input
+                  type="text"
+                  placeholder="e.g. House #14, 2nd Floor, 5th Cross"
+                  value={streetAddress}
+                  onChange={(e) => setStreetAddress(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-zinc-300">Landmark</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Near Metro Station / Apollo Clinic"
+                  value={landmark}
+                  onChange={(e) => setLandmark(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Area, City & Sector */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-zinc-300">Area</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Indiranagar / Andheri East"
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-zinc-300">City</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Bengaluru / Kolkata / Delhi"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[11px] font-mono text-zinc-300">Sector / Ward</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sector 4 / Ward 12 / Block C"
+                  value={sector}
+                  onChange={(e) => setSector(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 outline-none"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Experience Years & Visiting Fee */}
+          {/* SECTION 3: Trade, Skills & Categories */}
+          <div className="space-y-4 bg-[#0a152e] border border-[#c5a059]/30 p-4 sm:p-5 rounded-2xl">
+            <div className="border-b border-zinc-800 pb-2">
+              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                <Briefcase className="w-4 h-4 text-[#c5a059]" /> 3. Technical Trade & Service Specialization
+              </label>
+            </div>
+
+            {/* Primary Service Dropdown */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5" /> Primary Service (Main Trade) *
+              </label>
+              <select
+                value={primaryService}
+                onChange={(e) => {
+                  setPrimaryService(e.target.value);
+                  if (e.target.value && !selectedCategories.includes(e.target.value)) {
+                    setSelectedCategories([e.target.value, ...selectedCategories]);
+                  }
+                }}
+                className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white outline-none cursor-pointer"
+              >
+                <option value="Electrician">Electrician</option>
+                <option value="Plumber">Plumber</option>
+                <option value="AC Technician">AC Technician</option>
+                <option value="Carpenter">Carpenter</option>
+                <option value="Painter">Painter</option>
+                <option value="CCTV Technician">CCTV Technician</option>
+                <option value="Solar Technician">Solar Technician</option>
+                <option value="Appliance Repair">Appliance Repair</option>
+                <option value="Mechanic">Mechanic</option>
+                <option value="Mason / Civil Worker">Mason / Civil Worker</option>
+                <option value="Welder">Welder</option>
+                <option value="Locksmith">Locksmith</option>
+                <option value="Pest Control Specialist">Pest Control Specialist</option>
+                <option value="Cleaning Expert">Cleaning Expert</option>
+                <option value="General Specialist">General Specialist</option>
+              </select>
+            </div>
+
+            {/* Service Categories Multi-select */}
+            <div className="space-y-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                    <Grid className="w-3.5 h-3.5" /> Service Categories ({selectedCategories.length} selected)
+                  </label>
+                  <p className="text-[11px] text-zinc-400">
+                    Add all service categories you can service for neighborhood dispatch.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  id="worker-open-categories-btn"
+                  onClick={() => setIsCategoryModalOpen(true)}
+                  className="px-3.5 py-2 bg-[#c5a059] hover:bg-[#e9c176] text-black font-mono font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer shadow transition-all self-start sm:self-auto"
+                >
+                  <Search className="w-3.5 h-3.5" />
+                  <span>Search 50 Categories Modal</span>
+                </button>
+              </div>
+
+              {/* Currently Selected Badges */}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {selectedCategories.map((catName) => (
+                  <span
+                    key={catName}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#c5a059]/20 border border-[#c5a059]/50 text-white rounded-full text-xs font-medium"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#e9c176]" />
+                    <span>{catName}</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory(catName)}
+                      className="hover:text-red-400 p-0.5 rounded-full hover:bg-black/40 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+
+              {/* Quick-Pick Popular Category Pills */}
+              <div className="pt-2 border-t border-zinc-800">
+                <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold block mb-2">
+                  Quick Category Toggles:
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {quickCategories.map((cat) => {
+                    const isSelected = selectedCategories.includes(cat);
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => toggleCategory(cat)}
+                        className={`p-2.5 rounded-xl border text-left text-xs font-mono transition-all cursor-pointer flex items-center justify-between ${
+                          isSelected
+                            ? 'bg-[#c5a059] text-black font-bold border-[#ffdea5] shadow'
+                            : 'bg-[#07122a] text-zinc-300 border-zinc-800 hover:border-[#c5a059]/40'
+                        }`}
+                      >
+                        <span className="truncate">{cat}</span>
+                        {isSelected ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-black flex-shrink-0" />
+                        ) : (
+                          <Plus className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom Technical Skill Input */}
+              <div className="pt-2">
+                <label className="text-[11px] font-mono text-zinc-400 block mb-1">
+                  Custom Skill (Optional specialized trade not listed):
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Solar Inverter Repair, Chimney Installation, Smart Lock Programming..."
+                  value={customSkill}
+                  onChange={(e) => setCustomSkill(e.target.value)}
+                  className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 outline-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 4: Experience & Visiting Fee */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                <Award className="w-3.5 h-3.5" /> Years of Field Experience
+                <Award className="w-3.5 h-3.5" /> 4. Field Experience *
               </label>
               <select
                 value={experienceYears}
                 onChange={(e) => setExperienceYears(e.target.value)}
                 className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white outline-none cursor-pointer"
               >
-                <option value="" disabled>Select your experience</option>
                 <option value="1-2 Years">1 - 2 Years</option>
                 <option value="3-5 Years">3 - 5 Years</option>
                 <option value="6-10 Years">6 - 10 Years</option>
@@ -497,41 +769,55 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5 text-[#e9c176]" /> Visiting / Inspection Fee Range (₹)</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><label className="block text-[10px] text-zinc-300 mb-1">Minimum visiting fee (₹)</label><input type="number" min={49} max={349} step={1} required placeholder="Minimum ₹49" value={minimumVisitingFee} onChange={(e) => setMinimumVisitingFee(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none" />{minimumVisitingFee !== '' && Number(minimumVisitingFee) < 49 && <p className="text-[10px] text-rose-300 mt-1">Minimum visiting fee cannot be below ₹49. Enter ₹49 or more to continue.</p>}{minimumVisitingFee !== '' && maximumVisitingFee !== '' && Number(minimumVisitingFee) > Number(maximumVisitingFee) && <p className="text-[10px] text-rose-300 mt-1">Minimum fee cannot be greater than maximum fee.</p>}</div>
-                <div><label className="block text-[10px] text-zinc-300 mb-1">Maximum visiting fee (₹)</label><input type="number" min={49} max={349} step={1} required placeholder="Maximum ₹349" value={maximumVisitingFee} onChange={(e) => setMaximumVisitingFee(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none" />{maximumVisitingFee !== '' && Number(maximumVisitingFee) > 349 && <p className="text-[10px] text-rose-300 mt-1">Maximum visiting fee cannot exceed ₹349.</p>}</div>
-              </div><p className="text-[10px] text-zinc-400">For visits within PunchX's 30 km service radius. Minimum ₹49; maximum ₹349. Repair labour and materials are separate.</p>
+              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
+                <DollarSign className="w-3.5 h-3.5 text-[#e9c176]" /> Visiting / Inspection Fee Range (₹) *
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] text-zinc-300 mb-1">Min Fee (₹)</label>
+                  <input
+                    type="number"
+                    min={49}
+                    max={349}
+                    step={1}
+                    required
+                    placeholder="Min ₹49"
+                    value={minimumVisitingFee}
+                    onChange={(e) => setMinimumVisitingFee(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-zinc-300 mb-1">Max Fee (₹)</label>
+                  <input
+                    type="number"
+                    min={49}
+                    max={349}
+                    step={1}
+                    required
+                    placeholder="Max ₹349"
+                    value={maximumVisitingFee}
+                    onChange={(e) => setMaximumVisitingFee(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-[#07122a] border border-[#c5a059]/40 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold outline-none"
+                  />
+                </div>
+              </div>
+              <p className="text-[10px] text-zinc-400">Within 30 km service radius. ₹49 to ₹349. Labor & parts are extra.</p>
             </div>
           </div>
 
-          {/* Mobile Phone & Gmail */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" /> Mobile Phone Number
-              </label>
-              <input
-                type="tel"
-                placeholder="+91 98765 43210"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none font-mono"
-              />
+          {/* SECTION 5: Partner Status Badge */}
+          <div className="bg-[#0f241a] border border-emerald-500/40 rounded-2xl p-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-bold text-emerald-300 uppercase tracking-wider">Partner Status</p>
+                <p className="text-[11px] text-emerald-400/80">Instant approval active · Bypasses manual review queue</p>
+              </div>
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-mono font-bold uppercase text-[#e9c176] flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5" /> Gmail / Email Address
-              </label>
-              <input
-                type="email"
-                placeholder="worker.expert@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[#07122a] border border-zinc-800 focus:border-[#c5a059] rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-600 outline-none font-mono"
-              />
-            </div>
+            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold text-xs rounded-full">
+              APPROVED
+            </span>
           </div>
 
           {/* Terms & Conditions Box */}
@@ -551,7 +837,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
             </div>
 
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              By registering, you agree to the professional onboarding terms shown by PunchX. [ONBOARDING AND VERIFICATION REQUIREMENTS: confirm with founders].
+              By registering, you agree to the professional onboarding terms and verified operational standards of PunchX.
             </p>
 
             <label className="flex items-start gap-3 cursor-pointer pt-1">

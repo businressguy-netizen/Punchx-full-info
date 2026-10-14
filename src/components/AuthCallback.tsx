@@ -188,8 +188,15 @@ export default function AuthCallback({ onTransition }: { onTransition: (target: 
             console.warn('Worker status backend check notice:', statusErr);
           }
 
-          // If existing worker, NEVER ask for details again - route straight to worker dashboard!
-          if (profile?.role === 'worker' || hasWorkerApp || workerStatus === 'APPROVED' || workerStatus === 'PENDING') {
+          // Only route straight to dashboard if this account has ALREADY submitted worker registration details
+          const isRegisteredSpecialist = Boolean(
+            hasWorkerApp ||
+            profile?.applicationId ||
+            profile?.workerSkill ||
+            (profile?.workerCategories && profile.workerCategories.length > 0)
+          );
+
+          if (isRegisteredSpecialist) {
             localStorage.setItem('punchx_auth_role', 'worker');
             localStorage.setItem('punchx_worker_approved', 'true');
             localStorage.setItem('punchx_worker_online_status', 'true');

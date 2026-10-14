@@ -1268,25 +1268,36 @@ async function startServer() {
         status: "APPROVED"
       });
 
-      // Update user profile in Firebase to worker role and APPROVED status directly
+      // Update user profile in Firebase to worker role and APPROVED status directly with all fields
       await dbAdapter.upsertUser({
         uid,
         name: appData.legalName,
         dob: appData.dob,
         birthdate: appData.dob || appData.birthdate,
         address: appData.address,
-        streetAddress: appData.address,
+        streetAddress: appData.streetAddress || appData.address,
+        landmark: appData.landmark || "",
+        area: appData.area || "",
+        city: appData.city || "",
+        sector: appData.sector || "",
         email: appData.email,
         phone: appData.phone,
+        photoURL: appData.photoURL || "",
         role: "worker",
         status: "APPROVED",
         applicationId: created.id,
         workerSkill: created.skill,
+        skill: created.skill,
         workerCategories: created.categories,
+        categories: created.categories,
+        customSkill: appData.customSkill || "",
         workerExperience: appData.experienceYears || "",
+        experienceYears: appData.experienceYears || "",
         visitingFee: created.visitingFee,
         minimumVisitingFee: appData.minimumVisitingFee,
         maximumVisitingFee: appData.maximumVisitingFee,
+        termsAccepted: true,
+        appliedAt: appData.appliedAt || new Date().toISOString(),
         isProfileCompleted: true,
         createdAt: (await dbAdapter.getUser(uid))?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()

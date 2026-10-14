@@ -775,7 +775,16 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification}:{userProf
    </section>
 
    <section className="wx-card">
-     <div className="wx-card-head"><div><span className="wx-section-label">ACCOUNT</span><h3>Account information</h3></div><button className="wx-secondary" onClick={()=>setEditing(true)}><Pencil size={14}/> Edit</button></div>
+     <div className="wx-card-head">
+       <div><span className="wx-section-label">ACCOUNT</span><h3>Account information</h3></div>
+       <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+         <button className="wx-secondary" onClick={()=>{
+           localStorage.setItem('punchx_edit_worker_signup', 'true');
+           if (onTransition) onTransition('worker-signup');
+         }}><Pencil size={14}/> Complete / Edit Full Form</button>
+         <button className="wx-secondary" onClick={()=>setEditing(true)}>Quick Edit</button>
+       </div>
+     </div>
      <div className="wx-detail-list wx-profile-details">
        <span>Full name <b>{source.name||'—'}</b></span>
        <span>Date of birth <b>{source.dob||'—'}</b></span>

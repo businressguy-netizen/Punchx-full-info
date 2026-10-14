@@ -343,8 +343,13 @@ function AppMain() {
       if (resolvedTarget === 'worker-otp-pass') resolvedTarget = 'worker-setup';
       if (resolvedTarget === 'worker-pending-approval') resolvedTarget = 'worker-dashboard';
       if (resolvedTarget === 'otp') resolvedTarget = activePanelRole === 'worker' ? 'worker-dashboard' : 'home';
-      // Existing workers should never be asked for details again
-      if (resolvedTarget === 'worker-signup' && (userProfile?.role === 'worker' || localStorage.getItem('punchx_worker_approved') === 'true')) {
+      // Only redirect away from worker-signup if the worker has already filled out and submitted their registration details
+      const hasCompletedWorkerRegistration = Boolean(
+        userProfile?.applicationId ||
+        userProfile?.workerSkill ||
+        (userProfile?.workerCategories && userProfile.workerCategories.length > 0)
+      );
+      if (resolvedTarget === 'worker-signup' && hasCompletedWorkerRegistration && localStorage.getItem('punchx_worker_approved') === 'true' && !localStorage.getItem('punchx_edit_worker_signup')) {
         resolvedTarget = 'worker-dashboard';
       }
 
@@ -421,15 +426,27 @@ function AppMain() {
               onSelectPanel={(panel, action) => { 
                 setActivePanelRole(panel);
                 try { localStorage.setItem('punchx_auth_role', panel); } catch {}
-                if (panel === 'worker' && action === 'signup') {
-                  if (userProfile?.role === 'worker' || localStorage.getItem('punchx_worker_approved') === 'true') {
-                    setCurrentScreen('worker-dashboard');
-                  } else {
+                if (panel === 'worker') {
+                  if (action === 'signup') {
+                    localStorage.removeItem('punchx_worker_approved');
+                    localStorage.setItem('punchx_edit_worker_signup', 'true');
                     setCurrentScreen('worker-signup');
+                  } else if (currentUser) {
+                    const hasCompletedWorkerRegistration = Boolean(
+                      userProfile?.applicationId ||
+                      userProfile?.workerSkill ||
+                      (userProfile?.workerCategories && userProfile.workerCategories.length > 0)
+                    );
+                    if (hasCompletedWorkerRegistration) {
+                      setCurrentScreen('worker-dashboard');
+                    } else {
+                      setCurrentScreen('worker-signup');
+                    }
+                  } else {
+                    setCurrentScreen('auth');
                   }
                 } else if (currentUser) {
-                  if (panel === 'worker' || userProfile?.role === 'worker') setCurrentScreen('worker-dashboard');
-                  else if (panel === 'admin' || userProfile?.role === 'admin') setCurrentScreen('admin-dashboard');
+                  if (panel === 'admin' || userProfile?.role === 'admin') setCurrentScreen('admin-dashboard');
                   else setCurrentScreen('home');
                 } else {
                   setCurrentScreen('auth');

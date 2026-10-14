@@ -31,6 +31,7 @@ export interface WorkerApplication {
   dob?: string;
   birthdate?: string;
   address: string;
+  streetAddress?: string;
   area?: string;
   city?: string;
   sector?: string;
@@ -44,6 +45,7 @@ export interface WorkerApplication {
   maximumVisitingFee?: number;
   phone: string;
   email: string;
+  photoURL?: string;
   termsAccepted: boolean;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   appliedAt: string;
