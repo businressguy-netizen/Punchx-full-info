@@ -83,6 +83,9 @@ export interface UserProfile {
   minimumVisitingFee?: number;
   maximumVisitingFee?: number;
   workerSkill?: string;
+  /** Backward-compatible aliases used by older worker profile writes. */
+  skill?: string;
+  categories?: string[];
   workerCategories?: string[];
   workerExperience?: string;
   workerRating?: number;
