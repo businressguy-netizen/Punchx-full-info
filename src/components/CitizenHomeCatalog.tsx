@@ -224,6 +224,17 @@ export default function CitizenHomeCatalog({
                 Explore local professionals for home, vehicle, and personal care services.
               </p>
 
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <button type="button" onClick={() => { setQuery(''); setSearchOpen(true); }}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-lg transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-blue-700">
+                  <Wrench className="h-4 w-4" /> Book a Service <ArrowRight className="h-4 w-4" />
+                </button>
+                <button type="button" onClick={() => onTransition('worker-signup')}
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/40 bg-white/10 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white">
+                  <UserRound className="h-4 w-4" /> Become a Professional
+                </button>
+              </div>
+
               {/* Search bar */}
               <button
                 type="button"
@@ -245,6 +256,24 @@ export default function CitizenHomeCatalog({
               </button>
             </div>
           </motion.div>
+        </section>
+
+        <section aria-label="Booking transparency" className="grid gap-3 py-4 sm:grid-cols-3">
+          <article className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="text-sm font-black text-slate-900">Know who you book</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Review each professional's available profile and approval status. Approval alone is not a promise of background checks or certification.</p>
+            <button onClick={() => onTransition('terms-and-conditions')} className="mt-2 text-xs font-bold text-blue-700 underline underline-offset-4">Read booking terms</button>
+          </article>
+          <article className="rounded-2xl border border-blue-100 bg-white p-4 shadow-sm">
+            <div className="text-sm font-black text-slate-900">Review the price first</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Check the itemised total before confirming. Parts, materials, or additional work may cost extra when not included in the displayed quote.</p>
+            <button onClick={() => onTransition('catalogue')} className="mt-2 text-xs font-bold text-blue-700 underline underline-offset-4">View price catalogue</button>
+          </article>
+          <article className="rounded-2xl border border-violet-100 bg-white p-4 shadow-sm">
+            <div className="text-sm font-black text-slate-900">Need help with a booking?</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">Send your booking ID, scheduled time, and issue to our published support email for review.</p>
+            <a href="mailto:punchxservice@gmail.com?subject=Booking%20support" className="mt-2 inline-block text-xs font-bold text-blue-700 underline underline-offset-4">Contact support</a>
+          </article>
         </section>
 
         {/* ── INFO PILLS ── */}

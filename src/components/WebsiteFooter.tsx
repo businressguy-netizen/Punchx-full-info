@@ -68,11 +68,11 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
             <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.045] p-4">
               <div className="flex items-center gap-2 text-xs font-black"><Mail className="h-4 w-4 text-[#b9adff]" /> Contact PunchX</div>
               <a className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-white underline underline-offset-4" href="mailto:punchxservice@gmail.com">punchxservice@gmail.com</a>
-              <button onClick={() => showNotification('Support request entry point is available from your PunchX account.')} className="mt-4 flex w-full items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs font-black text-[#17191d] transition hover:bg-[#efeff2]">Open support flow <ArrowRight className="h-4 w-4" /></button>
+              <a href="mailto:punchxservice@gmail.com?subject=PunchX%20booking%20support" className="mt-4 flex min-h-11 w-full items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs font-black text-[#17191d] transition hover:bg-[#efeff2]">Email booking support <ArrowRight className="h-4 w-4" /></a>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button onClick={() => onTransition('worker-signup')} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-[10px] font-bold text-white/75 hover:bg-white/[0.08]">Join as a professional</button>
-              <button onClick={() => setRefundOpen(true)} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-[10px] font-bold text-white/75 hover:bg-white/[0.08]">Refund & warranty</button>
+              <button onClick={() => setRefundOpen(true)} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-left text-[10px] font-bold text-white/75 hover:bg-white/[0.08]">FAQs & complaints</button>
             </div>
           </div>
         </div>
@@ -117,13 +117,39 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
     return (
       <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#101525] p-5 shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2 text-sm font-black"><Gift className="h-4 w-4 text-[#b9adff]" /> Refund & warranty</div>
+          <div className="flex items-center gap-2 text-sm font-black"><Gift className="h-4 w-4 text-[#b9adff]" /> Support, pricing & policies</div>
           <button onClick={() => setRefundOpen(false)} className="rounded-xl bg-white/5 p-2 text-white/70 hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
-        <div className="space-y-3 pt-4 text-xs leading-5 text-white/65">
-          <p><strong className="text-white">Refund policy:</strong> [REFUND POLICY: confirm with founders before publishing].</p>
-          <p><strong className="text-white">Cancellation:</strong> [CANCELLATION POLICY: confirm with founders before publishing].</p>
-          <p><strong className="text-white">Payment disputes:</strong> contact <a className="underline underline-offset-4" href="mailto:punchxservice@gmail.com">punchxservice@gmail.com</a> while the formal dispute process is confirmed.</p>
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto pt-4 text-xs leading-5 text-white/70">
+          <section>
+            <h3 className="font-black text-white">About PunchX</h3>
+            <p className="mt-1">PunchX helps customers discover local service professionals and review booking details before requesting a service. Availability depends on the service area and professional availability.</p>
+          </section>
+          <section>
+            <h3 className="font-black text-white">How are professionals checked?</h3>
+            <p className="mt-1">Applications may be reviewed before a professional account is approved. Approval on PunchX should not be treated as a guarantee of a criminal-record check, qualification, insurance, or government certification unless that specific check is explicitly shown and documented on the professional's profile.</p>
+          </section>
+          <section>
+            <h3 className="font-black text-white">What if a professional does not arrive?</h3>
+            <p className="mt-1">Contact PunchX support with your booking reference, selected time slot, and registered contact details. We will review the report and communicate next steps. Reassignment, refunds, and compensation are not guaranteed unless confirmed in the booking terms.</p>
+          </section>
+          <section>
+            <h3 className="font-black text-white">Pricing and extra charges</h3>
+            <p className="mt-1">Review the itemised checkout before confirming. The displayed service price may not include parts or materials unless explicitly listed. Any visiting/inspection fee, applicable tax, add-on, or cancellation charge should be shown in the booking summary or confirmed with support before you proceed. Do not approve unlisted work or charges without agreeing to the revised quote.</p>
+          </section>
+          <section>
+            <h3 className="font-black text-white">Cancellations, refunds and guarantees</h3>
+            <p className="mt-1">Cancellation and refund eligibility can depend on booking status, payment method, and the terms presented at checkout. PunchX does not promise a universal service warranty or refund. Check the booking terms and contact support before cancelling or disputing a payment.</p>
+          </section>
+          <section>
+            <h3 className="font-black text-white">Complaints and grievance support</h3>
+            <p className="mt-1">Email <a className="font-bold text-white underline underline-offset-4" href="mailto:punchxservice@gmail.com">punchxservice@gmail.com</a> with the subject “Booking complaint”, your booking ID, date/time, and a short description. Include photos or payment references only when relevant. Please do not email passwords or OTPs.</p>
+          </section>
+          <div className="flex flex-wrap gap-3 border-t border-white/10 pt-3">
+            <button onClick={() => { setRefundOpen(false); onTransition('terms-and-conditions'); }} className="font-bold text-[#c9beff] underline underline-offset-4">Terms & Conditions</button>
+            <button onClick={() => { setRefundOpen(false); onTransition('privacy-policy'); }} className="font-bold text-[#c9beff] underline underline-offset-4">Privacy Policy</button>
+            <a className="font-bold text-[#c9beff] underline underline-offset-4" href="mailto:punchxservice@gmail.com?subject=Booking%20complaint">Email support</a>
+          </div>
         </div>
       </div>
     );
