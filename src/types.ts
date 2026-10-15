@@ -89,6 +89,12 @@ export interface UserProfile {
   /** Legacy alias used by older worker profile records. */
   skill?: string;
   workerCategories?: string[];
+  /** Legacy fields retained for worker profile and application synchronization. */
+  categories?: string[];
+  customSkill?: string;
+  experienceYears?: string;
+  termsAccepted?: boolean;
+  appliedAt?: string;
   workerExperience?: string;
   workerRating?: number;
   workerCompletedJobs?: number;

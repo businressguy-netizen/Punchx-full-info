@@ -552,6 +552,21 @@ service cloud.firestore {
     }
 
 
+    // =====================================================
+    // ADMIN CONSOLE CONFIGURATION & AUDIT TRAIL
+    // Only an authenticated account whose stored profile role is
+    // admin may read or modify global platform settings and logs.
+    // =====================================================
+    match /platformSettings/{document} {
+      allow read, create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /adminAuditLogs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
     // CATCH-ALL
     // Everything not explicitly allowed above is DENIED.
     // =====================================================
