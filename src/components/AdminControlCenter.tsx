@@ -114,7 +114,7 @@ export default function AdminControlCenter({ onTransition, showNotification }: {
   const approveProfessional = (row: Row, status: 'APPROVED' | 'REJECTED') => perform(
     row.id, status === 'APPROVED' ? 'Approve professional application' : 'Reject professional application',
     async () => {
-      await updateDoc(doc(db, 'workerApplications', row.id), { status, reviewedAt: new Date().toISOString(), reviewedBy: userProfile?.uid || '' });
+      await updateDoc(doc(db, 'workerApplications', row.id), { status, ...(status === 'APPROVED' ? { approvedAt: new Date().toISOString() } : { rejectedAt: new Date().toISOString() }), reviewedBy: userProfile?.uid || '' });
       if (row.uid) {
         await setDoc(doc(db, 'users', row.uid), {
           status, role: status === 'APPROVED' ? 'worker' : 'citizen',
@@ -138,13 +138,13 @@ export default function AdminControlCenter({ onTransition, showNotification }: {
 
   const resolveComplaint = (row: Row) => perform(
     row.id, 'Resolve complaint', async () => {
-      await updateDoc(doc(db, 'complaints', row.id), { status: 'RESOLVED', resolvedAt: new Date().toISOString(), resolvedBy: userProfile?.uid || '' });
+      await updateDoc(doc(db, 'complaints', row.id), { status: 'RESOLVED', resolvedAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
     }, row.id, { previousStatus: row.status }
   );
 
   const updateClaim = (row: Row, status: 'APPROVED' | 'REJECTED') => perform(
     row.id, status === 'APPROVED' ? 'Approve warranty claim' : 'Reject warranty claim',
-    async () => { await updateDoc(doc(db, 'warranty_claims', row.id), { status, reviewedAt: new Date().toISOString(), reviewedBy: userProfile?.uid || '' }); },
+    async () => { await updateDoc(doc(db, 'warranty_claims', row.id), { status, updatedAt: new Date().toISOString(), resolution: status === 'APPROVED' ? 'Approved by PunchX admin' : 'Rejected by PunchX admin' }); },
     row.id, { status }
   );
 
