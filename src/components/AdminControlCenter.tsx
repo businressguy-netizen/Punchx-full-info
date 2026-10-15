@@ -1,10 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  collection, doc, getDocs, limit, orderBy, query, setDoc, updateDoc, where
+  collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc
 } from 'firebase/firestore';
 import {
-  Activity, AlertTriangle, ArrowDownToLine, BadgeCheck, BarChart3, Bell, CalendarClock,
-  Check, CheckCircle2, ChevronRight, CircleDollarSign, ClipboardList, Download, Eye,
+  Activity, AlertTriangle, ArrowDownToLine, Check, ChevronRight, CircleDollarSign, ClipboardList, Download, Eye,
   FileCheck2, Filter, Gauge, Loader2, LogOut, MessageSquareWarning, RefreshCw, Search,
   Settings2, ShieldCheck, Star, Users, UserRoundCog, Wrench, XCircle
 } from 'lucide-react';
@@ -73,8 +72,8 @@ export default function AdminControlCenter({ onTransition, showNotification }: {
     }));
     setData(results);
     try {
-      const configSnap = await getDocs(query(collection(db, 'platformSettings'), limit(1)));
-      if (!configSnap.empty) setSettings(current => ({ ...current, ...configSnap.docs[0].data() }));
+      const configSnap = await getDoc(doc(db, 'platformSettings', 'global'));
+      if (configSnap.exists()) setSettings(current => ({ ...current, ...configSnap.data() }));
       setSettingsLoaded(true);
     } catch (err) {
       console.warn('Platform settings could not be loaded', err);
@@ -99,7 +98,8 @@ export default function AdminControlCenter({ onTransition, showNotification }: {
     setBusyId(id);
     try {
       await operation();
-      await audit(action, targetId, details);
+      try { await audit(action, targetId, details); }
+      catch (auditError) { console.warn('Admin action succeeded but audit log could not be written:', auditError); }
       showNotification('Saved: ' + action);
       await loadData();
     } catch (err: any) {
