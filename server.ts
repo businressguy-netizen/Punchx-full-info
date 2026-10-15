@@ -126,25 +126,33 @@ export const requireWorker = async (req: express.Request, res: express.Response,
 
   try {
     const userProfile = await dbAdapter.getUser(user.uid);
-    // Allow worker if profile role is worker or status is APPROVED or PENDING (review bypassed for testing)
-    if (userProfile && (userProfile.role === "worker" || userProfile.status === "APPROVED" || userProfile.status === "PENDING")) {
+    // Only approved worker profiles may access protected worker operations.
+    // A role label alone is insufficient: pending/rejected/suspended applicants must
+    // not gain access to job dispatch, attendance, or other worker-only endpoints.
+    const profileStatus = String(userProfile?.status || "").toUpperCase();
+    if (userProfile?.role === "worker" && profileStatus === "APPROVED") {
       (req as any).workerProfile = userProfile;
       return next();
     }
 
-    // Check worker application in database
+    // Fall back to the worker application record, but enforce approval there too.
     const workerApp = await dbAdapter.getWorkerApplicationByUid(user.uid)
       || (userProfile?.phone ? await dbAdapter.getWorkerApplicationByContact({ phone: userProfile.phone }) : null);
+    const applicationStatus = String(workerApp?.status || "").toUpperCase();
 
-    if (workerApp) {
+    if (workerApp && applicationStatus === "APPROVED") {
       (req as any).workerApp = workerApp;
       return next();
     }
 
-    logger.security("Unauthorized worker endpoint access attempt", { uid: user.uid, status: workerApp?.status });
+    logger.security("Unauthorized worker endpoint access attempt", {
+      uid: user.uid,
+      profileStatus: profileStatus || "NO_PROFILE",
+      applicationStatus: applicationStatus || "NO_APPLICATION",
+    });
     return res.status(403).json({
       success: false,
-      error: "Forbidden: Verified and approved specialist authorization required"
+      error: "Forbidden: An approved specialist account is required"
     });
   } catch (err) {
     logger.error("Worker verification error:", err);
