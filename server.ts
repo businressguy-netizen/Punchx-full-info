@@ -126,17 +126,18 @@ export const requireWorker = async (req: express.Request, res: express.Response,
 
   try {
     const userProfile = await dbAdapter.getUser(user.uid);
-    // Allow worker if profile role is worker or status is APPROVED or PENDING (review bypassed for testing)
-    if (userProfile && (userProfile.role === "worker" || userProfile.status === "APPROVED" || userProfile.status === "PENDING")) {
+    // Only explicitly approved worker accounts may access worker-only endpoints.
+    // A role or application status supplied by an untrusted client is never sufficient.
+    if (userProfile?.role === "worker" && userProfile.status === "APPROVED") {
       (req as any).workerProfile = userProfile;
       return next();
     }
 
-    // Check worker application in database
-    const workerApp = await dbAdapter.getWorkerApplicationByUid(user.uid)
-      || (userProfile?.phone ? await dbAdapter.getWorkerApplicationByContact({ phone: userProfile.phone }) : null);
+    // Applications are looked up by the authenticated UID only. Matching by phone/email
+    // can accidentally authorize a different account when contact data is duplicated.
+    const workerApp = await dbAdapter.getWorkerApplicationByUid(user.uid);
 
-    if (workerApp) {
+    if (workerApp?.status === "APPROVED" && workerApp.uid === user.uid) {
       (req as any).workerApp = workerApp;
       return next();
     }
