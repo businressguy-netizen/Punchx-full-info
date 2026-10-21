@@ -69,7 +69,7 @@ export const requireFirebaseUser = async (req: express.Request, res: express.Res
     }
 
     // In local non-production environments when Firebase Admin credentials are not provided
-    if (process.env.NODE_ENV !== "production") {
+    if (process.env.NODE_ENV === "test" && process.env.ALLOW_UNVERIFIED_TEST_TOKENS === "true") {
       const parts = idToken.split('.');
       if (parts.length === 3) {
         try {
