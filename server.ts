@@ -775,7 +775,10 @@ async function startServer() {
           actorRole: isUserAdmin ? "admin" : "worker",
           reason: `Verified valid ${type} security code from customer`,
         },
-        isCompletion ? { serviceProof: { ...order.serviceProof, completionOtpVerified: true } } : undefined
+        { serviceProof: {
+          ...order.serviceProof,
+          ...(isCompletion ? { completionOtpVerified: true } : { startOtpVerified: true })
+        } }
       );
 
       const { startOtpHash, startOtpSalt, completionOtpHash, completionOtpSalt, ...sanitized } = (transitionResult.order as any) || {};
