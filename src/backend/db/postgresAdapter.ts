@@ -44,7 +44,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
   }
 
   async isHealthy(): Promise<boolean> {
-    if (!this.pool) return true; // Fallback mode active
+    if (!this.pool) return false; // No database connection is not healthy.
     try {
       const client = await this.pool.connect();
       await client.query('SELECT 1');
@@ -144,8 +144,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       await this.pool.query(query, values);
       return user;
     } catch (err) {
-      logger.error('Postgres upsertUser error:', err);
-      return user;
+      logger.error('Postgres upsertUser failed; refusing to report an unpersisted profile as saved:', err);
+      throw new Error('Failed to persist user profile to PostgreSQL.');
     }
   }
 
