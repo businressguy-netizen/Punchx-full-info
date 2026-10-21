@@ -456,7 +456,7 @@ async function startServer() {
       const workerApplication = requestedWorkerId ? await dbAdapter.getWorkerApplicationByUid(requestedWorkerId) : null;
       if (requestedWorkerId && (
         workerProfile?.role !== "worker"
-        || String(workerProfile?.status || "").toUpperCase() !== "APPROVED"
+        || (workerProfile?.status && String(workerProfile.status).toUpperCase() !== "APPROVED")
         || String(workerApplication?.status || "").toUpperCase() !== "APPROVED"
         || workerApplication?.uid !== requestedWorkerId
       )) {
