@@ -1181,12 +1181,11 @@ async function startServer() {
           || ((contact.phone || contact.email) ? await dbAdapter.getWorkerApplicationByContact(contact) : null);
       }
 
-      const hasWorkerProfileSignals = Boolean(
-        currentData?.applicationId || currentData?.workerSkill || currentData?.workerCategories
-        || adapterProfile?.applicationId || adapterProfile?.workerSkill || adapterProfile?.workerCategories
-      );
-      if (currentData?.role !== "worker" && adapterProfile?.role !== "worker" && !workerApp && !hasWorkerProfileSignals) {
-        return res.status(403).json({ success: false, error: "This account is not registered as a PunchX professional. Complete worker registration and sign in again." });
+      const authoritativeStatus = String(currentData?.status || adapterProfile?.status || workerApp?.status || "").toUpperCase();
+      if (currentData?.role !== "worker" || authoritativeStatus !== "APPROVED"
+        || !workerApp || String(workerApp.status || "").toUpperCase() !== "APPROVED"
+        || workerApp.uid !== uid) {
+        return res.status(403).json({ success: false, error: "Only approved, identity-matched professionals may change availability." });
       }
 
       const updatedAt = new Date().toISOString();
