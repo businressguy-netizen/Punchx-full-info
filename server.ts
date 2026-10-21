@@ -69,7 +69,7 @@ export const requireFirebaseUser = async (req: express.Request, res: express.Res
     }
 
     // In local non-production environments when Firebase Admin credentials are not provided
-    if (process.env.NODE_ENV !== "production") {
+    if (process.env.NODE_ENV === "test" && process.env.ALLOW_UNVERIFIED_TEST_TOKENS === "true") {
       const parts = idToken.split('.');
       if (parts.length === 3) {
         try {
@@ -454,6 +454,14 @@ async function startServer() {
       const requestedWorkerId = String(orderData.workerId || "").trim();
       const workerProfile = requestedWorkerId ? await dbAdapter.getUser(requestedWorkerId) : null;
       const workerApplication = requestedWorkerId ? await dbAdapter.getWorkerApplicationByUid(requestedWorkerId) : null;
+      if (requestedWorkerId && (
+        workerProfile?.role !== "worker"
+        || (workerProfile?.status && String(workerProfile.status).toUpperCase() !== "APPROVED")
+        || String(workerApplication?.status || "").toUpperCase() !== "APPROVED"
+        || workerApplication?.uid !== requestedWorkerId
+      )) {
+        return res.status(400).json({ success: false, error: "The selected professional is not approved or could not be identity-verified." });
+      }
       const nowIso = new Date().toISOString();
 
       // 1. Authoritative Server-Side Pricing Calculation (Never trust client prices)
@@ -546,14 +554,14 @@ async function startServer() {
         bookingCreatedByUid: uid,
         bookingCreatedByRole: createdByRole,
         price: quote.baseVisitingFee,
-        serviceSubtotal: Array.isArray(orderData.serviceItems) ? orderData.serviceItems.reduce((sum: number, item: any) => sum + (Number.isFinite(Number(item?.price)) ? Math.max(0, Number(item.price)) * Math.max(1, Math.min(100, Math.floor(Number(item?.quantity || 1)))) : 0), 0) : (Number.isFinite(Number(orderData.price)) ? Math.max(0, Number(orderData.price)) : quote.baseVisitingFee),
+        serviceSubtotal: quote.subtotalBeforeDiscount,
         originalPrice: quote.subtotalBeforeDiscount,
         discountApplied: quote.discountApplied,
         couponUsed: quote.couponUsed,
         visitingFee: quote.baseVisitingFee,
         customerPlatformFee: quote.customerPlatformFee,
         gstAmount: quote.gstAmount,
-        totalAmountToPay: quote.totalAmountToPay + (Number.isFinite(Number(orderData.warrantyFee)) ? Math.max(0, Number(orderData.warrantyFee)) : 0),
+        totalAmountToPay: quote.totalAmountToPay,
         platformCommission: quote.platformCommission,
         commissionRate: quote.commissionRate,
         professionalPayout: quote.professionalPayout,
@@ -562,8 +570,9 @@ async function startServer() {
         address: String(orderData.address || orderData.customerAddress || "").trim(),
         status: initialStatus,
         paymentMethod: isCashOnDelivery ? "COD" : "ONLINE",
-        paymentStatus: isCashOnDelivery ? "pending" : (orderData.paymentId ? "paid" : "pending"),
-        paymentId: orderData.paymentId || null,
+        // Client-supplied payment IDs are not proof of payment.
+        paymentStatus: "pending",
+        paymentId: null,
         createdAt: nowIso,
         updatedAt: nowIso,
         bookedAt: nowIso,
@@ -773,9 +782,13 @@ async function startServer() {
         {
           actorUid: uid,
           actorRole: isUserAdmin ? "admin" : "worker",
+          otpVerified: true,
           reason: `Verified valid ${type} security code from customer`,
         },
-        isCompletion ? { serviceProof: { ...order.serviceProof, completionOtpVerified: true } } : undefined
+        { serviceProof: {
+          ...order.serviceProof,
+          ...(isCompletion ? { completionOtpVerified: true } : { startOtpVerified: true })
+        } }
       );
 
       const { startOtpHash, startOtpSalt, completionOtpHash, completionOtpSalt, ...sanitized } = (transitionResult.order as any) || {};
@@ -863,10 +876,44 @@ async function startServer() {
         return res.status(403).json({ success: false, error: "Forbidden: Unauthorized payment verification" });
       }
 
+      const storedGatewayOrderId = String((order as any).paymentDetails?.razorpayOrderId || "");
+      if (!storedGatewayOrderId || storedGatewayOrderId !== String(razorpayOrderId)) {
+        logger.security("Payment gateway order mismatch", { orderId, uid });
+        return res.status(400).json({ success: false, error: "Payment does not match the gateway order created for this booking." });
+      }
+
       const isSignatureValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
       if (!isSignatureValid) {
         logger.security("Payment signature verification failed", { orderId, razorpayPaymentId });
         return res.status(400).json({ success: false, error: "Invalid payment verification signature" });
+      }
+
+      // In production, independently confirm the payment with Razorpay. A valid client
+      // callback signature alone must not be treated as proof that the expected amount
+      // was captured for this exact gateway order.
+      if (process.env.NODE_ENV === "production") {
+        const keyId = process.env.RAZORPAY_KEY_ID;
+        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (!keyId || !keySecret) {
+          return res.status(503).json({ success: false, error: "Payment verification provider is not configured." });
+        }
+        const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+        const providerResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(String(razorpayPaymentId))}`, {
+          headers: { Authorization: `Basic ${auth}` },
+        });
+        if (!providerResponse.ok) {
+          logger.error("Razorpay payment lookup failed", { orderId, status: providerResponse.status });
+          return res.status(502).json({ success: false, error: "Unable to confirm payment with the payment provider." });
+        }
+        const providerPayment: any = await providerResponse.json();
+        const expectedAmount = Math.round(Number(order.totalAmountToPay || order.price) * 100);
+        if (providerPayment.order_id !== razorpayOrderId
+          || providerPayment.amount !== expectedAmount
+          || providerPayment.currency !== "INR"
+          || providerPayment.status !== "captured") {
+          logger.security("Razorpay payment details did not match booking", { orderId, uid });
+          return res.status(400).json({ success: false, error: "Payment is not captured for the expected booking amount." });
+        }
       }
 
       // Payment lifecycle is authoritative: PENDING_PAYMENT -> PAID -> DISPATCHING.
@@ -942,7 +989,7 @@ async function startServer() {
         return res.json({ status: "already_processed" });
       }
 
-      recordProcessedEvent(eventId, event?.event || "unknown");
+      // Record only after successful state changes so failed events can be retried.
 
       // Handle payment capture / order paid events
       if (event?.event === "payment.captured" || event?.event === "order.paid") {
@@ -969,20 +1016,27 @@ async function startServer() {
               },
             }
           );
-          if (paidResult.success) {
-            await executeOrderTransition(
-              appOrderId,
-              "DISPATCHING",
-              {
-                actorUid: "gateway_webhook",
-                actorRole: "system",
-                reason: "Webhook payment confirmed; specialist dispatch initiated",
-              }
-            );
+          if (!paidResult.success) {
+            logger.error("Webhook payment event could not transition booking to PAID", { appOrderId, error: paidResult.error });
+            return res.status(500).json({ error: "Payment event could not be applied; retry is required." });
+          }
+          const dispatchResult = await executeOrderTransition(
+            appOrderId,
+            "DISPATCHING",
+            {
+              actorUid: "gateway_webhook",
+              actorRole: "system",
+              reason: "Webhook payment confirmed; specialist dispatch initiated",
+            }
+          );
+          if (!dispatchResult.success) {
+            logger.error("Webhook payment event could not dispatch booking", { appOrderId, error: dispatchResult.error });
+            return res.status(500).json({ error: "Payment dispatch update failed; retry is required." });
           }
         }
       }
 
+      recordProcessedEvent(eventId, event?.event || "unknown");
       return res.json({ status: "ok" });
     } catch (err: any) {
       logger.error("Webhook processing error:", err);
@@ -1037,22 +1091,17 @@ async function startServer() {
 
   // ─── WORKER SIGNUP DYNAMIC DUAL OTP API (TASK SHEET SECTION 8 [P0]) ───
   // Replaces hardcoded 8842/9921 with dynamic server-generated challenge
-  app.post("/api/auth/worker-signup-otp", async (_req, res) => {
-    // OTP system removed - phone and email verification bypassed
-    return res.json({
-      success: true,
-      challengeId: `CHAL-${Date.now()}`,
-      message: "Phone and email verification bypassed (OTP system removed)",
-      debugCodes: {
-        phoneCode: "123456",
-        emailCode: "123456"
-      }
+  app.post("/api/auth/worker-signup-otp", (_req, res) => {
+    // Fail closed until provider-backed OTP delivery and verification are configured.
+    return res.status(503).json({
+      success: false,
+      error: "Worker phone/email verification is temporarily unavailable. Please try again later."
     });
   });
 
   // ─── WORKER APPLICATIONS APIS ───
   // Query worker registration & verification status for authenticated user
-  app.get("/api/workers/status", async (req, res) => {
+  app.get("/api/workers/status", requireFirebaseUser, async (req, res) => {
     try {
       let uid = (req as any).user?.uid;
       let email = (req as any).user?.email;
@@ -1108,12 +1157,12 @@ async function startServer() {
         });
       }
 
-      const status = "APPROVED";
+      const status = String(workerApp?.status || userProfile?.status || "PENDING").toUpperCase();
       return res.json({
         success: true,
         registered: true,
-        status: "APPROVED",
-        applicationId: workerApp?.id || "APP-AUTO-APPROVED",
+        status,
+        applicationId: workerApp?.id || userProfile?.applicationId || null,
         appliedAt: workerApp?.appliedAt || new Date().toISOString(),
         role: "worker",
         categories: workerApp?.categories || userProfile?.workerCategories || ["Electrician"],
@@ -1182,12 +1231,11 @@ async function startServer() {
           || ((contact.phone || contact.email) ? await dbAdapter.getWorkerApplicationByContact(contact) : null);
       }
 
-      const hasWorkerProfileSignals = Boolean(
-        currentData?.applicationId || currentData?.workerSkill || currentData?.workerCategories
-        || adapterProfile?.applicationId || adapterProfile?.workerSkill || adapterProfile?.workerCategories
-      );
-      if (currentData?.role !== "worker" && adapterProfile?.role !== "worker" && !workerApp && !hasWorkerProfileSignals) {
-        return res.status(403).json({ success: false, error: "This account is not registered as a PunchX professional. Complete worker registration and sign in again." });
+      const authoritativeStatus = String(currentData?.status || adapterProfile?.status || workerApp?.status || "").toUpperCase();
+      if (currentData?.role !== "worker" || authoritativeStatus !== "APPROVED"
+        || !workerApp || String(workerApp.status || "").toUpperCase() !== "APPROVED"
+        || workerApp.uid !== uid) {
+        return res.status(403).json({ success: false, error: "Only approved, identity-matched professionals may change availability." });
       }
 
       const updatedAt = new Date().toISOString();
@@ -1201,7 +1249,7 @@ async function startServer() {
       const profilePatch = {
         ...(currentData || {}),
         uid,
-        role: "worker",
+        // Preserve the existing role; this endpoint must never grant privileges.
         ...availability
       };
 

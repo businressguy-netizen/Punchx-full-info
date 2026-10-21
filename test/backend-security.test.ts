@@ -121,6 +121,28 @@ async function runTests() {
     });
     assert.strictEqual(randomWorkerCanModify, false);
 
+    // A worker cannot start service without an OTP verification context.
+    const assignedWorkerWithoutOtpCanStart = isActorAuthorized(dummyOrder, 'IN_SERVICE', {
+      actorUid: 'worker_456',
+      actorRole: 'worker',
+    });
+    assert.strictEqual(assignedWorkerWithoutOtpCanStart, false);
+
+    const assignedWorkerWithOtpCanStart = isActorAuthorized(dummyOrder, 'IN_SERVICE', {
+      actorUid: 'worker_456',
+      actorRole: 'worker',
+      otpVerified: true,
+    });
+    assert.strictEqual(assignedWorkerWithOtpCanStart, true);
+
+    // An unassigned worker cannot start service even with a verified challenge.
+    const unassignedWorkerCanStart = isActorAuthorized({ ...dummyOrder, workerId: undefined }, 'IN_SERVICE', {
+      actorUid: 'worker_456',
+      actorRole: 'worker',
+      otpVerified: true,
+    });
+    assert.strictEqual(unassignedWorkerCanStart, false);
+
     // Citizen can cancel order before arrival
     const orderBeforeArrival: OrderRecord = { ...dummyOrder, status: 'DISPATCHING' };
     const citizenCanCancel = isActorAuthorized(orderBeforeArrival, 'CANCELLED', {
