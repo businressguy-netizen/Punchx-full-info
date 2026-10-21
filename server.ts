@@ -1107,12 +1107,12 @@ async function startServer() {
         });
       }
 
-      const status = "APPROVED";
+      const status = String(workerApp?.status || userProfile?.status || "PENDING").toUpperCase();
       return res.json({
         success: true,
         registered: true,
-        status: "APPROVED",
-        applicationId: workerApp?.id || "APP-AUTO-APPROVED",
+        status,
+        applicationId: workerApp?.id || userProfile?.applicationId || null,
         appliedAt: workerApp?.appliedAt || new Date().toISOString(),
         role: "worker",
         categories: workerApp?.categories || userProfile?.workerCategories || ["Electrician"],
