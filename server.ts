@@ -880,6 +880,34 @@ async function startServer() {
         return res.status(400).json({ success: false, error: "Invalid payment verification signature" });
       }
 
+      // In production, independently confirm the payment with Razorpay. A valid client
+      // callback signature alone must not be treated as proof that the expected amount
+      // was captured for this exact gateway order.
+      if (process.env.NODE_ENV === "production") {
+        const keyId = process.env.RAZORPAY_KEY_ID;
+        const keySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (!keyId || !keySecret) {
+          return res.status(503).json({ success: false, error: "Payment verification provider is not configured." });
+        }
+        const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+        const providerResponse = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(String(razorpayPaymentId))}`, {
+          headers: { Authorization: `Basic ${auth}` },
+        });
+        if (!providerResponse.ok) {
+          logger.error("Razorpay payment lookup failed", { orderId, status: providerResponse.status });
+          return res.status(502).json({ success: false, error: "Unable to confirm payment with the payment provider." });
+        }
+        const providerPayment: any = await providerResponse.json();
+        const expectedAmount = Math.round(Number(order.totalAmountToPay || order.price) * 100);
+        if (providerPayment.order_id !== razorpayOrderId
+          || providerPayment.amount !== expectedAmount
+          || providerPayment.currency !== "INR"
+          || providerPayment.status !== "captured") {
+          logger.security("Razorpay payment details did not match booking", { orderId, uid });
+          return res.status(400).json({ success: false, error: "Payment is not captured for the expected booking amount." });
+        }
+      }
+
       // Payment lifecycle is authoritative: PENDING_PAYMENT -> PAID -> DISPATCHING.
       const paidUpdate: Partial<OrderRecord> = {
         paymentStatus: "PAID",
