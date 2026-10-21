@@ -39,6 +39,7 @@ export interface TransitionContext {
   workerPhone?: string;
   photoProof?: string;
   notes?: string;
+  otpVerified?: boolean;
 }
 
 export interface TransitionResult {
@@ -101,13 +102,11 @@ export function isActorAuthorized(
       case 'IN_SERVICE':
         // Starting service must be performed by the worker assigned to this order.
         // The OTP endpoint must persist verification before allowing this transition.
-        return Boolean(order.workerId) && order.workerId === context.actorUid
-          && (order as any).serviceProof?.startOtpVerified === true;
+        return Boolean(order.workerId) && order.workerId === context.actorUid && context.otpVerified === true;
 
       case 'COMPLETED':
         // Completion requires assignment and a verified completion OTP.
-        return Boolean(order.workerId) && order.workerId === context.actorUid
-          && (order as any).serviceProof?.completionOtpVerified === true;
+        return Boolean(order.workerId) && order.workerId === context.actorUid && context.otpVerified === true;
 
       default:
         return false;
