@@ -562,8 +562,9 @@ async function startServer() {
         address: String(orderData.address || orderData.customerAddress || "").trim(),
         status: initialStatus,
         paymentMethod: isCashOnDelivery ? "COD" : "ONLINE",
-        paymentStatus: isCashOnDelivery ? "pending" : (orderData.paymentId ? "paid" : "pending"),
-        paymentId: orderData.paymentId || null,
+        // Client-supplied payment IDs are not proof of payment.
+        paymentStatus: "pending",
+        paymentId: null,
         createdAt: nowIso,
         updatedAt: nowIso,
         bookedAt: nowIso,
