@@ -868,6 +868,12 @@ async function startServer() {
         return res.status(403).json({ success: false, error: "Forbidden: Unauthorized payment verification" });
       }
 
+      const storedGatewayOrderId = String((order as any).paymentDetails?.razorpayOrderId || "");
+      if (!storedGatewayOrderId || storedGatewayOrderId !== String(razorpayOrderId)) {
+        logger.security("Payment gateway order mismatch", { orderId, uid });
+        return res.status(400).json({ success: false, error: "Payment does not match the gateway order created for this booking." });
+      }
+
       const isSignatureValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
       if (!isSignatureValid) {
         logger.security("Payment signature verification failed", { orderId, razorpayPaymentId });
