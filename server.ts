@@ -981,7 +981,7 @@ async function startServer() {
         return res.json({ status: "already_processed" });
       }
 
-      recordProcessedEvent(eventId, event?.event || "unknown");
+      // Record only after successful state changes so failed events can be retried.
 
       // Handle payment capture / order paid events
       if (event?.event === "payment.captured" || event?.event === "order.paid") {
@@ -1008,20 +1008,27 @@ async function startServer() {
               },
             }
           );
-          if (paidResult.success) {
-            await executeOrderTransition(
-              appOrderId,
-              "DISPATCHING",
-              {
-                actorUid: "gateway_webhook",
-                actorRole: "system",
-                reason: "Webhook payment confirmed; specialist dispatch initiated",
-              }
-            );
+          if (!paidResult.success) {
+            logger.error("Webhook payment event could not transition booking to PAID", { appOrderId, error: paidResult.error });
+            return res.status(500).json({ error: "Payment event could not be applied; retry is required." });
+          }
+          const dispatchResult = await executeOrderTransition(
+            appOrderId,
+            "DISPATCHING",
+            {
+              actorUid: "gateway_webhook",
+              actorRole: "system",
+              reason: "Webhook payment confirmed; specialist dispatch initiated",
+            }
+          );
+          if (!dispatchResult.success) {
+            logger.error("Webhook payment event could not dispatch booking", { appOrderId, error: dispatchResult.error });
+            return res.status(500).json({ error: "Payment dispatch update failed; retry is required." });
           }
         }
       }
 
+      recordProcessedEvent(eventId, event?.event || "unknown");
       return res.json({ status: "ok" });
     } catch (err: any) {
       logger.error("Webhook processing error:", err);
