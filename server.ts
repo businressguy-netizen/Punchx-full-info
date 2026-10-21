@@ -774,6 +774,7 @@ async function startServer() {
         {
           actorUid: uid,
           actorRole: isUserAdmin ? "admin" : "worker",
+          otpVerified: true,
           reason: `Verified valid ${type} security code from customer`,
         },
         { serviceProof: {
