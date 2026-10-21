@@ -1199,7 +1199,7 @@ async function startServer() {
       const profilePatch = {
         ...(currentData || {}),
         uid,
-        role: "worker",
+        // Preserve the existing role; this endpoint must never grant privileges.
         ...availability
       };
 
