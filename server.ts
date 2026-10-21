@@ -454,6 +454,14 @@ async function startServer() {
       const requestedWorkerId = String(orderData.workerId || "").trim();
       const workerProfile = requestedWorkerId ? await dbAdapter.getUser(requestedWorkerId) : null;
       const workerApplication = requestedWorkerId ? await dbAdapter.getWorkerApplicationByUid(requestedWorkerId) : null;
+      if (requestedWorkerId && (
+        workerProfile?.role !== "worker"
+        || String(workerProfile?.status || "").toUpperCase() !== "APPROVED"
+        || String(workerApplication?.status || "").toUpperCase() !== "APPROVED"
+        || workerApplication?.uid !== requestedWorkerId
+      )) {
+        return res.status(400).json({ success: false, error: "The selected professional is not approved or could not be identity-verified." });
+      }
       const nowIso = new Date().toISOString();
 
       // 1. Authoritative Server-Side Pricing Calculation (Never trust client prices)
