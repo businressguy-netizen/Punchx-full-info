@@ -1051,7 +1051,7 @@ async function startServer() {
 
   // ─── WORKER APPLICATIONS APIS ───
   // Query worker registration & verification status for authenticated user
-  app.get("/api/workers/status", async (req, res) => {
+  app.get("/api/workers/status", requireFirebaseUser, async (req, res) => {
     try {
       let uid = (req as any).user?.uid;
       let email = (req as any).user?.email;
