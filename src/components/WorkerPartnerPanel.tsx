@@ -8,8 +8,10 @@ import PUNCHX_LOGO from '../assets/logo';
 import { getAccurateCurrentPosition, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isServiceAreaMatch, fetchGoogleMapsConfig, GoogleMapsConfig } from '../lib/location';
 import { APIProvider, Map as GoogleMap, useMap } from '@vis.gl/react-google-maps';
 import './worker-partner-panel.css';
+import WorkerWalletView from './WorkerWalletView';
+import WorkerPaymentCompletionModal from './WorkerPaymentCompletionModal';
 
-type Tab = 'home'|'orders'|'schedule'|'earnings'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
+type Tab = 'home'|'orders'|'schedule'|'earnings'|'wallet'|'performance'|'training'|'inventory'|'profile'|'notifications'|'incentives'|'support'|'settings';
 type Status = 'NEW'|'ACCEPTED'|'TRAVELLING'|'ARRIVED'|'SERVICE_STARTED'|'COMPLETED'|'CANCELLED';
 type ReportPeriod = 7|30|60|90|365;
 const REPORT_PERIODS:ReportPeriod[]=[7,30,60,90,365];
@@ -43,6 +45,9 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
  const [online,setOnline]=useState(false);
  const [orders,setOrders]=useState<Order[]>([]);
  const [selected,setSelected]=useState<Order|null>(null);
+ const [completionOrder,setCompletionOrder]=useState<Order|null>(null);
+ const [completionSaving,setCompletionSaving]=useState(false);
+ const [walletBalancePaise,setWalletBalancePaise]=useState(0);
  const [query,setQuery]=useState('');
  const [filter,setFilter]=useState('ALL');
  const [mobile,setMobile]=useState(false);
@@ -172,6 +177,20 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
  const todayPayouts=today.filter(function(o){return o.status==='COMPLETED'&&o.earning!==null});
  const todayEarn=todayPayouts.length?todayPayouts.reduce(function(s,o){return s+(o.earning||0)},0):null;
  const filtered=useMemo(function(){return orders.filter(function(o){return (filter==='ALL'||(filter==='NEW'&&o.status==='NEW')||(filter==='ACCEPTED'&&o.status==='ACCEPTED')||(filter==='TRAVELLING'&&o.status==='TRAVELLING')||(filter==='ARRIVED'&&o.status==='ARRIVED')||(filter==='SERVICE_STARTED'&&o.status==='SERVICE_STARTED')||(filter==='COMPLETED'&&o.status==='COMPLETED')||(filter==='CANCELLED'&&o.status==='CANCELLED'))&&(o.id+' '+o.customer+' '+o.service+' '+o.address).toLowerCase().includes(query.toLowerCase())})},[orders,filter,query]);
+ useEffect(function(){
+   let active=true;
+   const loadWalletBalance=async function(){
+     try{
+       if(!auth.currentUser)return;
+       const token=await auth.currentUser.getIdToken();
+       const response=await fetch(`${import.meta.env.VITE_BACKEND_URL||''}/api/worker-wallet`,{headers:{Authorization:`Bearer ${token}`}});
+       const result=await response.json().catch(()=>({}));
+       if(active&&response.ok&&result?.success===true)setWalletBalancePaise(Math.max(0,Number(result.wallet?.balancePaise)||0));
+     }catch(error){console.warn('Worker wallet balance preview unavailable:',error);}
+   };
+   void loadWalletBalance();
+   return function(){active=false;};
+ },[uid]);
  const availabilityWriteRef=useRef(false);
  const [availabilitySaving,setAvailabilitySaving]=useState(false);
  const persistAvailability=async function(nextOnline:boolean){
@@ -255,27 +274,20 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
    const raw=o.raw;
    try{
      if(o.status==='NEW'){
-       if(!uid){return;}
-       await runTransaction(db,async function(tx){
-         const ref=doc(db,'orders',raw.id); const snap=await tx.get(ref);
-         if(!snap.exists()) throw new Error('Booking no longer exists.');
-         const current=snap.data() as any;
-         if(!pending(current.status) || (current.workerId && current.workerId!==uid)) throw new Error('This job was already accepted.');
-         const changedAt=new Date().toISOString();
-         const history=Array.isArray(current.stateHistory)?current.stateHistory:[];
-         tx.update(ref,{
-           workerId:uid,
-           workerName:userProfile?.name||'Verified Professional',
-           workerPhone:userProfile?.phone||'',
-           status:'In-Progress',
-           acceptedAt:changedAt,
-           updatedAt:changedAt,
-           stateHistory:[...history,{from:current.status||'Pending',to:'In-Progress',timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional accepted booking'}],
-         });
+       if(!auth.currentUser)throw new Error('Your secure sign-in session is not ready. Please sign in again.');
+       const token=await auth.currentUser.getIdToken();
+       const response=await fetch(`${import.meta.env.VITE_BACKEND_URL||''}/api/worker-wallet/accept-job`,{
+         method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({orderId:raw.id})
        });
-       showNotification?.('✅ Job accepted. The customer assignment is now active.');
+       const result=await response.json().catch(()=>({}));
+       if(!response.ok||result?.success!==true)throw new Error(result?.error||'Could not accept this job.');
+       showNotification?.('✅ Job accepted. Wallet credits were checked before assignment.');
+     } else if(o.status==='SERVICE_STARTED'){
+       setSelected(null);
+       setCompletionOrder(o);
+       return;
      } else {
-       const backendStatus:any=o.status==='ACCEPTED'?'EN_ROUTE':o.status==='TRAVELLING'?'ARRIVED':o.status==='ARRIVED'?'IN_SERVICE':o.status==='SERVICE_STARTED'?'Done':null;
+       const backendStatus:any=o.status==='ACCEPTED'?'EN_ROUTE':o.status==='TRAVELLING'?'ARRIVED':o.status==='ARRIVED'?'IN_SERVICE':null;
        if(!backendStatus) return;
        const changedAt=new Date().toISOString();
        const history=Array.isArray((raw as any).stateHistory)?(raw as any).stateHistory:[];
@@ -283,17 +295,34 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
          status:backendStatus,
          updatedAt:changedAt,
          stateHistory:[...history,{from:raw.status,to:backendStatus,timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional updated booking progress'}],
-         ...(backendStatus==='Done'?{completedAt:changedAt,workerOutForWork:false}:{})
        });
-       showNotification?.(backendStatus==='Done'?'✅ Service completed and recorded.':'Order '+o.id+' updated to '+(labels[mapStatus(backendStatus)]||backendStatus)+'.');
+       showNotification?.('Order '+o.id+' updated to '+(labels[mapStatus(backendStatus)]||backendStatus)+'.');
      }
      setSelected(null);
    }catch(e:any){showNotification?.('⚠️ '+(e?.message||'Could not update this booking.'));}
  };
- const menu=[['home','Home',Home],['orders','Orders',ClipboardList],['schedule','Schedule',CalendarDays],['earnings','Earnings',Wallet],['performance','Performance',TrendingUp],['training','Training',ShieldCheck],['inventory','Inventory',BriefcaseBusiness],['profile','Profile',UserRound],['notifications','Notifications',Bell],['incentives','Incentives',Gift],['support','Support',LifeBuoy],['settings','Settings',Settings]] as any[];
+ const completeWorkerOrder=async function(payment:any){
+   if(!completionOrder?.raw||completionSaving)return;
+   setCompletionSaving(true);
+   try{
+     if(!auth.currentUser)throw new Error('Your secure sign-in session is not ready. Please sign in again.');
+     const token=await auth.currentUser.getIdToken();
+     const response=await fetch(`${import.meta.env.VITE_BACKEND_URL||''}/api/worker-wallet/complete-job`,{
+       method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+       body:JSON.stringify({orderId:completionOrder.raw.id,...payment})
+     });
+     const result=await response.json().catch(()=>({}));
+     if(!response.ok||result?.success!==true)throw new Error(result?.error||'Could not complete the booking.');
+     if(typeof result.balanceAfterPaise==='number')setWalletBalancePaise(result.balanceAfterPaise);
+     setCompletionOrder(null);
+     showNotification?.(result.message||'✅ Booking completed and payment recorded.');
+   }catch(e:any){showNotification?.('⚠️ '+(e?.message||'Could not complete this booking.'));}
+   finally{setCompletionSaving(false);}
+ };
+ const menu=[['home','Home',Home],['orders','Orders',ClipboardList],['schedule','Schedule',CalendarDays],['earnings','Earnings',Wallet],['wallet','Commission wallet',Wallet],['performance','Performance',TrendingUp],['training','Training',ShieldCheck],['inventory','Inventory',BriefcaseBusiness],['profile','Profile',UserRound],['notifications','Notifications',Bell],['incentives','Incentives',Gift],['support','Support',LifeBuoy],['settings','Settings',Settings]] as any[];
  const menuGroups=[
   {label:'Workspace',keys:['home','orders','schedule']},
-  {label:'Business',keys:['earnings','performance','incentives']},
+  {label:'Business',keys:['earnings','wallet','performance','incentives']},
   {label:'Tools',keys:['training','inventory']},
   {label:'Account & help',keys:['profile','notifications','support','settings']},
  ].map(function(group:any){return {label:group.label,items:group.keys.map(function(key:string){return menu.find(function(m:any){return m[0]===key;});}).filter(Boolean)};});
@@ -316,7 +345,7 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
    <main className="wx-content">
     {tab==='home'&&<HomeView area={geo?.area||userProfile?.area||workerArea} geo={geo} geoLoading={geoLoading} geoError={geoError} online={online} toggleOnline={()=>persistAvailability(!online)} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav} serviceAreas={workerServiceAreas} mapsConfig={mapsConfig} availabilitySaving={availabilitySaving}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
-    {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
+    {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>} {tab==='wallet'&&<WorkerWalletView showNotification={showNotification}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
     {tab==='profile'&&<ProfileView userProfile={userProfile} uid={uid} refreshProfile={refreshProfile} showNotification={showNotification} onTransition={onTransition}/>}
     {tab==='notifications'&&<NotificationsView orders={orders}/>}
     {tab==='incentives'&&<IncentivesView/>}
@@ -324,12 +353,13 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
     {tab==='settings'&&<SettingsView online={online} persistAvailability={persistAvailability} availabilitySaving={availabilitySaving} nav={nav} onTransition={onTransition}/>}
    </main>
    <footer className="wx-mobile-nav" aria-label="Professional navigation">
-     {menu.filter(function(m:any){return ['home','orders','schedule','earnings'].includes(m[0]);}).map(function(m:any){var I=m[2];return <button type="button" key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])} aria-current={tab===m[0]?'page':undefined}><I size={19}/><span>{m[1]}</span></button>})}
+     {menu.filter(function(m:any){return ['home','orders','earnings','wallet'].includes(m[0]);}).map(function(m:any){var I=m[2];return <button type="button" key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])} aria-current={tab===m[0]?'page':undefined}><I size={19}/><span>{m[1]}</span></button>})}
      <button type="button" className={!['home','orders','schedule','earnings'].includes(tab)?'active wx-mobile-more':'wx-mobile-more'} onClick={()=>setMobile(true)} aria-label="Open more professional sections"><MoreHorizontal size={20}/><span>More</span></button>
     </footer>
    <WorkerWebsiteFooter tab={tab} nav={nav} onTransition={onTransition} onLogout={handleLogout} loggingOut={loggingOut} />
   </div>
   {selected&&<OrderModal order={selected} close={()=>setSelected(null)} advance={()=>advance(selected)} action={action(selected.status)}/>}
+  {completionOrder&&<WorkerPaymentCompletionModal order={completionOrder} balancePaise={walletBalancePaise} saving={completionSaving} close={()=>setCompletionOrder(null)} onConfirm={completeWorkerOrder}/>}
  </div>
 }
 
