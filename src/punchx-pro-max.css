@@ -1,0 +1,241 @@
+/* PunchX UI UX Pro Max — warm premium design system.
+   Palette: charcoal + champagne gold + olive, with soft warm-white surfaces.
+   This final layer remaps legacy blue/violet utility classes and standardizes motion.
+*/
+:root {
+  color-scheme: light;
+  --px-ink: #191915;
+  --px-ink-soft: #29271f;
+  --px-brand: #b99a62;
+  --px-brand-strong: #80663a;
+  --px-brand-light: #d9c28f;
+  --px-brand-soft: #f7efe7;
+  --px-olive: #64745d;
+  --px-olive-soft: #edf1e9;
+  --px-paper: #fbfaf7;
+  --px-surface: #ffffff;
+  --px-text: #1d1e1a;
+  --px-muted: #77776c;
+  --px-border: #e6decc;
+  --px-shadow: 0 14px 42px rgba(40, 34, 21, .08);
+  --px-shadow-hover: 0 22px 56px rgba(40, 34, 21, .14);
+  --px-radius-card: 24px;
+
+  /* Legacy variable names retained so older components inherit the new palette. */
+  --px-navy: #191915;
+  --px-navy-deep: #10110f;
+  --px-blue: #b99a62;
+  --px-blue-dark: #80663a;
+  --px-sky: #d9c28f;
+  --px-pale: #f7efe7;
+  --px-bg: #fbfaf7;
+  --px-white: #fff;
+  --px-success: #64745d;
+  --px-success-soft: #edf1e9;
+  --px-market-bg: #fbfaf7;
+  --px-market-card: #fff;
+  --px-market-text: #1d1e1a;
+  --px-market-muted: #77776c;
+  --px-market-border: rgba(40, 34, 21, .1);
+  --px-market-purple: #b99a62;
+  --px-market-purple-dark: #80663a;
+  --px-market-lilac: #f7efe7;
+  --px-market-green: #64745d;
+  --px-market-green-soft: #edf1e9;
+  --px-market-shadow: 0 14px 42px rgba(40, 34, 21, .08);
+  --px-primary: #b99a62;
+  --px-primary-2: #d9c28f;
+}
+
+html { scroll-behavior: smooth; }
+html, body, #root {
+  background: var(--px-paper);
+  color: var(--px-text);
+}
+body {
+  font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+  overflow-x: clip;
+}
+::selection { background: rgba(185, 154, 98, .22); color: var(--px-ink); }
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(185, 154, 98, .5) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(185, 154, 98, .1);
+}
+input, textarea, select { accent-color: var(--px-brand-strong); }
+input::placeholder, textarea::placeholder { color: #929084; opacity: 1; }
+
+/* Re-map legacy blue and violet text accents to champagne/olive. */
+[class*="text-blue-"], [class*="text-sky-"], [class*="text-indigo-"],
+[class*="text-violet-"], [class*="text-purple-"],
+[class*="text-[#2563eb]"], [class*="text-[#3478f6]"],
+[class*="text-[#7358d7]"], [class*="text-[#5b45c7]"],
+[class*="text-[#6d4ee6]"], [class*="text-[#6044d0]"] {
+  color: var(--px-brand-strong) !important;
+}
+[class*="text-[#b9adff]"], [class*="text-[#d7d0ff]"] { color: var(--px-brand-light) !important; }
+[class*="text-[#6d91ff]"] { color: var(--px-brand-light) !important; }
+
+[class*="border-blue-"], [class*="border-sky-"], [class*="border-indigo-"],
+[class*="border-violet-"], [class*="border-purple-"],
+[class*="border-[#2563eb]"], [class*="border-[#7358d7]"],
+[class*="border-[#5b45c7]"], [class*="border-[#b9adff]"] {
+  border-color: rgba(185, 154, 98, .34) !important;
+}
+[class*="ring-blue-"], [class*="ring-indigo-"], [class*="ring-purple-"],
+[class*="ring-violet-"] { --tw-ring-color: rgba(185, 154, 98, .32) !important; }
+
+[class*="bg-blue-50"], [class*="bg-sky-50"], [class*="bg-indigo-50"],
+[class*="bg-violet-50"], [class*="bg-purple-50"],
+[class*="bg-[#eee9ff]"], [class*="bg-[#f0ecff]"], [class*="bg-[#f7f5ff]"],
+[class*="bg-[#f8f7ff]"], [class*="bg-[#e7e0ff]"], [class*="bg-[#7358d7]/"],
+[class*="bg-[#6d4ee6]/"], [class*="bg-[#b9adff]/"], [class*="bg-[#6d91ff]/"] {
+  background-color: var(--px-brand-soft) !important;
+}
+
+/* Primary actions use one warm gradient; subdued chips stay softly tinted. */
+button[class*="bg-blue-"], button[class*="bg-sky-"], button[class*="bg-indigo-"],
+button[class*="bg-violet-"], button[class*="bg-purple-"],
+button[class~="bg-[#2563eb]"], button[class~="bg-[#3478f6]"],
+button[class~="bg-[#7358d7]"], button[class~="bg-[#5b45c7]"],
+button[class~="bg-[#6d4ee6]"] {
+  background: linear-gradient(135deg, var(--px-brand-strong), var(--px-brand)) !important;
+  border-color: rgba(128, 102, 58, .45) !important;
+  color: #fff !important;
+  box-shadow: 0 9px 24px rgba(128, 102, 58, .18);
+}
+button[class*="bg-blue-"]:hover, button[class*="bg-sky-"]:hover,
+button[class*="bg-indigo-"]:hover, button[class*="bg-violet-"]:hover,
+button[class*="bg-purple-"]:hover {
+  filter: brightness(1.04);
+  box-shadow: 0 13px 30px rgba(128, 102, 58, .24);
+}
+[class*="bg-[#0c1020]"], [class*="bg-[#101525]"], [class*="bg-[#171c35]"],
+[class*="bg-[#0d121f]"] { background-color: var(--px-ink) !important; }
+
+/* Brand hero and shared marketplace chrome. */
+.punchx-citizen-main, .punchx-citizen-shell,
+#providers-list-root, #provider-details-root, #booking-container, #payment-screen-container {
+  background: var(--px-paper) !important;
+  color: var(--px-text) !important;
+}
+.punchx-citizen-shell header {
+  border-color: var(--px-border) !important;
+  box-shadow: 0 1px 0 rgba(40,34,21,.06), 0 8px 26px rgba(40,34,21,.035);
+}
+.punchx-citizen-shell main > section:first-child > div {
+  background: linear-gradient(135deg, #f6f0e3 0%, #fff 56%, #edf1e9 100%) !important;
+  border: 1px solid rgba(185,154,98,.18) !important;
+  border-radius: var(--px-radius-card) !important;
+  box-shadow: var(--px-shadow) !important;
+}
+.punchx-citizen-shell main > section:first-child > div::after {
+  background: radial-gradient(circle, rgba(185,154,98,.16), transparent 70%) !important;
+}
+.punchx-citizen-shell main > section:first-child h1 { color: var(--px-ink) !important; }
+.punchx-citizen-shell main > section:first-child p { color: #69695e !important; }
+.punchx-citizen-shell section h2, .punchx-citizen-shell section h3 {
+  letter-spacing: -.025em;
+}
+#providers-list-root header, #provider-details-root header,
+#booking-topbar, #payment-topbar {
+  background: rgba(255,255,255,.96) !important;
+  color: var(--px-text) !important;
+  border-color: var(--px-border) !important;
+  box-shadow: 0 10px 30px rgba(40,34,21,.06) !important;
+}
+#providers-list-root article, #providers-list-root section,
+#providers-list-root .punchx-service-card,
+#provider-details-root article, #booking-container section,
+#payment-screen-container section {
+  border-color: var(--px-border) !important;
+  box-shadow: var(--px-shadow);
+}
+
+/* Calm, reliable micro-interactions. Motion stays purposeful and respects reduced-motion. */
+@keyframes px-pro-max-rise {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes px-pro-max-sheen {
+  0% { transform: translateX(-145%) skewX(-18deg); opacity: 0; }
+  25% { opacity: .5; }
+  100% { transform: translateX(350%) skewX(-18deg); opacity: 0; }
+}
+@keyframes px-pro-max-pop {
+  0% { opacity: .4; transform: scale(.94); }
+  70% { opacity: 1; transform: scale(1.035); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.punchx-citizen-shell main > section {
+  animation: px-pro-max-rise .48s cubic-bezier(.2,.8,.2,1) both;
+}
+.punchx-citizen-shell main > section:nth-of-type(2) { animation-delay: .045s; }
+.punchx-citizen-shell main > section:nth-of-type(3) { animation-delay: .09s; }
+.punchx-citizen-shell main > section:nth-of-type(4) { animation-delay: .135s; }
+.punchx-citizen-shell main > section:nth-of-type(5) { animation-delay: .18s; }
+.punchx-citizen-shell section button img {
+  transition: transform .36s cubic-bezier(.2,.8,.2,1), filter .36s ease;
+}
+.punchx-citizen-shell section button:hover img { transform: scale(1.045); }
+.punchx-citizen-shell section button:active { transform: scale(.985); }
+.punchx-citizen-shell section button,
+#providers-list-root button, #provider-details-root button,
+#booking-container button, #payment-screen-container button {
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease,
+    border-color .22s ease, background-color .22s ease, filter .22s ease;
+}
+.punchx-citizen-shell section button:hover,
+#providers-list-root button:hover, #provider-details-root button:hover,
+#booking-container button:hover, #payment-screen-container button:hover {
+  border-color: rgba(185,154,98,.28);
+}
+.punchx-citizen-shell section button:active,
+#providers-list-root button:active, #provider-details-root button:active,
+#booking-container button:active, #payment-screen-container button:active {
+  transform: scale(.985);
+}
+.px-workspace-card {
+  border-color: rgba(185,154,98,.28) !important;
+  box-shadow: 0 22px 70px rgba(40,34,21,.09) !important;
+  transition: transform .32s cubic-bezier(.2,.8,.2,1), box-shadow .32s ease, border-color .32s ease !important;
+}
+.px-workspace-card::before {
+  background: linear-gradient(135deg, rgba(255,255,255,.98), rgba(185,154,98,.35), rgba(100,116,93,.22)) !important;
+}
+.px-workspace-card::after {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.58), transparent) !important;
+}
+.px-workspace-card:hover {
+  border-color: rgba(185,154,98,.5) !important;
+  box-shadow: var(--px-shadow-hover) !important;
+}
+.px-workspace-orbit { border-color: rgba(185,154,98,.28) !important; }
+.px-workspace-orbit::after { background: var(--px-brand-light) !important; box-shadow: 0 0 14px rgba(185,154,98,.58) !important; }
+
+/* Warm up the global footer without removing its contrast or links. */
+#punchx-website-footer [class*="bg-[#7358d7]/"],
+#punchx-website-footer [class*="bg-[#6d91ff]/"] {
+  background-color: rgba(185,154,98,.15) !important;
+}
+#punchx-website-footer [class*="text-[#b9adff]"],
+#punchx-website-footer [class*="text-[#d7d0ff]"] { color: var(--px-brand-light) !important; }
+#punchx-website-footer [class*="border-[#b9adff]"] { border-color: rgba(217,194,143,.34) !important; }
+
+/* Keep buttons touch-friendly and prevent animation from becoming a barrier. */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled):hover { filter: saturate(1.03); }
+}
+button:disabled { cursor: not-allowed; opacity: .62; }
+@media (max-width: 767px) {
+  .punchx-citizen-shell main { padding-left: 12px !important; padding-right: 12px !important; }
+  .punchx-citizen-shell main > section:first-child > div { border-radius: 22px !important; }
+  .punchx-citizen-shell button { min-height: 42px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .punchx-citizen-shell main > section { animation: none !important; }
+  .punchx-citizen-shell section button:hover img { transform: none !important; }
+}
