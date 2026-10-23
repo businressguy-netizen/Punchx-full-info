@@ -43,7 +43,7 @@ const families: Family[] = [
     {name:'Door lock set',unit:'piece',minPrice:250,maxPrice:4500,specification:'Mortise, cylindrical or smart lock',confidence:'C'},
     {name:'Plywood 6–18 mm',unit:'sheet',minPrice:700,maxPrice:4500,specification:'Grade, thickness and sheet size',confidence:'C'},
     {name:'Wood adhesive',unit:'kg/litre',minPrice:120,maxPrice:850,specification:'Brand and pack size',confidence:'C'}]},
-  { match: /ac service|air condition|ac repair/i, products: [
+  { match: /ac\\b|air condition|ac repair/i, products: [
     {name:'AC remote control',unit:'piece',minPrice:250,maxPrice:1800,specification:'Universal or model-specific',confidence:'B'},
     {name:'AC capacitor 25–60 µF',unit:'piece',minPrice:250,maxPrice:1800,specification:'Match capacitance and voltage',confidence:'B'},
     {name:'AC temperature sensor',unit:'piece',minPrice:250,maxPrice:1400,specification:'Model/connector compatibility',confidence:'C'},
@@ -168,6 +168,17 @@ const families: Family[] = [
     {name:'Stretch wrap roll',unit:'roll',minPrice:120,maxPrice:550,specification:'Width and thickness',confidence:'C'},
     {name:'Vehicle shampoo',unit:'litre',minPrice:150,maxPrice:800,specification:'pH and vehicle-safe formula',confidence:'C'},
     {name:'Microfibre detailing kit',unit:'set',minPrice:250,maxPrice:1800,specification:'Towels, brushes and applicators',confidence:'C'}]},
+  { match: /cook|home assistance|kitchen helper/i, products: [
+    {name:'Cookware set',unit:'set',minPrice:900,maxPrice:8500,specification:'Material, number of pieces and induction compatibility',confidence:'C'},
+    {name:'Pressure cooker 3–5 L',unit:'piece',minPrice:850,maxPrice:4500,specification:'Capacity, material and pressure-regulator type',confidence:'C'},
+    {name:'Chopping board',unit:'piece',minPrice:120,maxPrice:1200,specification:'Food-safe material and size',confidence:'B'},
+    {name:'Chef knife / kitchen knife set',unit:'set',minPrice:250,maxPrice:2800,specification:'Blade material, number of knives and safe storage',confidence:'C'},
+    {name:'Food storage container set',unit:'set',minPrice:250,maxPrice:2200,specification:'Capacity, lid seal and food-safe material',confidence:'B'},
+    {name:'Spice and ingredient organiser',unit:'set',minPrice:180,maxPrice:1800,specification:'Number of jars and material',confidence:'B'},
+    {name:'Apron and reusable kitchen gloves',unit:'set',minPrice:180,maxPrice:1200,specification:'Sizing, fabric and heat/water resistance',confidence:'B'},
+    {name:'Insulated casserole / hot pot',unit:'piece',minPrice:450,maxPrice:3200,specification:'Capacity and insulation',confidence:'C'},
+    {name:'Kitchen measuring cup & spoon set',unit:'set',minPrice:100,maxPrice:700,specification:'Metric markings and material',confidence:'B'}
+  ]},
   { match: /home care|elderly|caregiver/i, products: [
     {name:'Walking stick / cane',unit:'piece',minPrice:250,maxPrice:1800,specification:'Height adjustment, handle type and load rating',confidence:'C'},
     {name:'Folding walker',unit:'piece',minPrice:900,maxPrice:4500,specification:'Frame width, wheels, brakes and user fit',confidence:'C'},
@@ -213,12 +224,33 @@ const genericProducts: ProductSeed[] = [
   {name:'Tools / equipment rental',unit:'day',minPrice:250,maxPrice:3500,specification:'Availability and delivery must be confirmed',confidence:'C',quoteRequired:true},
 ];
 
+const PRODUCT_FAMILY_ALIASES: Record<string, string[]> = {
+  electrician: ['lighting', 'switches', 'wiring', 'electrical fittings'],
+  plumber: ['plumbing', 'water pipe', 'bathroom fittings', 'water pump'],
+  'cleaner-housekeeper': ['home cleaning', 'sofa', 'mattress', 'carpet', 'upholstery', 'laundry'],
+  'ac-technician': ['air conditioning', 'appliance', 'washing machine', 'refrigerator', 'water purifier', 'television'],
+  'pest-control-worker': ['pest control', 'termite', 'rodent'],
+  beautician: ['beauty', 'salon', 'massage', 'spa', 'hair styling'],
+  carpenter: ['carpentry', 'furniture', 'locksmith', 'door', 'window', 'glass', 'welding', 'fabrication'],
+  painter: ['painting', 'waterproofing', 'masonry', 'tiles', 'false ceiling'],
+  cook: ['cook', 'kitchen', 'food preparation', 'home assistance'],
+  'home-care': ['home care', 'elderly', 'caregiver', 'mobility aids'],
+  physiotherapy: ['physiotherapy', 'rehabilitation', 'exercise therapy'],
+  catering: ['catering', 'event catering', 'buffet', 'food service'],
+};
+
 export function getProductsForCategory(category: ServiceCategory): PriceProduct[] {
-  const family = families.find(({match}) => match.test(category.name) || match.test(category.id));
-  const seeds = family?.products || genericProducts;
+  const aliases = PRODUCT_FAMILY_ALIASES[category.id] || [];
+  const familySearchText = [category.name, category.id, ...aliases].join(' ');
+  const matchingFamilies = families.filter(({match}) => match.test(familySearchText));
+  const seeds = matchingFamilies.length
+    ? matchingFamilies.flatMap(family => family.products).filter((product, index, all) =>
+        all.findIndex(candidate => candidate.name.toLowerCase() === product.name.toLowerCase()) === index
+      )
+    : genericProducts;
   return seeds.map((product, index) => ({
     ...product,
     id: `${category.id}-product-${index + 1}`,
-    keywords: [category.name, product.name, product.specification],
+    keywords: [category.name, ...aliases, product.name, product.specification],
   }));
 }
