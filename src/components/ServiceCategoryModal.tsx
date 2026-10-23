@@ -126,10 +126,6 @@ export default function ServiceCategoryModal({
   }, [catalogCategory, catalogSearch]);
 
   const handleCitizenSelect = (name: string) => {
-    if (name === 'Other Service') {
-      setShowCustomInput(true);
-      return;
-    }
     const category = findCatalogCategory(name);
     if (!category) {
       onSelectCategory?.(name);
