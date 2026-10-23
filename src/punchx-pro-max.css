@@ -275,3 +275,18 @@ button:disabled { cursor: not-allowed; opacity: .62; }
 .wx-badge.new { background: var(--px-brand-soft) !important; color: var(--px-brand-strong) !important; }
 .wx-site-footer-glow-right { background: rgba(185,154,98,.16) !important; }
 .wx-site-footer-glow-left { background: rgba(100,116,93,.12) !important; }
+
+
+/* Direct hex utility classes and arbitrary-shadow utilities from older screens. */
+[class*="bg-[#2563eb]"], [class*="bg-[#1d4ed8]"],
+[class*="bg-[#38bdf8]"], [class*="bg-[#3478f6]"] {
+  background-color: var(--px-brand) !important;
+}
+[class*="bg-[#2563eb]/"], [class*="bg-[#1d4ed8]/"],
+[class*="bg-[#38bdf8]/"], [class*="bg-[#3478f6]/"] {
+  background-color: rgba(185,154,98,.13) !important;
+}
+[class*="rgba(37,99,235"], [class*="rgba(30,64,175"],
+[class*="rgba(56,189,248"], [class*="rgba(99,102,241"] {
+  box-shadow: var(--px-shadow) !important;
+}
