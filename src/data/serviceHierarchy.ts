@@ -132,7 +132,7 @@ appendLegacyGroups('ac-technician', ['appliance-repair-technician', 'refrigerato
 appendLegacyGroups('cleaner-housekeeper', ['upholstery-sofa-cleaner', 'home-disinfection']);
 appendLegacyGroups('carpenter', ['locksmith', 'glass-glazier-worker', 'welder', 'fabricator']);
 appendLegacyGroups('beautician', ['hair-stylist', 'barber']);
-appendLegacyGroups('cook', ['domestic-help', 'caterer', 'tiffin-home-food-provider']);
+appendLegacyGroups('cook', ['domestic-help', 'tiffin-home-food-provider']);
 appendLegacyGroups('painter', ['house-painter', 'mason', 'tile-marble-installer', 'waterproofing-specialist', 'pop-false-ceiling-worker']);
 
 function slug(value: string) {
