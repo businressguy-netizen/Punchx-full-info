@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { APIProvider, AdvancedMarker, Map, useMap } from '@vis.gl/react-google-maps';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, MapPin, Navigation, Phone, RefreshCw, ShieldCheck, UserRound } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Clock3, MapPin, Navigation, Phone, ShieldCheck, UserRound } from 'lucide-react';
 import { AppScreen, OrderRecord } from '../types';
 import { auth, db } from '../lib/firebase';
 import { fetchGoogleMapsConfig, GoogleMapsConfig } from '../lib/location';
@@ -136,14 +136,13 @@ export default function LiveTracking({ onTransition }: LiveTrackingProps) {
   const [cancelError, setCancelError] = useState('');
   const [workerLocation, setWorkerLocation] = useState<TrackingOrder['workerLocation']>(order.workerLocation);
   const [customer, setCustomer] = useState<Coords | null>(() => {
-    const candidate = order.customerLocation || order.addressCoordinates;
+    const candidate = order.addressCoordinates || order.customerLocation;
     return isCoords(candidate) ? candidate : null;
   });
   const [mapsConfig, setMapsConfig] = useState<GoogleMapsConfig | null>(null);
   const [mapError, setMapError] = useState('');
   const [routeInfo, setRouteInfo] = useState<RouteInfo>(null);
   const [now, setNow] = useState(Date.now());
-  const [routeNotice, setRouteNotice] = useState('');
   const status = String(order.status || 'Pending');
   const journeyActive = isJourneyActive(order);
   const locationTimestamp = workerLocation?.updatedAt || workerLocation?.timestamp || order.trackingLastLocationAt;
@@ -180,7 +179,7 @@ export default function LiveTracking({ onTransition }: LiveTrackingProps) {
       const data = { id: snapshot.id, ...snapshot.data() } as TrackingOrder;
       setOrder(current => ({ ...current, ...data }));
       setWorkerLocation(data.workerLocation);
-      const target = data.customerLocation || data.addressCoordinates;
+      const target = data.addressCoordinates || data.customerLocation;
       if (isCoords(target)) setCustomer(target);
       if (!isJourneyActive(data)) setRouteInfo(null);
       try { localStorage.setItem('punchx_active_order', JSON.stringify({ ...readOrder(), ...data })); } catch {}
