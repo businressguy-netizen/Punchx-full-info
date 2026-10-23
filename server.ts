@@ -504,7 +504,7 @@ async function startServer() {
         const balancePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
         const requiredPaise = gatewayPaid ? 0 : fees.commissionPaise + fees.platformFeePaise;
         if (balancePaise < requiredPaise) {
-          rejection = \`Insufficient commission credits. This booking requires about ₹\${(requiredPaise / 100).toFixed(2)} in credits; available balance is ₹\${(balancePaise / 100).toFixed(2)}. Recharge at least ₹100 and wait for verification.\`;
+          rejection = `Insufficient commission credits. This booking requires about ₹${(requiredPaise / 100).toFixed(2)} in credits; available balance is ₹${(balancePaise / 100).toFixed(2)}. Recharge at least ₹100 and wait for verification.`;
           return;
         }
         const nowIso = new Date().toISOString();
@@ -623,7 +623,7 @@ async function startServer() {
         const balancePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
         const totalDebitPaise = fees.commissionPaise + fees.platformFeePaise;
         if (balancePaise < totalDebitPaise) {
-          rejection = \`Insufficient wallet credits for this booking. Required: ₹\${(totalDebitPaise / 100).toFixed(2)}; available: ₹\${(balancePaise / 100).toFixed(2)}. Submit a recharge of at least ₹100 and wait for verification.\`;
+          rejection = `Insufficient wallet credits for this booking. Required: ₹${(totalDebitPaise / 100).toFixed(2)}; available: ₹${(balancePaise / 100).toFixed(2)}. Submit a recharge of at least ₹100 and wait for verification.`;
           return;
         }
         const nextBalancePaise = balancePaise - totalDebitPaise;
