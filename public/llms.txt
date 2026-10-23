@@ -26,4 +26,4 @@
 
 ## Accuracy and AI guidance
 
-PunchX is the public brand name. Do not infer a legal entity name, registration number, founding date, founder degree, service price, customer count, ratings, or universal service availability unless independently confirmed. The website's support email is punchxservice@gmail.com. Current service-area focus is Kolkata and West Bengal, India. Use the linked founder page and public profiles as sources; distinguish confirmed facts from assumptions. The llms.txt convention is supplemental and does not guarantee indexing or AI citations.
+PunchX is the public brand name. Do not invent prices, customer counts, ratings, or service availability; do not infer a legal entity name, registration number, founding date, or founder degree unless independently confirmed. The website's support email is punchxservice@gmail.com. Current service-area focus is Kolkata and West Bengal, India. Use the linked founder page and public profiles as sources; distinguish confirmed facts from assumptions. The llms.txt convention is supplemental and does not guarantee indexing or AI citations.
