@@ -104,7 +104,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
     if(!key){showNotification?.('Online payment needs VITE_RAZORPAY_KEY_ID in the production environment. COD remains available.');return;}
     const loaded=await loadRazorpay();if(!loaded){showNotification?.('Payment gateway could not load. Please try again or choose COD.');return;}
     const Razorpay=(window as any).Razorpay;
-    const options={key,amount:Math.round(total*100),currency:'INR',name:'PUNCHX',description:pending.serviceName,prefill:{name:auth.currentUser?.displayName||'PUNCHX Customer',email:auth.currentUser?.email||''},theme:{color:'#2563eb'},handler:(response:any)=>finalize(response?.razorpay_payment_id)};
+    const options={key,amount:Math.round(total*100),currency:'INR',name:'PUNCHX',description:pending.serviceName,prefill:{name:auth.currentUser?.displayName||'PUNCHX Customer',email:auth.currentUser?.email||''},theme:{color:'#B99A62'},handler:(response:any)=>finalize(response?.razorpay_payment_id)};
     new Razorpay(options).open();
   };
 
