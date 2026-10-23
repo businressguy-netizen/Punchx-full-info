@@ -33,6 +33,7 @@ try {
 import { dbAdapter } from "./src/backend/db/index.js";
 import { logger } from "./src/backend/logger.js";
 import { calculateAuthoritativeQuote } from "./src/backend/pricingService.js";
+import { getPunchXCommissionRate, PUNCHX_COMMERCE } from "./src/config/punchxCommerce.js";
 import { executeOrderTransition } from "./src/backend/orderStateMachine.js";
 import { generateSecureOtp, verifyOtpChallenge } from "./src/backend/otpService.js";
 import {
@@ -356,6 +357,389 @@ async function startServer() {
       return res.status(500).json({ success: false, error: "Failed to save profile to Firebase. Please retry." });
     }
   });
+
+
+  // ─── WORKER COMMISSION WALLET (manual PhonePe reconciliation; no gateway is implied) ───
+  const walletTimestampIso = (value: any): string | null => {
+    if (value && typeof value.toDate === "function") return value.toDate().toISOString();
+    if (typeof value === "string") return value;
+    return null;
+  };
+  const walletServiceValue = (order: any): number => {
+    const candidates = [order?.serviceSubtotal, order?.price, order?.visitingFee];
+    for (const candidate of candidates) {
+      const value = Number(candidate);
+      if (Number.isFinite(value) && value > 0) return Math.round(value * 100) / 100;
+    }
+    return 0;
+  };
+  const walletFeeBreakdown = (order: any) => {
+    const serviceValue = walletServiceValue(order);
+    const commissionRate = getPunchXCommissionRate(serviceValue);
+    const servicePaise = Math.round(serviceValue * 100);
+    const commissionPaise = Math.round(servicePaise * commissionRate);
+    const customerPlatformFee = order?.customerPlatformFee == null
+      ? PUNCHX_COMMERCE.customerPlatformFee
+      : Math.max(0, Number(order.customerPlatformFee) || 0);
+    return {
+      serviceValue,
+      commissionRate,
+      commissionPaise,
+      platformFeePaise: Math.round(customerPlatformFee * 100),
+      professionalPayoutPaise: Math.max(0, servicePaise - commissionPaise),
+    };
+  };
+  const stableWalletEntryId = (prefix: string, value: string) =>
+    prefix + "_" + crypto.createHash("sha256").update(value).digest("hex").slice(0, 32);
+
+  app.get("/api/worker-wallet", requireFirebaseUser, requireWorker, async (req, res) => {
+    try {
+      const uid = String((req as any).user.uid || "");
+      const firestore = getFirestore();
+      const walletRef = firestore.collection("workerWallets").doc(uid);
+      const [walletSnap, ledgerSnap, topUpSnap] = await Promise.all([
+        walletRef.get(),
+        firestore.collection("workerWalletTransactions").where("workerUid", "==", uid).get(),
+        firestore.collection("workerWalletTopups").where("workerUid", "==", uid).get(),
+      ]);
+      const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
+      const transactions = ledgerSnap.docs.map((entry) => {
+        const data = entry.data();
+        return { id: entry.id, ...data, createdAtIso: data.createdAtIso || walletTimestampIso(data.createdAt) };
+      }).sort((a: any, b: any) => String(b.createdAtIso || "").localeCompare(String(a.createdAtIso || ""))).slice(0, 50);
+      const topUps = topUpSnap.docs.map((entry) => {
+        const data = entry.data();
+        return {
+          id: entry.id,
+          ...data,
+          createdAtIso: data.createdAtIso || walletTimestampIso(data.createdAt),
+          reviewedAtIso: data.reviewedAtIso || walletTimestampIso(data.reviewedAt),
+        };
+      }).sort((a: any, b: any) => String(b.createdAtIso || "").localeCompare(String(a.createdAtIso || ""))).slice(0, 20);
+      return res.json({
+        success: true,
+        wallet: {
+          balancePaise: Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0)),
+          reservedPaise: Math.max(0, Math.trunc(Number(wallet.reservedPaise) || 0)),
+          updatedAtIso: wallet.updatedAtIso || walletTimestampIso(wallet.updatedAt),
+        },
+        transactions,
+        topUps,
+        minimumTopUpRupees: 100,
+        paymentGatewayConfigured: false,
+      });
+    } catch (err: any) {
+      logger.error("Worker wallet fetch failed:", err);
+      return res.status(500).json({ success: false, error: "Could not load the worker wallet." });
+    }
+  });
+
+  app.post("/api/worker-wallet/top-up-requests", requireFirebaseUser, requireWorker, async (req, res) => {
+    try {
+      const uid = String((req as any).user.uid || "");
+      const amountRupees = Number(req.body?.amountRupees);
+      const reference = String(req.body?.reference || "").trim().replace(/\s+/g, "");
+      const paymentMethod = String(req.body?.paymentMethod || "");
+      if (!Number.isSafeInteger(amountRupees) || amountRupees < 100 || amountRupees > 50000) {
+        return res.status(400).json({ success: false, error: "Wallet recharges must be a whole-rupee amount between ₹100 and ₹50,000." });
+      }
+      if (reference.length < 6 || reference.length > 80 || !/^[a-zA-Z0-9._-]+$/.test(reference)) {
+        return res.status(400).json({ success: false, error: "Enter a valid PhonePe / UPI transaction reference." });
+      }
+      if (paymentMethod !== "PHONEPE_UPI") {
+        return res.status(400).json({ success: false, error: "Only manual PhonePe / UPI recharge requests are available right now." });
+      }
+      const firestore = getFirestore();
+      const referenceNormalized = reference.toUpperCase();
+      const duplicate = await firestore.collection("workerWalletTopups").where("referenceNormalized", "==", referenceNormalized).get();
+      if (!duplicate.empty) {
+        return res.status(409).json({ success: false, error: "This UPI reference has already been submitted." });
+      }
+      const nowIso = new Date().toISOString();
+      const requestRef = firestore.collection("workerWalletTopups").doc(crypto.randomUUID());
+      await requestRef.set({
+        id: requestRef.id,
+        workerUid: uid,
+        amountPaise: amountRupees * 100,
+        amountRupees,
+        reference,
+        referenceNormalized,
+        paymentMethod: "PHONEPE_UPI",
+        status: "PENDING_REVIEW",
+        createdAt: FieldValue.serverTimestamp(),
+        createdAtIso: nowIso,
+      });
+      return res.status(201).json({ success: true, requestId: requestRef.id, status: "PENDING_REVIEW", message: "Recharge request submitted. Credits are added only after PunchX verifies the payment." });
+    } catch (err: any) {
+      logger.error("Worker wallet recharge request failed:", err);
+      return res.status(500).json({ success: false, error: "Could not submit the recharge request." });
+    }
+  });
+
+  app.post("/api/worker-wallet/accept-job", requireFirebaseUser, requireWorker, async (req, res) => {
+    try {
+      const uid = String((req as any).user.uid || "");
+      const orderId = String(req.body?.orderId || "").trim();
+      if (!orderId || orderId.includes("/") || orderId.length > 180) {
+        return res.status(400).json({ success: false, error: "A valid booking ID is required." });
+      }
+      const firestore = getFirestore();
+      const orderRef = firestore.collection("orders").doc(orderId);
+      const walletRef = firestore.collection("workerWallets").doc(uid);
+      let rejection = "";
+      await firestore.runTransaction(async (transaction) => {
+        const orderSnap = await transaction.get(orderRef);
+        const walletSnap = await transaction.get(walletRef);
+        if (!orderSnap.exists) { rejection = "This booking no longer exists."; return; }
+        const order = orderSnap.data() || {};
+        if (!["Pending", "PAID", "DISPATCHING", "pending"].includes(String(order.status || "")) || (order.workerId && order.workerId !== uid)) {
+          rejection = "This job is no longer available for acceptance."; return;
+        }
+        const gatewayPaid = order.paymentCollectionRoute === "PUNCHX_GATEWAY"
+          && order.paymentVerificationStatus === "VERIFIED"
+          && Boolean(order.paymentId);
+        const fees = walletFeeBreakdown(order);
+        if (!fees.serviceValue) { rejection = "The booking has no approved service amount. Contact PunchX support before accepting it."; return; }
+        const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
+        const balancePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
+        const requiredPaise = gatewayPaid ? 0 : fees.commissionPaise + fees.platformFeePaise;
+        if (balancePaise < requiredPaise) {
+          rejection = \`Insufficient commission credits. This booking requires about ₹\${(requiredPaise / 100).toFixed(2)} in credits; available balance is ₹\${(balancePaise / 100).toFixed(2)}. Recharge at least ₹100 and wait for verification.\`;
+          return;
+        }
+        const nowIso = new Date().toISOString();
+        const history = Array.isArray(order.stateHistory) ? order.stateHistory : [];
+        transaction.update(orderRef, {
+          workerId: uid,
+          workerName: String((req as any).workerProfile?.name || order.workerName || "Verified Professional"),
+          workerPhone: String((req as any).workerProfile?.phone || order.workerPhone || ""),
+          status: "In-Progress",
+          acceptedAt: nowIso,
+          updatedAt: nowIso,
+          stateHistory: [...history, { from: order.status || "Pending", to: "In-Progress", timestamp: nowIso, actorUid: uid, actorRole: "worker", reason: "Professional accepted booking after wallet check" }],
+        });
+      });
+      if (rejection) return res.status(409).json({ success: false, error: rejection });
+      return res.json({ success: true, message: "Job accepted. Commission credits were checked." });
+    } catch (err: any) {
+      logger.error("Worker wallet job acceptance failed:", err);
+      return res.status(500).json({ success: false, error: "Could not accept the job. Please try again." });
+    }
+  });
+
+  app.post("/api/worker-wallet/complete-job", requireFirebaseUser, requireWorker, async (req, res) => {
+    try {
+      const uid = String((req as any).user.uid || "");
+      const orderId = String(req.body?.orderId || "").trim();
+      const requestedMethod = String(req.body?.paymentMethod || "");
+      const amountCollectedRupees = Number(req.body?.amountCollectedRupees);
+      const paymentReference = String(req.body?.paymentReference || "").trim().replace(/\s+/g, "").slice(0, 80);
+      const paymentReceivedConfirmed = req.body?.paymentReceivedConfirmed === true;
+      if (!orderId || orderId.includes("/") || orderId.length > 180) {
+        return res.status(400).json({ success: false, error: "A valid booking ID is required." });
+      }
+      if (!Number.isFinite(amountCollectedRupees) || amountCollectedRupees <= 0 || amountCollectedRupees > 1000000) {
+        return res.status(400).json({ success: false, error: "Enter the actual amount received from the customer." });
+      }
+      if (!["CASH_DIRECT", "UPI_DIRECT"].includes(requestedMethod) && !paymentReceivedConfirmed) {
+        return res.status(400).json({ success: false, error: "Confirm that the payment was received before completing this booking." });
+      }
+      if (!["CASH_DIRECT", "UPI_DIRECT"].includes(requestedMethod) && !String(req.body?.orderId || "")) {
+        return res.status(400).json({ success: false, error: "Choose Cash or Direct UPI as the collection method." });
+      }
+      if (paymentReceivedConfirmed !== true && ["CASH_DIRECT", "UPI_DIRECT"].includes(requestedMethod)) {
+        return res.status(400).json({ success: false, error: "Confirm that the customer has paid you before completing the booking." });
+      }
+      const firestore = getFirestore();
+      const orderRef = firestore.collection("orders").doc(orderId);
+      const walletRef = firestore.collection("workerWallets").doc(uid);
+      const ledgerRef = firestore.collection("workerWalletTransactions").doc(stableWalletEntryId("job", orderId));
+      let rejection = "";
+      let responseBody: any = null;
+      await firestore.runTransaction(async (transaction) => {
+        const orderSnap = await transaction.get(orderRef);
+        const walletSnap = await transaction.get(walletRef);
+        const ledgerSnap = await transaction.get(ledgerRef);
+        if (!orderSnap.exists) { rejection = "This booking no longer exists."; return; }
+        const order = orderSnap.data() || {};
+        if (order.workerId !== uid) { rejection = "You can only complete a job assigned to your account."; return; }
+        if (order.status === "Done" || order.status === "COMPLETED" || order.status === "Completed") {
+          responseBody = { success: true, alreadyCompleted: true, message: "This booking has already been completed." };
+          return;
+        }
+        if (!["IN_SERVICE", "SERVICE_STARTED"].includes(String(order.status || ""))) {
+          rejection = "Start the service in PunchX before recording completion and payment."; return;
+        }
+        if (ledgerSnap.exists) {
+          rejection = "A wallet deduction already exists for this booking. Contact PunchX support to reconcile it."; return;
+        }
+        const fees = walletFeeBreakdown(order);
+        if (!fees.serviceValue) { rejection = "The approved service amount is missing. Contact PunchX support."; return; }
+        const gatewayPaid = order.paymentCollectionRoute === "PUNCHX_GATEWAY"
+          && order.paymentVerificationStatus === "VERIFIED"
+          && Boolean(order.paymentId);
+        const nowIso = new Date().toISOString();
+        const history = Array.isArray(order.stateHistory) ? order.stateHistory : [];
+        if (gatewayPaid) {
+          const customerFeeRupees = fees.platformFeePaise / 100;
+          const amountPaise = Math.round(amountCollectedRupees * 100);
+          const settlementRef = firestore.collection("workerSettlements").doc(stableWalletEntryId("settlement", orderId));
+          transaction.set(settlementRef, {
+            id: settlementRef.id, orderId, workerUid: uid,
+            grossServicePaise: Math.round(fees.serviceValue * 100),
+            commissionPaise: fees.commissionPaise,
+            customerPlatformFeePaise: fees.platformFeePaise,
+            workerPayablePaise: fees.professionalPayoutPaise,
+            gatewayCollectedPaise: amountPaise,
+            status: "PENDING_PROVIDER_SETTLEMENT",
+            createdAt: FieldValue.serverTimestamp(), createdAtIso: nowIso,
+          });
+          transaction.update(orderRef, {
+            status: "Done", completedAt: nowIso, updatedAt: nowIso, workerOutForWork: false,
+            paymentMethod: "PUNCHX_GATEWAY", paymentStatus: "PAID_GATEWAY_VERIFIED",
+            paymentCollectionRoute: "PUNCHX_GATEWAY", workerPayoutStatus: "PENDING_PROVIDER_SETTLEMENT",
+            platformCommission: fees.commissionPaise / 100, commissionRate: fees.commissionRate,
+            customerPlatformFee: customerFeeRupees, professionalPayout: fees.professionalPayoutPaise / 100,
+            finalInvoice: {
+              orderId, serviceSubtotal: fees.serviceValue, platformCommission: fees.commissionPaise / 100,
+              customerPlatformFee: customerFeeRupees, amountCollected: amountPaise / 100,
+              professionalPayout: fees.professionalPayoutPaise / 100, paymentMethod: "PUNCHX_GATEWAY",
+              paymentStatus: "PAID_GATEWAY_VERIFIED", createdAtIso: nowIso,
+            },
+            stateHistory: [...history, { from: order.status, to: "Done", timestamp: nowIso, actorUid: uid, actorRole: "worker", reason: "Completed; provider-verified PunchX payment reconciled" }],
+          });
+          responseBody = { success: true, route: "PUNCHX_GATEWAY", walletDeductedPaise: 0, message: "Service completed. Wallet unchanged; worker payout is awaiting provider settlement." };
+          return;
+        }
+        if (!["CASH_DIRECT", "UPI_DIRECT"].includes(requestedMethod)) {
+          rejection = "Only Cash or Direct UPI to the professional is enabled until a PunchX payment gateway is configured."; return;
+        }
+        if (!paymentReceivedConfirmed) { rejection = "Confirm that the customer paid you before completion."; return; }
+        const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
+        const balancePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
+        const totalDebitPaise = fees.commissionPaise + fees.platformFeePaise;
+        if (balancePaise < totalDebitPaise) {
+          rejection = \`Insufficient wallet credits for this booking. Required: ₹\${(totalDebitPaise / 100).toFixed(2)}; available: ₹\${(balancePaise / 100).toFixed(2)}. Submit a recharge of at least ₹100 and wait for verification.\`;
+          return;
+        }
+        const nextBalancePaise = balancePaise - totalDebitPaise;
+        const amountCollectedPaise = Math.round(amountCollectedRupees * 100);
+        const walletTransaction = {
+          id: ledgerRef.id, workerUid: uid, type: "JOB_FEE_DEBIT", orderId,
+          amountPaise: totalDebitPaise, commissionPaise: fees.commissionPaise,
+          platformFeePaise: fees.platformFeePaise, balanceBeforePaise: balancePaise,
+          balanceAfterPaise: nextBalancePaise, paymentMethod: requestedMethod,
+          paymentReference: paymentReference || null, status: "RECORDED",
+          createdAt: FieldValue.serverTimestamp(), createdAtIso: nowIso,
+          note: "Commission and citizen platform fee deducted for direct-to-worker collection",
+        };
+        transaction.set(ledgerRef, walletTransaction);
+        transaction.set(walletRef, {
+          uid, balancePaise: nextBalancePaise,
+          totalDeductionsPaise: Math.max(0, Math.trunc(Number(wallet.totalDeductionsPaise) || 0)) + totalDebitPaise,
+          updatedAt: FieldValue.serverTimestamp(), updatedAtIso: nowIso,
+        }, { merge: true });
+        transaction.update(orderRef, {
+          status: "Done", completedAt: nowIso, updatedAt: nowIso, workerOutForWork: false,
+          paymentMethod: requestedMethod, paymentCollectionRoute: "DIRECT_TO_WORKER",
+          paymentStatus: "WORKER_REPORTED_PAID", paymentVerificationStatus: "WORKER_REPORTED",
+          paymentCollectedPaise: amountCollectedPaise, paymentReference: paymentReference || null,
+          paymentReportedByWorkerUid: uid, paymentReportedAt: nowIso,
+          platformCommission: fees.commissionPaise / 100, commissionRate: fees.commissionRate,
+          customerPlatformFee: fees.platformFeePaise / 100,
+          professionalPayout: fees.professionalPayoutPaise / 100,
+          walletDeductionPaise: totalDebitPaise,
+          finalInvoice: {
+            orderId, serviceSubtotal: fees.serviceValue, platformCommission: fees.commissionPaise / 100,
+            customerPlatformFee: fees.platformFeePaise / 100, amountCollected: amountCollectedPaise / 100,
+            professionalPayout: fees.professionalPayoutPaise / 100, paymentMethod: requestedMethod,
+            paymentStatus: "WORKER_REPORTED_PAID", walletDeduction: totalDebitPaise / 100,
+            paymentReference: paymentReference || null, createdAtIso: nowIso,
+          },
+          stateHistory: [...history, { from: order.status, to: "Done", timestamp: nowIso, actorUid: uid, actorRole: "worker", reason: "Completed; direct customer payment reported and wallet fees deducted" }],
+        });
+        responseBody = { success: true, route: "DIRECT_TO_WORKER", walletDeductedPaise: totalDebitPaise, balanceAfterPaise: nextBalancePaise, message: "Service completed and wallet fees recorded." };
+      });
+      if (rejection) return res.status(409).json({ success: false, error: rejection });
+      if (!responseBody) return res.status(500).json({ success: false, error: "Could not reconcile payment." });
+      return res.json(responseBody);
+    } catch (err: any) {
+      logger.error("Worker job completion / wallet reconciliation failed:", err);
+      return res.status(500).json({ success: false, error: "Could not complete this booking or reconcile its wallet fees." });
+    }
+  });
+
+  app.get("/api/admin/worker-wallet/top-up-requests", requireFirebaseUser, requireAdmin, async (_req, res) => {
+    try {
+      const firestore = getFirestore();
+      const snap = await firestore.collection("workerWalletTopups").get();
+      const requests = snap.docs.map((entry) => {
+        const data = entry.data();
+        return { id: entry.id, ...data, createdAtIso: data.createdAtIso || walletTimestampIso(data.createdAt) };
+      }).sort((a: any, b: any) => String(b.createdAtIso || "").localeCompare(String(a.createdAtIso || "")));
+      return res.json({ success: true, requests });
+    } catch (err: any) {
+      logger.error("Admin wallet top-up listing failed:", err);
+      return res.status(500).json({ success: false, error: "Could not load wallet top-up requests." });
+    }
+  });
+
+  app.post("/api/admin/worker-wallet/top-up-requests/:id/review", requireFirebaseUser, requireAdmin, async (req, res) => {
+    try {
+      const adminUid = String((req as any).user.uid || "");
+      const topUpId = String(req.params.id || "");
+      const action = String(req.body?.action || "");
+      const reviewNote = String(req.body?.reviewNote || "").trim().slice(0, 300);
+      if (!topUpId || topUpId.includes("/") || !["APPROVE", "REJECT"].includes(action)) {
+        return res.status(400).json({ success: false, error: "Choose approve or reject for a valid top-up request." });
+      }
+      const firestore = getFirestore();
+      const requestRef = firestore.collection("workerWalletTopups").doc(topUpId);
+      const nowIso = new Date().toISOString();
+      let rejection = "";
+      await firestore.runTransaction(async (transaction) => {
+        const requestSnap = await transaction.get(requestRef);
+        if (!requestSnap.exists) { rejection = "Recharge request not found."; return; }
+        const requestData = requestSnap.data() || {};
+        if (requestData.status !== "PENDING_REVIEW") { rejection = "This recharge request has already been reviewed."; return; }
+        const workerUid = String(requestData.workerUid || "");
+        const amountPaise = Math.trunc(Number(requestData.amountPaise) || 0);
+        const walletRef = firestore.collection("workerWallets").doc(workerUid);
+        const ledgerRef = firestore.collection("workerWalletTransactions").doc(stableWalletEntryId("topup", topUpId));
+        const walletSnap = await transaction.get(walletRef);
+        const ledgerSnap = await transaction.get(ledgerRef);
+        if (action === "APPROVE" && ledgerSnap.exists) { rejection = "A credit already exists for this recharge request."; return; }
+        if (action === "APPROVE") {
+          const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
+          const balanceBeforePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
+          const balanceAfterPaise = balanceBeforePaise + amountPaise;
+          transaction.set(walletRef, {
+            uid: workerUid, balancePaise: balanceAfterPaise,
+            totalTopUpsPaise: Math.max(0, Math.trunc(Number(wallet.totalTopUpsPaise) || 0)) + amountPaise,
+            updatedAt: FieldValue.serverTimestamp(), updatedAtIso: nowIso,
+          }, { merge: true });
+          transaction.set(ledgerRef, {
+            id: ledgerRef.id, workerUid, type: "TOP_UP", topUpRequestId: topUpId,
+            amountPaise, balanceBeforePaise, balanceAfterPaise,
+            reference: requestData.reference, status: "VERIFIED",
+            createdAt: FieldValue.serverTimestamp(), createdAtIso: nowIso,
+            note: "Manual PhonePe / UPI top-up verified by PunchX admin",
+          });
+        }
+        transaction.update(requestRef, {
+          status: action === "APPROVE" ? "APPROVED" : "REJECTED",
+          reviewNote: reviewNote || null,
+          reviewedBy: adminUid, reviewedAt: FieldValue.serverTimestamp(), reviewedAtIso: nowIso,
+        });
+      });
+      if (rejection) return res.status(409).json({ success: false, error: rejection });
+      return res.json({ success: true, message: action === "APPROVE" ? "Recharge verified and wallet credited." : "Recharge request rejected." });
+    } catch (err: any) {
+      logger.error("Admin wallet top-up review failed:", err);
+      return res.status(500).json({ success: false, error: "Could not review this wallet top-up." });
+    }
+  });
+
 
   // ─── AUTHORITATIVE PRICING & QUOTES (TASK SHEET SECTION 6 [P0]) ───
   app.post("/api/pricing/quote", async (req, res) => {
