@@ -239,3 +239,39 @@ button:disabled { cursor: not-allowed; opacity: .62; }
   .punchx-citizen-shell main > section { animation: none !important; }
   .punchx-citizen-shell section button:hover img { transform: none !important; }
 }
+
+
+/* Remaining legacy blue surfaces across auth, booking, tracking and service details. */
+[class*="bg-[#f7faff]"], [class*="bg-[#f8fbff]"], [class*="bg-[#eef6ff]"],
+[class*="bg-[#eaf3ff]"], [class*="bg-[#eaf4ff]"], [class*="bg-[#f4f8ff]"],
+[class*="bg-[#f1effa]"], [class*="bg-[#f1edff]"], [class*="bg-[#eefaff]"],
+[class*="bg-[#eaf8f3]"], [class*="bg-[#eaf8ff]"], [class*="bg-[#eef4ff]"] {
+  background-color: var(--px-brand-soft) !important;
+}
+[class*="bg-[#2563eb]/"], [class*="bg-[#38bdf8]/"], [class*="bg-[#3478f6]/"],
+[class*="bg-[#7358d7]/"], [class*="bg-[#6d91ff]/"] {
+  background-color: rgba(185,154,98,.13) !important;
+}
+[class*="border-[#dbeafe]"], [class*="border-[#bfdbfe]"],
+[class*="border-[#e5eefb]"], [class*="border-[#e5eefb]"],
+[class*="border-[#e3e8f1]"], [class*="border-[#cfe3ff]"] {
+  border-color: var(--px-border) !important;
+}
+[class*="text-[#1d4ed8]"], [class*="text-[#3b82f6]"], [class*="text-[#38bdf8]"] {
+  color: var(--px-brand-strong) !important;
+}
+[class*="shadow-blue-"] { --tw-shadow-color: rgba(185,154,98,.16) !important; }
+[class*="ring-[#7358d7]"], [class*="ring-[#2563eb]"] { --tw-ring-color: rgba(185,154,98,.24) !important; }
+
+/* Service-professional dashboard uses the same identity as the customer marketplace. */
+.wx-link, .wx-order-facts svg { color: var(--px-brand-strong) !important; }
+.wx-primary {
+  background: linear-gradient(135deg, var(--px-brand-strong), var(--px-brand)) !important;
+  box-shadow: 0 7px 18px rgba(128,102,58,.18) !important;
+}
+.wx-primary:hover { background: linear-gradient(135deg, #70572f, #a88950) !important; }
+.wx-ring { border-color: var(--px-border) !important; border-top-color: var(--px-brand) !important; }
+.wx-progress-row i { background: var(--px-brand) !important; }
+.wx-badge.new { background: var(--px-brand-soft) !important; color: var(--px-brand-strong) !important; }
+.wx-site-footer-glow-right { background: rgba(185,154,98,.16) !important; }
+.wx-site-footer-glow-left { background: rgba(100,116,93,.12) !important; }
