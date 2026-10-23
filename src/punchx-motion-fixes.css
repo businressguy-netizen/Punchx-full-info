@@ -73,7 +73,7 @@ img[alt="PunchX Logo"] {
   animation:punchx-check-pop .28s ease-out both;
 }
 
-/* Every category page gets lightweight image motion across the ten main categories. */
+/* Every category page gets lightweight image motion across the main service categories. */
 .punchx-service-page .punchx-category-hero-media img,
 .punchx-service-page section img {
   transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .45s ease;
