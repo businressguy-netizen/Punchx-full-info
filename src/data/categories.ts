@@ -119,7 +119,9 @@ const PUNCHX_CATEGORIES: ServiceCategoryItem[] = [
   }
 ];
 
-/** Canonical list: PunchX currently offers exactly these ten main service categories. */
+/** Canonical list: PUNCHX currently offers exactly twelve main service categories. */
+export const PUNCHX_12_CATEGORIES = PUNCHX_CATEGORIES;
+/** @deprecated Use PUNCHX_12_CATEGORIES or the compatibility export PUNCHX_50_CATEGORIES. */
 export const PUNCHX_10_CATEGORIES = PUNCHX_CATEGORIES;
 
 /** Legacy export kept so existing components continue to work while the catalogue is migrated. */
