@@ -502,13 +502,23 @@ async function startServer() {
         if (!fees.serviceValue) { rejection = "The booking has no approved service amount. Contact PunchX support before accepting it."; return; }
         const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
         const balancePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
+        const currentReservedPaise = Math.max(0, Math.trunc(Number(wallet.reservedPaise) || 0));
         const requiredPaise = gatewayPaid ? 0 : fees.commissionPaise + fees.platformFeePaise;
-        if (balancePaise < requiredPaise) {
-          rejection = `Insufficient commission credits. This booking requires about ₹${(requiredPaise / 100).toFixed(2)} in credits; available balance is ₹${(balancePaise / 100).toFixed(2)}. Recharge at least ₹100 and wait for verification.`;
+        const availablePaise = Math.max(0, balancePaise - currentReservedPaise);
+        if (availablePaise < requiredPaise) {
+          rejection = `Insufficient available commission credits. This booking requires about ₹${(requiredPaise / 100).toFixed(2)}; available after existing job reservations is ₹${(availablePaise / 100).toFixed(2)}. Recharge at least ₹100 and wait for verification.`;
           return;
         }
         const nowIso = new Date().toISOString();
         const history = Array.isArray(order.stateHistory) ? order.stateHistory : [];
+        // Reserve estimated fees per accepted job to prevent multiple jobs spending
+        // the same credits before their completion callbacks arrive.
+        if (requiredPaise > 0) {
+          transaction.set(walletRef, {
+            uid, balancePaise, reservedPaise: currentReservedPaise + requiredPaise,
+            updatedAt: FieldValue.serverTimestamp(), updatedAtIso: nowIso,
+          }, { merge: true });
+        }
         transaction.update(orderRef, {
           workerId: uid,
           workerName: String((req as any).workerProfile?.name || order.workerName || "Verified Professional"),
@@ -516,7 +526,9 @@ async function startServer() {
           status: "In-Progress",
           acceptedAt: nowIso,
           updatedAt: nowIso,
-          stateHistory: [...history, { from: order.status || "Pending", to: "In-Progress", timestamp: nowIso, actorUid: uid, actorRole: "worker", reason: "Professional accepted booking after wallet check" }],
+          walletFeeReservationPaise: requiredPaise,
+          walletFeeReservationStatus: requiredPaise > 0 ? "RESERVED" : "NOT_REQUIRED",
+          stateHistory: [...history, { from: order.status || "Pending", to: "In-Progress", timestamp: nowIso, actorUid: uid, actorRole: "worker", reason: "Professional accepted booking after wallet check and fee reservation" }],
         });
       });
       if (rejection) return res.status(409).json({ success: false, error: rejection });
@@ -579,8 +591,7 @@ async function startServer() {
         const history = Array.isArray(order.stateHistory) ? order.stateHistory : [];
         if (gatewayPaid) {
           const customerFeeRupees = fees.platformFeePaise / 100;
-          // The gateway amount must come from the server-stored booking/payment record,
-          // never from worker-submitted form input.
+          // Gateway amount comes from the server-stored booking/payment record only.
           const gatewayAmountRupees = Number(order.gatewayCollectedAmount ?? order.totalAmountToPay ?? order.price ?? 0);
           if (!Number.isFinite(gatewayAmountRupees) || gatewayAmountRupees <= 0) {
             rejection = "The verified gateway payment amount is missing from this booking. Contact PunchX support.";
@@ -588,6 +599,12 @@ async function startServer() {
           }
           const amountPaise = Math.round(gatewayAmountRupees * 100);
           const settlementRef = firestore.collection("workerSettlements").doc(stableWalletEntryId("settlement", orderId));
+          const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
+          const currentReservedPaise = Math.max(0, Math.trunc(Number(wallet.reservedPaise) || 0));
+          const thisOrderReservationPaise = Math.max(0, Math.trunc(Number(order.walletFeeReservationPaise) || 0));
+          if (thisOrderReservationPaise > 0) {
+            transaction.set(walletRef, { uid, reservedPaise: Math.max(0, currentReservedPaise - thisOrderReservationPaise), updatedAt: FieldValue.serverTimestamp(), updatedAtIso: nowIso }, { merge: true });
+          }
           transaction.set(settlementRef, {
             id: settlementRef.id, orderId, workerUid: uid,
             grossServicePaise: Math.round(fees.serviceValue * 100),
@@ -621,12 +638,19 @@ async function startServer() {
         if (!paymentReceivedConfirmed) { rejection = "Confirm that the customer paid you before completion."; return; }
         const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
         const balancePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
+        const currentReservedPaise = Math.max(0, Math.trunc(Number(wallet.reservedPaise) || 0));
+        const thisOrderReservationPaise = Math.max(0, Math.trunc(Number(order.walletFeeReservationPaise) || 0));
         const totalDebitPaise = fees.commissionPaise + fees.platformFeePaise;
         if (balancePaise < totalDebitPaise) {
-          rejection = `Insufficient wallet credits for this booking. Required: ₹${(totalDebitPaise / 100).toFixed(2)}; available: ₹${(balancePaise / 100).toFixed(2)}. Submit a recharge of at least ₹100 and wait for verification.`;
+          rejection = `Insufficient wallet credits for this booking. Required: ₹${(totalDebitPaise / 100).toFixed(2)}; current balance: ₹${(balancePaise / 100).toFixed(2)}. Contact PunchX support before closing this job.`;
+          return;
+        }
+        if (thisOrderReservationPaise <= 0 && balancePaise - currentReservedPaise < totalDebitPaise) {
+          rejection = "These credits are reserved for another active job. Contact PunchX support to reconcile the booking.";
           return;
         }
         const nextBalancePaise = balancePaise - totalDebitPaise;
+        const nextReservedPaise = Math.max(0, currentReservedPaise - thisOrderReservationPaise);
         const amountCollectedPaise = Math.round(amountCollectedRupees * 100);
         const walletTransaction = {
           id: ledgerRef.id, workerUid: uid, type: "JOB_FEE_DEBIT", orderId,
@@ -639,7 +663,7 @@ async function startServer() {
         };
         transaction.set(ledgerRef, walletTransaction);
         transaction.set(walletRef, {
-          uid, balancePaise: nextBalancePaise,
+          uid, balancePaise: nextBalancePaise, reservedPaise: nextReservedPaise,
           totalDeductionsPaise: Math.max(0, Math.trunc(Number(wallet.totalDeductionsPaise) || 0)) + totalDebitPaise,
           updatedAt: FieldValue.serverTimestamp(), updatedAtIso: nowIso,
         }, { merge: true });
@@ -653,6 +677,8 @@ async function startServer() {
           customerPlatformFee: fees.platformFeePaise / 100,
           professionalPayout: fees.professionalPayoutPaise / 100,
           walletDeductionPaise: totalDebitPaise,
+          walletFeeReservationPaise: 0,
+          walletFeeReservationStatus: "SETTLED",
           finalInvoice: {
             orderId, serviceSubtotal: fees.serviceValue, platformCommission: fees.commissionPaise / 100,
             customerPlatformFee: fees.platformFeePaise / 100, amountCollected: amountCollectedPaise / 100,
