@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
 import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
+import { serviceCategories } from '../data/serviceCatalogs';
+import { getProductsForCategory } from '../data/expandedPriceCatalogue';
 
 interface Props {
   open: boolean;
@@ -58,6 +60,15 @@ const electricianGroupVisual = (name: string) => {
   };
 };
 
+const BEAUTICIAN_SERVICE_GROUPS = [
+  { id: 'facial', name: 'Facial & Skin Care', description: 'Clean-up, facial and skin treatments', image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=85' },
+  { id: 'waxing', name: 'Waxing', description: 'Face, arms, legs and underarms', image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=1000&q=85' },
+  { id: 'threading', name: 'Threading', description: 'Eyebrows, upper lip and full face', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85' },
+  { id: 'hands-feet', name: 'Manicure & Pedicure', description: 'Nail care, hand and foot spa', image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1000&q=85' },
+  { id: 'hair-care', name: 'Hair Spa & Treatments', description: 'Hair spa, conditioning and care', image: 'https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&w=1000&q=85' },
+  { id: 'hair-styling', name: 'Hair Studio & Styling', description: 'Blow-dry, straightening and styling', image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1000&q=85' },
+  { id: 'makeup-saree', name: 'Makeup & Saree Styling', description: 'Makeup, draping and occasion looks', image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=1000&q=85' },
+];
 const ELECTRICIAN_QUICK_TASKS = [
   { label: 'Fan not working', group: 'Fan', detail: 'Repair or replace' },
   { label: 'Lights out', group: 'Light', detail: 'Bulb or fixture' },
@@ -119,6 +130,18 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{categories.map(category=><button key={category.id} onClick={()=>openCategory(category)} className="group rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:ring-[#7358d7]/30"><div className="relative mb-3 h-24 overflow-hidden rounded-xl bg-[#f1effa]"><img src={category.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"/><div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"/></div><div className="mt-3 flex items-start justify-between gap-2"><span className="text-sm font-black leading-4">{category.name}</span><ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[#aaaeb6]"/></div><p className="mt-1 line-clamp-2 text-[10px] leading-4 text-[#858a93]">{category.shortDesc}</p><p className="mt-2 text-[11px] font-black">Starts ₹{category.basePrice.toLocaleString('en-IN')}</p></button>)}</div>
         </>}
 
+        {level === 'subcategories' && selectedCategory?.id === 'beautician' && <div className="space-y-6">
+          <section className="relative isolate min-h-[250px] overflow-hidden rounded-[28px] bg-[#2a1724] text-white shadow-lg sm:min-h-[285px]">
+            <img src={selectedCategory.imageUrl || serviceImage('Beauty & Salon at Home')} alt="At-home beauty and salon care" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-45" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback('Beauty & Salon at Home', 'At-home beauty and personal care'); }}/>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#26131f] via-[#26131f]/85 to-[#26131f]/20"/>
+            <div className="relative max-w-2xl p-5 sm:p-8"><span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-rose-200"><Sparkles className="h-3.5 w-3.5"/> PUNCHX beauty at home</span><h3 className="mt-4 text-3xl font-black leading-tight sm:text-4xl">Your beauty routine, <span className="text-rose-300">your space.</span></h3><p className="mt-3 max-w-lg text-sm leading-6 text-white/75">Choose a beauty category first, then explore services and related products with clear price ranges.</p><div className="mt-5 flex flex-wrap gap-2 text-[11px] font-bold"><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">At-home convenience</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Services + products</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Transparent price ranges</span></div></div>
+          </section>
+          <section><p className="text-[10px] font-black uppercase tracking-[0.15em] text-rose-600">Choose your beauty category</p><h3 className="mt-1 text-lg font-black text-[#17191d] sm:text-xl">What would you like to book?</h3>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {BEAUTICIAN_SERVICE_GROUPS.filter(group => `${group.name} ${group.description}`.toLowerCase().includes(query.toLowerCase())).map(group => <button key={group.id} type="button" onClick={() => { const matches = services.filter(service => { const t = `${service.name} ${service.subcategory}`.toLowerCase(); return group.id === 'facial' ? /facial|cleanup|de-tan|skin polishing/.test(t) : group.id === 'waxing' ? /wax/.test(t) : group.id === 'threading' ? /thread/.test(t) : group.id === 'hands-feet' ? /manicure|pedicure|nail|hand\/foot spa/.test(t) : group.id === 'hair-care' ? /hair spa|conditioning|keratin|scalp treatment/.test(t) : group.id === 'hair-styling' ? /haircut|blow dry|straightening|curl styling|hairstyle|hair color|highlights/.test(t) : /makeup|saree|draping|bridal|styling/.test(t); }); setSelectedSubcategory({ id: group.id, name: group.name, services: matches.length ? matches : services }); setLevel('services'); setQuery(''); }} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:ring-rose-300 hover:shadow-md"><div className="relative h-28 overflow-hidden bg-rose-50 sm:h-36"><img src={group.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback(group.name, group.description); }}/><div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"/></div><div className="p-3 sm:p-4"><h4 className="text-sm font-black text-[#17191d]">{group.name}</h4><p className="mt-1 text-[11px] leading-4 text-[#737780]">{group.description}</p><span className="mt-3 inline-flex items-center gap-1 text-[10px] font-black text-rose-700">Explore options <ArrowRight className="h-3 w-3"/></span></div></button>)}
+            </div>
+          </section>
+        </div>}
         {level === 'subcategories' && selectedCategory?.id === 'electrician' && <div className="space-y-6">
           <section className="relative isolate min-h-[270px] overflow-hidden rounded-[28px] bg-[#17191d] text-white shadow-lg sm:min-h-[300px]">
             <img src={selectedCategory.imageUrl || serviceImage('electrician')} alt="Electrician carrying out a household electrical repair" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-center opacity-45" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback('Electrician services', 'Home electrical repairs and installation'); }}/>
