@@ -291,6 +291,21 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
                 </div>
                 <button type="button" onClick={() => setActiveTab('products')} className="rounded-xl border border-[#e3d8ee] bg-white px-4 py-3 text-xs font-black text-[#70518a]"><Package className="mr-2 inline h-4 w-4"/>Browse all {beautyGender === 'female' ? 'women’s' : 'men’s'} products</button>
               </section>
+            ) : selectedCategoryId === 'beautician' && beautyGender && beautyGroupId && activeTab === 'services' ? (
+              <section className="mt-4 space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[#e9e2f1] bg-white p-4">
+                  <div><p className="text-[10px] font-black uppercase tracking-wider text-[#8b5188]">{beautyGender === 'female' ? 'Women’s collection' : 'Men’s collection'}</p><h3 className="mt-1 text-xl font-black text-[#2b2030]">{selectedBeautyGroup?.name}</h3><p className="mt-1 text-xs leading-5 text-[#766879]">{selectedBeautyGroup?.description}</p><p className="mt-2 text-[10px] font-bold text-[#88768a]">Select an exact service to add it to your booking estimate.</p></div>
+                  <div className="flex gap-2"><button type="button" onClick={() => {setBeautyGroupId(null);setQuery('');setActiveTab('services');}} className="rounded-xl border border-[#e6ddea] px-3 py-2 text-xs font-black text-[#655064]">All service sections</button><button type="button" onClick={() => {setActiveTab('products');setQuery('');}} className="rounded-xl bg-[#f7eefa] px-3 py-2 text-xs font-black text-[#714578]"><Package className="mr-1 inline h-3.5 w-3.5"/>Related products</button></div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {filteredServices.map(service=><article key={service.id} className="flex flex-col rounded-2xl border border-[#e9e2f1] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                    <div className="flex items-start justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-wider text-[#8b5188]">{service.subcategoryName}</p><h4 className="mt-1 font-black text-[#292133]">{service.name}</h4></div><span className="rounded-lg bg-[#f7eefa] px-2 py-1 text-[9px] font-black text-[#714578]">At-home service</span></div>
+                    <p className="mt-2 flex-1 text-xs leading-5 text-[#766879]">{service.description}</p>
+                    <div className="mt-4 flex items-end justify-between gap-2 border-t border-[#f0e7f1] pt-3"><div><p className="text-[10px] font-bold text-[#8a7f8c]">Indicative price range</p><p className="text-lg font-black text-[#292133]">{money(selectedServicePriceRange(service).min)} – {money(selectedServicePriceRange(service).max)}</p><p className="text-[10px] text-[#8a7f8c]">{service.unit} · {selectedBeautyGroup?.services.find(item=>item.id===service.id)?.duration || 'Duration confirmed before booking'}</p></div><button onClick={() => {setSelectedService(service);setSelectedProduct(null);}} className="rounded-xl bg-[#6d4f83] px-3 py-2.5 text-xs font-extrabold text-white hover:bg-[#573b6b]">Select service</button></div>
+                  </article>)}
+                  {filteredServices.length===0 && <div className="col-span-full rounded-xl border border-dashed p-8 text-center text-sm text-[#766879]">No services matched this search. Clear the search to view this section.</div>}
+                </div>
+              </section>
             ) : selectedCategoryId === 'beautician' && beautyGender && activeTab === 'products' ? (
               <section className="mt-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e9e2f1] bg-white p-4">
