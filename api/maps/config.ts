@@ -27,7 +27,6 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
   // credentials in GOOGLE_MAPS_PLATFORM_KEY and never return them from this API.
   const browserKey = process.env.GOOGLE_MAPS_BROWSER_KEY
     || process.env.VITE_GOOGLE_MAPS_API_KEY
-    || process.env.GOOGLE_MAPS_API_KEY
     || '';
   const origin = requestOrigin(req);
   const allowed = ALLOWED_ORIGINS.has(origin);
