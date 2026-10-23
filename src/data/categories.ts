@@ -91,13 +91,31 @@ const PUNCHX_CATEGORIES: ServiceCategoryItem[] = [
     keywords: ['cook','chef','home assistance','household help','domestic help','meal','meal prep','dinner','lunch','breakfast','roti','curry','kitchen','maid','dishwashing','sweeping','mopping','catering','tiffin']
   },
   {
-    id: 'home-care-physiotherapy',
-    name: 'Home Care & Physiotherapy',
-    shortDesc: 'At-home mobility support, elderly assistance and appointments with qualified physiotherapists.',
+    id: 'home-care',
+    name: 'Home Care & Daily Assistance',
+    shortDesc: 'Elderly companionship, daily-living support, mobility assistance and scheduled caregivers at home.',
+    iconName: 'Heart',
+    basePrice: 399,
+    imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=85',
+    keywords: ['home care','elderly care','senior support','mobility support','caregiver','daily assistance','nursing','home nurse','companion','daily living']
+  },
+  {
+    id: 'physiotherapy',
+    name: 'Physiotherapy at Home',
+    shortDesc: 'At-home assessment, rehabilitation, mobility exercises and recovery sessions with qualified physiotherapists.',
     iconName: 'Heart',
     basePrice: 499,
     imageUrl: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=1200&q=85',
-    keywords: ['home care','physiotherapy','physiotherapist','physio','elderly care','senior support','mobility','recovery','rehabilitation','caregiver','nursing','home nurse','post surgery','exercise therapy']
+    keywords: ['physiotherapy','physiotherapist','physio','rehabilitation','post surgery','exercise therapy','pain and movement','recovery session']
+  },
+  {
+    id: 'catering',
+    name: 'Catering Services',
+    shortDesc: 'Home parties, family gatherings, office meals and event catering with menu and guest-count options.',
+    iconName: 'Utensils',
+    basePrice: 999,
+    imageUrl: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200&q=85',
+    keywords: ['catering','caterer','event catering','party food','bulk meals','office catering','buffet','food service','event menu']
   }
 ];
 
