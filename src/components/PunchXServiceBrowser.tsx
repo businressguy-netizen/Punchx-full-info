@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, Snowflake } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
 import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
@@ -275,6 +275,21 @@ const APPLIANCE_SERVICE_GROUPS = [
     { name: 'Fan / Motor Diagnosis', price: 299, duration: '30–60 min', description: 'Inspect fan operation and likely motor symptoms; parts are separate.' },
     { name: 'Seasonal Cooler Cleaning', price: 299, duration: '30–60 min', description: 'Clean accessible surfaces and pads where appropriate; replacement pads are separate.' },
   ] },
+
+  { id: 'stove', name: 'Stove & Hob Service', description: 'Burner, ignition, knobs and cooktop troubleshooting', tag: 'Kitchen appliance', image: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=1000&q=85', products: ['stove'], services: [
+    { name: 'Gas Stove / Hob Inspection', price: 249, duration: '30–45 min', description: 'Inspect visible burner, knob and ignition symptoms. Gas-line changes and regulated work are separate and must be handled by a qualified professional.' },
+    { name: 'Burner Cleaning & Alignment', price: 299, duration: '30–45 min', description: 'Clean accessible removable burners and check seating; no work on pressurised gas connections is included.' },
+    { name: 'Auto-Ignition Diagnosis', price: 299, duration: '30–45 min', description: 'Check common ignition-switch and spark symptoms; spare parts are separate.' },
+    { name: 'Cooktop Knob / Support Replacement Labour', price: 199, duration: '20–40 min', description: 'Labour estimate for compatible knobs or supports; parts are priced separately.' },
+  ] },
+  { id: 'laptop', name: 'Laptop Service & Repair', description: 'Slow performance, overheating, battery, screen and charging issues', tag: 'Computers', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1000&q=85', products: ['laptop'], services: [
+    { name: 'Laptop Inspection & Diagnosis', price: 299, duration: '30–60 min', description: 'Initial checks for power, charging, display and performance symptoms; parts are separate.' },
+    { name: 'Laptop Overheating / Fan Cleaning', price: 499, duration: '45–90 min', description: 'Inspection and cleaning where accessible; full disassembly, thermal compound and parts may cost extra.' },
+    { name: 'Laptop Battery / Charging Diagnosis', price: 299, duration: '30–60 min', description: 'Check charger, port and battery symptoms before a replacement is recommended.' },
+    { name: 'Laptop Screen / Keyboard Diagnosis', price: 299, duration: '30–60 min', description: 'Inspect display, keyboard or connector symptoms; replacement parts require a model-specific quote.' },
+    { name: 'SSD / RAM Upgrade Labour', price: 399, duration: '30–60 min', description: 'Labour estimate for compatible upgrades; backup, OS migration and components are separate.' },
+    { name: 'Laptop Software Setup', price: 399, duration: '30–60 min', description: 'Basic driver and software setup; licences, data recovery and operating-system licences are not included.' },
+  ] },
 ];
 const APPLIANCE_PRODUCTS = [
   { id: 'ac-remote', name: 'AC Remote Control', unit: 'piece', minPrice: 250, maxPrice: 1800, specification: 'Universal or model-specific; confirm compatibility', groups: ['ac-service','ac-repair-gas'] },
@@ -311,7 +326,33 @@ const APPLIANCE_PRODUCTS = [
   { id: 'cooler-pump', name: 'Air Cooler Water Pump', unit: 'piece', minPrice: 250, maxPrice: 1200, specification: 'Flow rate and fitment type', groups: ['air-cooler'] },
   { id: 'cooler-motor', name: 'Air Cooler Fan Motor', unit: 'piece', minPrice: 900, maxPrice: 3500, specification: 'Shaft, speed and mounting type', groups: ['air-cooler'] },
   { id: 'cooler-pad', name: 'Air Cooler Honeycomb Pad', unit: 'set', minPrice: 300, maxPrice: 1800, specification: 'Dimensions and pad thickness', groups: ['air-cooler'] },
+  { id: 'stove-burner', name: 'Gas Stove Burner Set', unit: 'set', minPrice: 250, maxPrice: 1800, specification: 'Stove model, burner size and metal type', groups: ['stove'] },
+  { id: 'stove-ignition', name: 'Stove Ignition / Switch Kit', unit: 'kit', minPrice: 250, maxPrice: 1200, specification: 'Ignition type and model compatibility', groups: ['stove'] },
+  { id: 'stove-knob', name: 'Cooktop Control Knob', unit: 'piece', minPrice: 80, maxPrice: 450, specification: 'Stem shape, size and model compatibility', groups: ['stove'] },
+  { id: 'laptop-battery', name: 'Laptop Battery', unit: 'piece', minPrice: 1800, maxPrice: 7500, specification: 'Exact laptop model and battery compatibility; written quote recommended', quoteRequired: true, groups: ['laptop'] },
+  { id: 'laptop-charger', name: 'Laptop Charger / Adapter', unit: 'piece', minPrice: 700, maxPrice: 3500, specification: 'Voltage, wattage, connector and OEM/compatible tier', groups: ['laptop'] },
+  { id: 'laptop-keyboard', name: 'Laptop Keyboard', unit: 'piece', minPrice: 800, maxPrice: 3800, specification: 'Exact model, backlight and layout', groups: ['laptop'] },
+  { id: 'laptop-screen', name: 'Laptop Display Panel', unit: 'piece', minPrice: 2800, maxPrice: 12000, specification: 'Screen size, resolution, connector and refresh rate; exact model quote required', quoteRequired: true, groups: ['laptop'] },
+  { id: 'laptop-ram', name: 'Laptop RAM Module', unit: 'module', minPrice: 1200, maxPrice: 6500, specification: 'DDR generation, capacity and device compatibility', groups: ['laptop'] },
+  { id: 'laptop-ssd', name: 'Laptop SSD', unit: 'piece', minPrice: 1800, maxPrice: 11000, specification: 'Capacity, SATA/NVMe interface and device compatibility', groups: ['laptop'] },
+
 ];
+const APPLIANCE_SELECTOR_GROUPS = [
+  { id: 'air-conditioner', name: 'AC', description: 'Service, repair, gas diagnosis and installation', section: 'Large appliances', image: 'https://images.unsplash.com/photo-1631545806609-4d07a1bd7b30?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['ac-service','ac-repair-gas','ac-install'] },
+  { id: 'washing-machine', name: 'Washing Machine', description: 'Drainage, spin, vibration and installation', section: 'Large appliances', image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['washing-machine'] },
+  { id: 'refrigerator', name: 'Refrigerator', description: 'Cooling, water leaks, door seals and diagnosis', section: 'Large appliances', image: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['refrigerator'] },
+  { id: 'tv-electronics', name: 'Television', description: 'Power, display, audio and mounting support', section: 'Large appliances', image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['tv-electronics'] },
+  { id: 'chimney-kitchen', name: 'Chimney', description: 'Cleaning, filter, suction and motor diagnosis', section: 'Other appliances', image: 'https://images.unsplash.com/photo-1600489000022-c2086d79f9d4?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['chimney-kitchen'] },
+  { id: 'microwave-oven', name: 'Microwave', description: 'Heating, power, turntable and door-switch diagnosis', section: 'Other appliances', image: 'https://images.unsplash.com/photo-1585659722983-3a675dabf23d?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['microwave-oven'] },
+  { id: 'stove', name: 'Stove', description: 'Burners, ignition and cooktop controls', section: 'Other appliances', image: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['stove'] },
+  { id: 'laptop', name: 'Laptop', description: 'Performance, battery, screen and upgrade support', section: 'Other appliances', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['laptop'] },
+  { id: 'ro-water', name: 'RO / Water Purifier', description: 'Filters, water flow, leaks and installation', section: 'Other appliances', image: 'https://images.unsplash.com/photo-1585687433148-8f8f4b4e7b42?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['ro-water'] },
+  { id: 'geyser', name: 'Geyser', description: 'Heating, thermostat, safety valve and installation', section: 'Other appliances', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['geyser'] },
+  { id: 'air-cooler', name: 'Air Cooler', description: 'Water pump, airflow, fan and seasonal servicing', section: 'Other appliances', image: 'https://images.unsplash.com/photo-1581275112236-4eab43d0b1b4?auto=format&fit=crop&w=800&q=80', serviceGroupIds: ['air-cooler'] },
+] as const;
+const applianceProductGroupIds = (selectorId?: string) =>
+  APPLIANCE_SELECTOR_GROUPS.find(group => group.id === selectorId)?.serviceGroupIds || [];
+
 const applianceServiceRange = (price: number, name: string) => {
   const value = name.toLowerCase();
   let low = 0.8, high = 1.35;
@@ -393,13 +434,14 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setLevel('services');
     setQuery('');
   };
-  const openApplianceGroup = (group: typeof APPLIANCE_SERVICE_GROUPS[number]) => {
+  const openApplianceGroup = (selector: typeof APPLIANCE_SELECTOR_GROUPS[number]) => {
     const categoryName = selectedCategory?.name || 'AC & Appliance Repair';
+    const sourceGroups = APPLIANCE_SERVICE_GROUPS.filter(group => (selector.serviceGroupIds as readonly string[]).includes(group.id));
     setSelectedSubcategory({
-      id: group.id,
-      name: group.name,
-      services: group.services.map((service, index) => ({
-        id: `appliance-${group.id}-${index}`,
+      id: selector.id,
+      name: selector.name,
+      services: sourceGroups.flatMap(group => group.services.map((service, index) => ({
+        id: `appliance-${selector.id}-${group.id}-${index}`,
         name: service.name,
         categoryId: 'ac-technician',
         category: categoryName,
@@ -407,11 +449,16 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
         description: service.description,
         price: service.price,
         duration: service.duration
-      }))
+      })))
     });
     setLevel('services');
     setDetailTab('services');
     setApplianceAddedProduct(null);
+    setApplianceBrandModel('');
+    setApplianceIssueNotes('');
+    setApplianceBookingMode('earliest');
+    setAppliancePreferredDate('');
+    setAppliancePreferredTime('');
     setQuery('');
   };
   const selectLeaf = (service: PunchXLeafService) => {
@@ -517,65 +564,26 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
           </div></section>
         </div>}
         
-        {level === 'subcategories' && selectedCategory?.id === 'ac-technician' && <div className="space-y-6">
-          <section className="relative isolate min-h-[285px] overflow-hidden rounded-[28px] bg-[#10223b] text-white shadow-lg sm:min-h-[320px]">
-            <img src={selectedCategory.imageUrl || serviceImage('AC and home appliance repair')} alt="Technician servicing a home air conditioner" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-40" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback('AC & Appliance Repair','Servicing, repair and installation for home appliances');}}/>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0d1b31] via-[#0d1b31]/85 to-[#0d1b31]/15"/>
-            <div className="relative max-w-3xl p-5 sm:p-8 lg:p-9">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-sky-200"><Snowflake className="h-3.5 w-3.5"/> PUNCHX appliance care</span>
-              <h3 className="mt-4 max-w-2xl text-3xl font-black leading-[1.05] sm:text-4xl">Repair. Refresh. Reconnect. <span className="text-sky-300">With price clarity.</span></h3>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">Pick your appliance and the issue. Compare service price ranges, see likely spare-part costs separately, and approve the repair quote before work begins.</p>
-              <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-bold"><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Diagnosis before repair</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Parts priced separately</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Schedule when available</span></div>
-            </div>
-          </section>
-          <section className="grid gap-3 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Choose by problem</p><h3 className="mt-1 text-base font-black text-[#142235]">What needs attention today?</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Start with a common fault to see related services and compatible parts.</p></div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[{label:'AC not cooling',group:'ac-repair-gas'},{label:'AC leaking water',group:'ac-repair-gas'},{label:'Washer not draining',group:'washing-machine'},{label:'Geyser not heating',group:'geyser'}].map(issue=>{const group=APPLIANCE_SERVICE_GROUPS.find(item=>item.id===issue.group)!;return <button key={issue.label} type="button" onClick={()=>{setApplianceIssueNotes(issue.label);openApplianceGroup(group);}} className="rounded-xl border border-sky-100 bg-sky-50/70 px-3 py-3 text-left text-xs font-black leading-4 text-[#17395a] transition hover:border-sky-300 hover:bg-sky-50">{issue.label}<ArrowRight className="mt-2 block h-3.5 w-3.5 text-sky-800"/></button>;})}
-            </div>
-          </section>
+        {level === 'subcategories' && selectedCategory?.id === 'ac-technician' && <div className="space-y-7 rounded-3xl bg-white p-1 sm:p-3">
           <section>
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Explore service categories</p><h3 className="mt-1 text-lg font-black text-[#142235] sm:text-xl">Air conditioning and everyday appliances</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Each category opens service options and a separate parts & materials list.</p></div><span className="rounded-full bg-sky-50 px-3 py-1.5 text-[10px] font-bold text-sky-900">{APPLIANCE_SERVICE_GROUPS.length} categories</span></div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {APPLIANCE_SERVICE_GROUPS.filter(group=>`${group.name} ${group.description} ${group.tag}`.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} type="button" onClick={()=>openApplianceGroup(group)} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition duration-200 hover:-translate-y-0.5 hover:ring-sky-300 hover:shadow-md">
-                <div className="relative h-36 overflow-hidden bg-sky-50 sm:h-40"><img src={group.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(group.name,group.description);}}/><div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"/><span className="absolute bottom-3 left-3 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">{group.tag}</span><span className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-sky-800 shadow-sm"><ArrowRight className="h-4 w-4"/></span></div>
-                <div className="p-4"><h4 className="text-base font-black text-[#142235]">{group.name}</h4><p className="mt-1.5 min-h-[40px] text-xs leading-5 text-[#748094]">{group.description}</p><div className="mt-3 flex items-center justify-between border-t border-black/5 pt-3"><span className="text-[11px] font-bold text-[#748094]">{group.services.length} service options</span><span className="text-[10px] font-black text-sky-800">View prices <ArrowRight className="ml-1 inline h-3 w-3"/></span></div></div>
+            <div className="mb-4"><h3 className="text-xl font-semibold tracking-tight text-[#171717] sm:text-2xl">Large appliances</h3><p className="mt-1 text-xs text-[#737780]">Choose the appliance you need help with.</p></div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 sm:gap-x-4">
+              {APPLIANCE_SELECTOR_GROUPS.filter(group=>group.section==='Large appliances'&&`${group.name} ${group.description}`.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} type="button" onClick={()=>openApplianceGroup(group)} className="group min-w-0 text-center transition">
+                <div className="aspect-square overflow-hidden rounded-2xl bg-[#f5f5f5] ring-1 ring-black/[0.03] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"><img src={group.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(group.name,group.description);}}/></div>
+                <span className="mt-2 block text-sm font-medium leading-snug text-[#242424] sm:text-base">{group.name}</span>
               </button>)}
             </div>
           </section>
-          <section className="grid gap-3 rounded-2xl border border-[#e2eaf2] bg-white p-4 sm:grid-cols-3">
-            {[{title:'Inspect first',body:'For faults that need diagnosis, show the inspection range before repair work is approved.'},{title:'Parts are separate',body:'Spare parts show their own min–max range. Exact model compatibility and stock must be confirmed.'},{title:'Multi-appliance care',body:'Tell the professional which other appliances need attention; bundled availability and any savings require confirmation.'}].map(item=><div key={item.title} className="rounded-xl bg-[#f5f8fb] p-3"><h4 className="text-sm font-black text-[#142235]">{item.title}</h4><p className="mt-1 text-xs leading-5 text-[#748094]">{item.body}</p></div>)}
-          </section>
-        </div>}
-        {level === 'subcategories' && selectedCategory?.id === 'ac-technician' && <div className="space-y-6">
-          <section className="relative isolate min-h-[285px] overflow-hidden rounded-[28px] bg-[#10223b] text-white shadow-lg sm:min-h-[320px]">
-            <img src={selectedCategory.imageUrl || serviceImage('AC and home appliance repair')} alt="Technician servicing a home air conditioner" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-40" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback('AC & Appliance Repair','Servicing, repair and installation for home appliances');}}/>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0d1b31] via-[#0d1b31]/85 to-[#0d1b31]/15"/>
-            <div className="relative max-w-3xl p-5 sm:p-8 lg:p-9">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-sky-200"><Snowflake className="h-3.5 w-3.5"/> PUNCHX appliance care</span>
-              <h3 className="mt-4 max-w-2xl text-3xl font-black leading-[1.05] sm:text-4xl">Repair. Refresh. Reconnect. <span className="text-sky-300">With price clarity.</span></h3>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">Pick your appliance and the issue. Compare service price ranges, see likely spare-part costs separately, and approve the repair quote before work begins.</p>
-              <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-bold"><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Diagnosis before repair</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Parts priced separately</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Schedule when available</span></div>
-            </div>
-          </section>
-          <section className="grid gap-3 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Choose by problem</p><h3 className="mt-1 text-base font-black text-[#142235]">What needs attention today?</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Start with a common fault to see related services and compatible parts.</p></div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[{label:'AC not cooling',group:'ac-repair-gas'},{label:'AC leaking water',group:'ac-repair-gas'},{label:'Washer not draining',group:'washing-machine'},{label:'Geyser not heating',group:'geyser'}].map(issue=>{const group=APPLIANCE_SERVICE_GROUPS.find(item=>item.id===issue.group)!;return <button key={issue.label} type="button" onClick={()=>{setApplianceIssueNotes(issue.label);openApplianceGroup(group);}} className="rounded-xl border border-sky-100 bg-sky-50/70 px-3 py-3 text-left text-xs font-black leading-4 text-[#17395a] transition hover:border-sky-300 hover:bg-sky-50">{issue.label}<ArrowRight className="mt-2 block h-3.5 w-3.5 text-sky-800"/></button>;})}
-            </div>
-          </section>
           <section>
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Explore service categories</p><h3 className="mt-1 text-lg font-black text-[#142235] sm:text-xl">Air conditioning and everyday appliances</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Each category opens service options and a separate parts & materials list.</p></div><span className="rounded-full bg-sky-50 px-3 py-1.5 text-[10px] font-bold text-sky-900">{APPLIANCE_SERVICE_GROUPS.length} categories</span></div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {APPLIANCE_SERVICE_GROUPS.filter(group=>`${group.name} ${group.description} ${group.tag}`.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} type="button" onClick={()=>openApplianceGroup(group)} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition duration-200 hover:-translate-y-0.5 hover:ring-sky-300 hover:shadow-md">
-                <div className="relative h-36 overflow-hidden bg-sky-50 sm:h-40"><img src={group.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(group.name,group.description);}}/><div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"/><span className="absolute bottom-3 left-3 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">{group.tag}</span><span className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-sky-800 shadow-sm"><ArrowRight className="h-4 w-4"/></span></div>
-                <div className="p-4"><h4 className="text-base font-black text-[#142235]">{group.name}</h4><p className="mt-1.5 min-h-[40px] text-xs leading-5 text-[#748094]">{group.description}</p><div className="mt-3 flex items-center justify-between border-t border-black/5 pt-3"><span className="text-[11px] font-bold text-[#748094]">{group.services.length} service options</span><span className="text-[10px] font-black text-sky-800">View prices <ArrowRight className="ml-1 inline h-3 w-3"/></span></div></div>
+            <div className="mb-4"><h3 className="text-xl font-semibold tracking-tight text-[#171717] sm:text-2xl">Other appliances</h3></div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 sm:gap-x-4">
+              {APPLIANCE_SELECTOR_GROUPS.filter(group=>group.section==='Other appliances'&&`${group.name} ${group.description}`.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} type="button" onClick={()=>openApplianceGroup(group)} className="group min-w-0 text-center transition">
+                <div className="aspect-square overflow-hidden rounded-2xl bg-[#f5f5f5] ring-1 ring-black/[0.03] transition duration-200 group-hover:-translate-y-0.5 group-hover:shadow-md"><img src={group.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(group.name,group.description);}}/></div>
+                <span className="mt-2 block text-sm font-medium leading-snug text-[#242424] sm:text-base">{group.name}</span>
               </button>)}
             </div>
           </section>
-          <section className="grid gap-3 rounded-2xl border border-[#e2eaf2] bg-white p-4 sm:grid-cols-3">
-            {[{title:'Inspect first',body:'For faults that need diagnosis, show the inspection range before repair work is approved.'},{title:'Parts are separate',body:'Spare parts show their own min–max range. Exact model compatibility and stock must be confirmed.'},{title:'Multi-appliance care',body:'Tell the professional which other appliances need attention; bundled availability and any savings require confirmation.'}].map(item=><div key={item.title} className="rounded-xl bg-[#f5f8fb] p-3"><h4 className="text-sm font-black text-[#142235]">{item.title}</h4><p className="mt-1 text-xs leading-5 text-[#748094]">{item.body}</p></div>)}
-          </section>
+          <p className="border-t border-[#eeeeee] pt-4 text-[11px] leading-5 text-[#737780]">Select an appliance to see only its available services, spare parts and indicative minimum-to-maximum prices. Final quote depends on model, diagnosis and parts required.</p>
         </div>}
         {level === 'subcategories' && selectedCategory?.id === 'electrician' && <div className="space-y-6">
           <section className="relative isolate min-h-[270px] overflow-hidden rounded-[28px] bg-[#17191d] text-white shadow-lg sm:min-h-[300px]">
@@ -654,14 +662,14 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
             {services.length===0&&<div className="rounded-2xl border border-dashed border-sky-200 bg-white p-8 text-center text-sm text-[#748094]">No service listed for this category yet. Ask for an inspection quote.</div>}
           </div>
           : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {APPLIANCE_PRODUCTS.filter(product=>(selectedSubcategory?.id?product.groups.includes(selectedSubcategory.id):true)&&(!query||`${product.name} ${product.specification}`.toLowerCase().includes(query.toLowerCase()))).map(product=><article key={product.id} className="flex flex-col rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:ring-sky-300 sm:p-4">
+            {APPLIANCE_PRODUCTS.filter(product=>(selectedSubcategory?.id?applianceProductGroupIds(selectedSubcategory.id).some(groupId=>product.groups.includes(groupId)):true)&&(!query||`${product.name} ${product.specification}`.toLowerCase().includes(query.toLowerCase()))).map(product=><article key={product.id} className="flex flex-col rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:ring-sky-300 sm:p-4">
               <div className="relative h-24 overflow-hidden rounded-xl bg-sky-50"><img src={serviceImage(product.name)} alt={product.name} loading="lazy" className="h-full w-full object-cover" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(product.name,product.specification);}}/><span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-1 text-[9px] font-black text-sky-900">Part / material</span></div>
               <h4 className="mt-3 text-sm font-black text-[#142235]">{product.name}</h4><p className="mt-1 flex-1 text-[11px] leading-4 text-[#748094]">{product.specification}</p>
               <p className="mt-3 text-xs font-black text-sky-900">₹{product.minPrice.toLocaleString('en-IN')} – ₹{product.maxPrice.toLocaleString('en-IN')} <span className="font-semibold text-[#8490a2]">/ {product.unit}</span></p>
               {product.quoteRequired&&<p className="mt-2 text-[10px] font-bold text-amber-800">Exact model, stock and written quote required.</p>}
               <button type="button" onClick={()=>setApplianceAddedProduct(applianceProductCartAdd(product)?product.id:'error')} className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[10px] font-black text-sky-900 hover:bg-sky-100"><ShoppingBasket className="h-3.5 w-3.5"/>{applianceAddedProduct===product.id?'Added to cart':applianceAddedProduct==='error'?'Try again':'Add to cart'}</button>
             </article>)}
-            {APPLIANCE_PRODUCTS.filter(product=>(selectedSubcategory?.id?product.groups.includes(selectedSubcategory.id):true)&&(!query||`${product.name} ${product.specification}`.toLowerCase().includes(query.toLowerCase()))).length===0&&<div className="col-span-full rounded-2xl border border-dashed border-sky-200 bg-white p-6 text-center"><p className="text-sm font-bold text-[#142235]">No spare-part range is listed for this category yet.</p><p className="mt-1 text-xs text-[#748094]">Book an inspection and confirm model compatibility and a written parts quote before authorising replacement.</p></div>}
+            {APPLIANCE_PRODUCTS.filter(product=>(selectedSubcategory?.id?applianceProductGroupIds(selectedSubcategory.id).some(groupId=>product.groups.includes(groupId)):true)&&(!query||`${product.name} ${product.specification}`.toLowerCase().includes(query.toLowerCase()))).length===0&&<div className="col-span-full rounded-2xl border border-dashed border-sky-200 bg-white p-6 text-center"><p className="text-sm font-bold text-[#142235]">No spare-part range is listed for this category yet.</p><p className="mt-1 text-xs text-[#748094]">Book an inspection and confirm model compatibility and a written parts quote before authorising replacement.</p></div>}
           </div>}
           {applianceAddedProduct&&applianceAddedProduct!=='error'&&<p className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-900">Added to the PunchX catalogue cart. Confirm model compatibility and final price before purchase.</p>}
         </div>}
