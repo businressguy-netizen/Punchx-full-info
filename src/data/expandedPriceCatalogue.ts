@@ -168,6 +168,39 @@ const families: Family[] = [
     {name:'Stretch wrap roll',unit:'roll',minPrice:120,maxPrice:550,specification:'Width and thickness',confidence:'C'},
     {name:'Vehicle shampoo',unit:'litre',minPrice:150,maxPrice:800,specification:'pH and vehicle-safe formula',confidence:'C'},
     {name:'Microfibre detailing kit',unit:'set',minPrice:250,maxPrice:1800,specification:'Towels, brushes and applicators',confidence:'C'}]},
+  { match: /home care|elderly|caregiver/i, products: [
+    {name:'Walking stick / cane',unit:'piece',minPrice:250,maxPrice:1800,specification:'Height adjustment, handle type and load rating',confidence:'C'},
+    {name:'Folding walker',unit:'piece',minPrice:900,maxPrice:4500,specification:'Frame width, wheels, brakes and user fit',confidence:'C'},
+    {name:'Grab bar / support rail',unit:'piece',minPrice:350,maxPrice:2200,specification:'Wall type and professional fixing required',confidence:'C',quoteRequired:true},
+    {name:'Non-slip bathroom mat',unit:'piece',minPrice:180,maxPrice:1000,specification:'Dimensions, drainage and grip surface',confidence:'B'},
+    {name:'Shower chair',unit:'piece',minPrice:1200,maxPrice:5500,specification:'Seat height, frame material and weight capacity',confidence:'C'},
+    {name:'Bedside safety rail',unit:'piece',minPrice:900,maxPrice:4200,specification:'Bed compatibility and correct installation',confidence:'C'},
+    {name:'Reusable care gloves',unit:'pair',minPrice:60,maxPrice:400,specification:'Size, material and intended use',confidence:'B'},
+    {name:'Pill organiser case',unit:'piece',minPrice:80,maxPrice:650,specification:'Compartments and labelling; does not include medicine',confidence:'B'},
+    {name:'Washable bed protection pad',unit:'piece',minPrice:350,maxPrice:1800,specification:'Bed size, absorbency and wash instructions',confidence:'C'}
+  ]},
+  { match: /physiotherap|rehabilitation|physio/i, products: [
+    {name:'Resistance band set',unit:'set',minPrice:180,maxPrice:1200,specification:'Resistance levels and latex-free options',confidence:'B'},
+    {name:'Exercise / yoga mat',unit:'piece',minPrice:350,maxPrice:2200,specification:'Length, thickness and grip',confidence:'B'},
+    {name:'Therapy exercise ball',unit:'piece',minPrice:450,maxPrice:1800,specification:'Ball diameter chosen for user height',confidence:'C'},
+    {name:'Foam roller',unit:'piece',minPrice:350,maxPrice:2200,specification:'Length, density and surface texture',confidence:'C'},
+    {name:'Ankle / wrist weights',unit:'pair',minPrice:250,maxPrice:1500,specification:'Weight per side and fastening style',confidence:'B'},
+    {name:'Hot / cold reusable pack',unit:'piece',minPrice:180,maxPrice:950,specification:'Size and use instructions; confirm suitability with clinician',confidence:'B'},
+    {name:'Balance pad',unit:'piece',minPrice:500,maxPrice:2500,specification:'Dimensions and firmness',confidence:'C'},
+    {name:'Finger / hand therapy putty',unit:'set',minPrice:180,maxPrice:900,specification:'Resistance grade and pack size',confidence:'B'},
+    {name:'Walking support aid',unit:'piece',minPrice:600,maxPrice:4500,specification:'Type, dimensions and fit should be reviewed by clinician',confidence:'C'}
+  ]},
+  { match: /cater|event catering/i, products: [
+    {name:'Insulated food delivery container',unit:'piece',minPrice:650,maxPrice:4500,specification:'Capacity, insulation and food-safe material',confidence:'C'},
+    {name:'Chafing dish / buffet warmer',unit:'piece',minPrice:1800,maxPrice:9500,specification:'Capacity, fuel/electric type and rental availability',confidence:'C'},
+    {name:'Serving tray set',unit:'set',minPrice:350,maxPrice:2800,specification:'Tray count, material and size',confidence:'B'},
+    {name:'Serving spoon & tong set',unit:'set',minPrice:250,maxPrice:1800,specification:'Food-safe material and item count',confidence:'B'},
+    {name:'Disposable plates & bowls',unit:'pack',minPrice:100,maxPrice:1200,specification:'Pack count and compostable/material type',confidence:'C'},
+    {name:'Food takeaway containers',unit:'pack',minPrice:120,maxPrice:1600,specification:'Container volume, leak resistance and pack count',confidence:'C'},
+    {name:'Water / beverage dispenser',unit:'piece',minPrice:700,maxPrice:4500,specification:'Capacity, tap type and material',confidence:'C'},
+    {name:'Buffet table linen',unit:'piece',minPrice:350,maxPrice:2500,specification:'Table dimensions, fabric and laundry terms',confidence:'C'},
+    {name:'Chairs, tables & buffet equipment rental',unit:'event',minPrice:1500,maxPrice:18000,specification:'Guest count, venue access and rental duration; confirm quote',confidence:'C',quoteRequired:true}
+  ]},
   { match: /garden|cook|cater|food|interior|event|photo|video|dj|security/i, products: [
     {name:'Consumables / materials allowance',unit:'job',minPrice:100,maxPrice:2500,specification:'Depends on selected scope; itemised quote required',confidence:'C',quoteRequired:true},
     {name:'Tools / equipment rental',unit:'day',minPrice:250,maxPrice:5000,specification:'Equipment, duration and delivery vary',confidence:'C',quoteRequired:true},
