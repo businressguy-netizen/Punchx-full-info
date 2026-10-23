@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, ChefHat, CookingPot, Utensils } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, ChefHat, CookingPot , Paintbrush, Ruler, ClipboardCheck, PaintBucket } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
 import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
@@ -317,6 +317,107 @@ const cookProductCartAdd = (product: typeof COOK_PRODUCTS[number]) => {
   localStorage.setItem('punchx_catalogue_cart',JSON.stringify(cart)); return true;
  } catch { return false; }
 };
+
+type PaintTaskSeed = { name: string; minPrice: number; maxPrice: number; duration: string; description: string; unit?: string; quoteRequired?: boolean };
+type PaintServiceGroup = { id: string; name: string; description: string; section: 'Painting & finishes' | 'Repair & improvement'; tag: string; image: string; products: string[]; services: PaintTaskSeed[] };
+const PAINT_SERVICE_GROUPS: PaintServiceGroup[] = [
+ {id:'interior-painting',name:'Interior Walls & Rooms',description:'Single walls, bedrooms, living rooms and room refresh projects',section:'Painting & finishes',tag:'Most requested',image:'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=1000&q=85',products:['interior-paint','primer-putty','tools-masking'],services:[
+  {name:'Single Wall Repainting',minPrice:1499,maxPrice:3499,duration:'Half to 1 day',description:'Prepare and repaint one standard wall. Wall size, existing finish and paint grade affect the quote.'},
+  {name:'Bedroom Painting',minPrice:3999,maxPrice:7999,duration:'1–2 days',description:'Room walls with basic surface preparation; ceiling, extensive repairs and premium paint may cost extra.'},
+  {name:'Living Room Painting',minPrice:4999,maxPrice:9999,duration:'1–2 days',description:'Refresh living-room walls with an agreed shade and finish. Room dimensions and furniture protection affect scope.'},
+  {name:'Two or More Walls',minPrice:2999,maxPrice:6999,duration:'1–2 days',description:'Repaint a selected set of walls; final price depends on wall area and surface preparation.'},
+  {name:'Ceiling Painting',minPrice:2499,maxPrice:5999,duration:'1 day',description:'Ceiling repainting for a defined area; dampness, cracks and height can require separate work.'}
+ ]},
+ {id:'full-home-painting',name:'Full Home & Room Packages',description:'Room combinations and 1, 2 or 3 BHK repainting projects',section:'Painting & finishes',tag:'Plan a project',image:'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=85',products:['interior-paint','primer-putty','tools-masking'],services:[
+  {name:'Any 2 Rooms Painting',minPrice:8999,maxPrice:16999,duration:'2–3 days',description:'Painting for two agreed rooms. Furnishing, wall condition and paint grade are confirmed during assessment.'},
+  {name:'Any 3 Rooms Painting',minPrice:12999,maxPrice:22999,duration:'3–4 days',description:'Painting for three agreed rooms; excludes unapproved repairs, special finishes and extra surfaces.'},
+  {name:'Unfurnished 1 BHK Painting',minPrice:9999,maxPrice:17999,duration:'2–4 days',description:'Indicative package for a standard unfurnished 1 BHK. Exact wall area and materials are confirmed first.'},
+  {name:'2 BHK Home Painting',minPrice:14999,maxPrice:26999,duration:'3–5 days',description:'Indicative full-home package; number of coats, premium finishes, ceiling coverage and repairs change the estimate.'},
+  {name:'3 BHK Home Painting',minPrice:19999,maxPrice:35999,duration:'4–6 days',description:'Indicative full-home package for a typical 3 BHK; a site measurement is required for a confirmed quote.'}
+ ]},
+ {id:'exterior-painting',name:'Exterior, Balcony & Terrace Painting',description:'Weather-facing walls, balconies, parapets and exterior surfaces',section:'Painting & finishes',tag:'Weather protection',image:'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1000&q=85',products:['exterior-paint','waterproofing','tools-masking'],services:[
+  {name:'Exterior Wall Painting',minPrice:18,maxPrice:45,duration:'Site assessment required',unit:'sq ft',description:'Indicative painting cost per square foot. Height, access, surface repairs and weather-resistant paint affect the quote.'},
+  {name:'Balcony & Parapet Painting',minPrice:1499,maxPrice:4999,duration:'1 day',description:'Paint a defined balcony or parapet area; waterproofing and unsafe-height access are separately assessed.'},
+  {name:'Terrace Floor Coating',minPrice:25,maxPrice:85,duration:'1–3 days',unit:'sq ft',description:'Protective coating estimate per square foot; substrate condition, drainage and product system need inspection.'},
+  {name:'Exterior Surface Preparation',minPrice:12,maxPrice:30,duration:'Site assessment required',unit:'sq ft',description:'Scraping, cleaning and preparation estimate per square foot; extensive repairs are separate.'}
+ ]},
+ {id:'wall-repair-prep',name:'Wall Repair, Putty & Surface Prep',description:'Cracks, peeling paint, dents, plaster patches and sanding',section:'Repair & improvement',tag:'Fix before paint',image:'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1000&q=85',products:['primer-putty','repair-materials','tools-masking'],services:[
+  {name:'Small Wall Patch & Touch-up',minPrice:499,maxPrice:1499,duration:'1–3 hours',description:'Repair a small damaged patch and touch up nearby paint; exact colour matching is not guaranteed.'},
+  {name:'Crack Filling & Sanding',minPrice:799,maxPrice:2999,duration:'Half to 1 day',description:'Fill minor non-structural surface cracks and sand for repainting. Structural cracks need expert assessment.'},
+  {name:'Wall Putty & Primer Application',minPrice:12,maxPrice:35,duration:'Site assessment required',unit:'sq ft',description:'Indicative prep-work range per square foot; number of coats and surface condition determine the quote.'},
+  {name:'Peeling Paint / Flaking Surface Repair',minPrice:999,maxPrice:3999,duration:'Half to 1 day',description:'Remove loose paint and prepare the affected area. The cause of moisture or seepage must be addressed separately.'},
+  {name:'Plaster Repair & Wall Levelling',minPrice:25,maxPrice:75,duration:'Site assessment required',unit:'sq ft',description:'Minor plaster patching and levelling estimate. Extensive masonry or structural damage requires assessment.'}
+ ]},
+ {id:'waterproofing-damp',name:'Waterproofing & Dampness',description:'Terrace leakage, bathroom dampness, seepage and exterior cracks',section:'Repair & improvement',tag:'Solve the cause',image:'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1000&q=85',products:['waterproofing','repair-materials'],services:[
+  {name:'Dampness / Seepage Inspection',minPrice:299,maxPrice:799,duration:'30–60 min',description:'Initial assessment of visible dampness and likely causes. Hidden leaks or structural defects may need a specialist.'},
+  {name:'Interior Wall Dampness Treatment',minPrice:2999,maxPrice:8999,duration:'1–3 days',description:'Treatment of a defined wall area after identifying the moisture source; active leaks are not covered by repainting alone.'},
+  {name:'Bathroom Waterproofing',minPrice:4999,maxPrice:14999,duration:'2–4 days',description:'Indicative treatment for a defined bathroom area. Tile removal, plumbing leaks and reinstatement can be extra.'},
+  {name:'Terrace Waterproofing',minPrice:35,maxPrice:110,duration:'Site assessment required',unit:'sq ft',description:'Indicative terrace waterproofing range per square foot; cracks, slope, drainage and coating system affect price.'},
+  {name:'Exterior Crack Sealing',minPrice:1499,maxPrice:5999,duration:'1–2 days',description:'Seal eligible exterior surface cracks before protective coating. Structural cracks require expert evaluation.'}
+ ]},
+ {id:'texture-wallpaper',name:'Designer Texture, Feature Walls & Wallpaper',description:'Decorative finishes, feature walls, stencils and wallpaper fitting',section:'Painting & finishes',tag:'Make it personal',image:'https://images.unsplash.com/photo-1616486338812-3dadae4b4771?auto=format&fit=crop&w=1000&q=85',products:['texture-wallpaper','interior-paint','tools-masking'],services:[
+  {name:'Feature Wall / Accent Colour',minPrice:1999,maxPrice:5499,duration:'1 day',description:'Create a single accent wall using an agreed colour; premium paint and wall preparation affect price.'},
+  {name:'Decorative Texture Finish',minPrice:75,maxPrice:220,duration:'Site assessment required',unit:'sq ft',description:'Indicative textured finish range per square foot; design, number of coats and material brand determine the quote.'},
+  {name:'Wallpaper Installation',minPrice:35,maxPrice:100,duration:'Site assessment required',unit:'sq ft',description:'Indicative fitting labour per square foot. Wallpaper material, pattern matching, wall prep and wastage are separate.'},
+  {name:'Stencil / Pattern Painting',minPrice:60,maxPrice:180,duration:'Site assessment required',unit:'sq ft',description:'Decorative pattern application per square foot based on pattern detail and layout.'},
+  {name:'Colour Consultation',minPrice:199,maxPrice:799,duration:'30–60 min',description:'Discuss shade combinations and finishes. Physical samples, designer drawings or extensive consultation may be extra.'}
+ ]},
+ {id:'doors-grills',name:'Doors, Grills, Gates & Cabinets',description:'Repaint metal grills, gates, doors and built-in cabinets',section:'Painting & finishes',tag:'Detail work',image:'https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1000&q=85',products:['wood-finish','metal-finish','primer-putty','tools-masking'],services:[
+  {name:'Interior Door Painting',minPrice:999,maxPrice:2999,duration:'Half to 1 day',description:'Repaint one standard door; sanding, hardware removal and premium finishes affect cost.'},
+  {name:'Metal Grill Painting',minPrice:799,maxPrice:2499,duration:'Half to 1 day',description:'Prepare and paint a defined grill; rust removal and access needs affect the quote.'},
+  {name:'Metal Gate / Shutter Painting',minPrice:1499,maxPrice:4999,duration:'1 day',description:'Paint a standard gate or shutter after surface preparation; size, rust and paint system are assessed.'},
+  {name:'Kitchen Cabinet Repainting',minPrice:1999,maxPrice:7999,duration:'1–3 days',description:'Repaint a defined set of cabinet fronts; laminate compatibility, sanding and hardware are checked first.'}
+ ]},
+ {id:'wood-polish',name:'Wood Polish & Furniture Finishing',description:'Wooden doors, frames, cabinets and furniture refresh',section:'Painting & finishes',tag:'Wood care',image:'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85',products:['wood-finish','tools-masking'],services:[
+  {name:'Wood Polish / Varnish',minPrice:35,maxPrice:120,duration:'Site assessment required',unit:'sq ft',description:'Indicative polish range per square foot. Wood species, existing coating and finish type affect price.'},
+  {name:'Wood Door Polish',minPrice:1499,maxPrice:3999,duration:'1 day',description:'Polish one standard door; stripping old layers or repairing veneer may cost extra.'},
+  {name:'Furniture Refinish',minPrice:999,maxPrice:6999,duration:'1–3 days',description:'Refinish a small-to-medium piece; size, condition and chosen finish require assessment.'}
+ ]},
+ {id:'tiles-grouting-renovation',name:'Tile Grouting & Small Improvements',description:'Regrouting, minor tile repairs, plaster and finishing work',section:'Repair & improvement',tag:'Small renovations',image:'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1000&q=85',products:['repair-materials','tile-grout','tools-masking'],services:[
+  {name:'Tile Regrouting',minPrice:35,maxPrice:100,duration:'Site assessment required',unit:'sq ft',description:'Remove and refill compatible grout joints; tile type, joint depth and affected area matter.'},
+  {name:'Small Tile Replacement',minPrice:799,maxPrice:2999,duration:'Half to 1 day',description:'Replace a small number of tiles if matching tiles are available; material and plumbing repairs may be extra.'},
+  {name:'Minor Plaster / Patch Work',minPrice:799,maxPrice:3999,duration:'Half to 1 day',description:'Small wall or ceiling patch work before finishing; large areas need a site quote.'},
+  {name:'Minor Home Improvement Inspection',minPrice:199,maxPrice:699,duration:'30–60 min',description:'Review a small painting or finishing job and scope the work before giving a quote.'}
+ ]},
+ {id:'painting-consultation',name:'Site Visit, Colour Plan & Project Estimate',description:'Plan your project before materials and labour are finalised',section:'Repair & improvement',tag:'Plan with confidence',image:'https://images.unsplash.com/photo-1616486338812-3dadae4b4771?auto=format&fit=crop&w=1000&q=85',products:['interior-paint','exterior-paint','primer-putty','texture-wallpaper'],services:[
+  {name:'Painting Site Visit & Estimate',minPrice:99,maxPrice:499,duration:'30–60 min',description:'Preliminary site visit estimate; any free consultation offer must be confirmed by the assigned provider.'},
+  {name:'Full Home Measurement & Scope',minPrice:199,maxPrice:799,duration:'45–90 min',description:'Measure agreed areas and document surface prep, coats, finish and materials before a written quote.'},
+  {name:'Shade & Finish Planning',minPrice:199,maxPrice:799,duration:'30–60 min',description:'Review preferred colours and finishes. Physical shade cards and premium design services may be separate.'}
+ ]}
+];
+const PAINT_PRODUCTS = [
+ {id:'paint-interior-1l',name:'Interior Emulsion Paint',unit:'litre',minPrice:180,maxPrice:950,specification:'Economy through premium washable finish; brand and sheen affect price',groups:['interior-paint','texture-wallpaper','painting-consultation']},
+ {id:'paint-interior-20l',name:'Interior Paint 20 L Bucket',unit:'bucket',minPrice:1800,maxPrice:12500,specification:'Coverage and finish tier; check expected coats and surface area',groups:['interior-paint','full-home-painting','painting-consultation']},
+ {id:'paint-exterior-1l',name:'Exterior Weatherproof Paint',unit:'litre',minPrice:250,maxPrice:1200,specification:'Weather resistance, finish and brand tier',groups:['exterior-paint']},
+ {id:'paint-primer',name:'Wall Primer',unit:'litre',minPrice:120,maxPrice:600,specification:'Interior/exterior compatibility and substrate determine selection',groups:['primer-putty','interior-paint','exterior-paint']},
+ {id:'paint-putty-20kg',name:'Wall Putty 20 kg',unit:'bag',minPrice:450,maxPrice:1100,specification:'Brand, grade and application coverage',groups:['primer-putty','repair-materials']},
+ {id:'paint-crack-filler',name:'Crack Filler / Wall Repair Compound',unit:'pack',minPrice:120,maxPrice:650,specification:'Pack size and suitability for hairline or larger surface cracks',groups:['repair-materials','waterproofing']},
+ {id:'paint-waterproof-1l',name:'Waterproofing Coating',unit:'litre',minPrice:180,maxPrice:950,specification:'Interior/exterior system and coverage; choose after identifying moisture source',groups:['waterproofing','exterior-paint']},
+ {id:'paint-roof-coating',name:'Terrace Waterproofing Membrane',unit:'bucket',minPrice:1200,maxPrice:6500,specification:'Coverage, layers, substrate preparation and product system',groups:['waterproofing']},
+ {id:'paint-texture',name:'Texture Paint / Finish Compound',unit:'kg',minPrice:180,maxPrice:900,specification:'Pattern, texture type and coverage per pack',groups:['texture-wallpaper']},
+ {id:'paint-wallpaper-roll',name:'Decorative Wallpaper Roll',unit:'roll',minPrice:700,maxPrice:4500,specification:'Roll size, material, pattern and washability',groups:['texture-wallpaper']},
+ {id:'paint-wood-polish',name:'Wood Polish / Clear Varnish',unit:'litre',minPrice:350,maxPrice:1800,specification:'Water/solvent-based finish, gloss and wood compatibility',groups:['wood-finish']},
+ {id:'paint-wood-stain',name:'Wood Stain / Coloured Finish',unit:'litre',minPrice:300,maxPrice:1600,specification:'Shade and finish type; sample patch recommended',groups:['wood-finish']},
+ {id:'paint-metal-primer',name:'Anti-rust Metal Primer',unit:'litre',minPrice:180,maxPrice:850,specification:'Metal type, corrosion level and coating compatibility',groups:['metal-finish']},
+ {id:'paint-enamel',name:'Metal / Wood Enamel Paint',unit:'litre',minPrice:250,maxPrice:1100,specification:'Finish, application surface and brand tier',groups:['metal-finish','wood-finish']},
+ {id:'paint-tile-grout',name:'Tile Grout / Grouting Compound',unit:'kg',minPrice:80,maxPrice:500,specification:'Cementitious/epoxy type, colour and joint width',groups:['tile-grout']},
+ {id:'paint-cement-plaster',name:'Cement / Repair Mortar',unit:'bag',minPrice:250,maxPrice:650,specification:'Bag size, application and grade',groups:['repair-materials','tile-grout']},
+ {id:'paint-roller-kit',name:'Roller, Brush & Tray Kit',unit:'set',minPrice:180,maxPrice:900,specification:'Roller nap, brush type and kit contents',groups:['tools-masking']},
+ {id:'paint-masking',name:'Masking Tape & Protective Sheets',unit:'set',minPrice:120,maxPrice:800,specification:'Tape width, cover area and reusable/disposable type',groups:['tools-masking']},
+ {id:'paint-sandpaper',name:'Sandpaper / Surface Prep Pack',unit:'pack',minPrice:80,maxPrice:450,specification:'Grit size and quantity',groups:['tools-masking','primer-putty']},
+ {id:'paint-safety-kit',name:'Painter Safety & Cleanup Kit',unit:'set',minPrice:150,maxPrice:900,specification:'Gloves, mask, goggles and cleanup accessories',groups:['tools-masking']}
+];
+const paintProductCartAdd = (product: typeof PAINT_PRODUCTS[number]) => {
+ try {
+  const current = JSON.parse(localStorage.getItem('punchx_catalogue_cart') || '[]');
+  const cart = Array.isArray(current) ? current : [];
+  const index = cart.findIndex((item: {id?:string;category?:string})=>item.id===product.id&&item.category==='Painting & Home Improvement');
+  if(index>=0) cart[index]={...cart[index],qty:Math.min(99,Number(cart[index].qty||1)+1)};
+  else cart.push({id:product.id,name:product.name,category:'Painting & Home Improvement',kind:'product',unit:product.unit,min:product.minPrice,max:product.maxPrice,qty:1,notes:product.specification,quote:false});
+  localStorage.setItem('punchx_catalogue_cart',JSON.stringify(cart)); return true;
+ } catch { return false; }
+};
+
 const APPLIANCE_SERVICE_GROUPS = [
   { id: 'ac-service', name: 'AC Service & Deep Cleaning', description: 'Routine servicing, filter cleaning, foam cleaning and seasonal care', tag: 'Cooling care', image: 'https://images.unsplash.com/photo-1631545806609-4d07a1bd7b30?auto=format&fit=crop&w=1000&q=85', products: ['ac-service','ac-repair-gas'], services: [
     { name: 'AC General Service', price: 399, duration: '45–60 min', description: 'Routine inspection, filter cleaning and accessible unit cleaning for split or window ACs.' },
@@ -523,6 +624,15 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [cookDate, setCookDate] = useState('');
   const [cookTime, setCookTime] = useState('');
   const [cookProductAdded, setCookProductAdded] = useState<string|null>(null);
+  const [paintBookingMode, setPaintBookingMode] = useState<'earliest'|'scheduled'>('earliest');
+  const [paintDate, setPaintDate] = useState('');
+  const [paintTime, setPaintTime] = useState('');
+  const [paintProjectSize, setPaintProjectSize] = useState('one-room');
+  const [paintSurfaceCondition, setPaintSurfaceCondition] = useState('minor-prep');
+  const [paintFinishTier, setPaintFinishTier] = useState('standard');
+  const [paintMaterialMode, setPaintMaterialMode] = useState<'professional-supply'|'customer-supply'>('professional-supply');
+  const [paintWallArea, setPaintWallArea] = useState('300');
+  const [paintProductAdded, setPaintProductAdded] = useState<string|null>(null);
 
 
 
@@ -553,7 +663,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const durationLabel = (hours: number) => hours === 0.5 ? '30 minutes' : hours === 1.5 ? '90 minutes' : hours === 1 ? '1 hour' : `${hours} hours`;
 
 
-  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); };
+  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); setPaintProductAdded(null); setPaintDate(''); setPaintTime(''); };
   const close = () => { reset(); onClose(); };
   const openCategory = (category: ServiceCategoryItem) => {
     setDetailTab('services');
@@ -604,6 +714,28 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setLevel('services');
     setDetailTab('services');
     setCookProductAdded(null);
+    setQuery('');
+  };
+  const openPaintGroup = (group: PaintServiceGroup) => {
+    setSelectedSubcategory({
+      id: group.id,
+      name: group.name,
+      services: group.services.map((service,index)=>({
+        id:`paint-${group.id}-${index}`,
+        name:service.name,
+        categoryId:'painter',
+        category:selectedCategory?.name||'Painting & Home Improvement',
+        subcategory:group.name,
+        description:service.description,
+        price:Math.round((service.minPrice+service.maxPrice)/2),
+        duration:service.duration,
+      }))
+    });
+    setLevel('services');
+    setDetailTab('services');
+    setPaintProductAdded(null);
+    setPaintDate('');
+    setPaintTime('');
     setQuery('');
   };
   const selectLeaf = (service: PunchXLeafService) => {
