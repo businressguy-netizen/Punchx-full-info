@@ -261,7 +261,7 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
    setTrackingError('');
    const sendLocation=async function(pos:GeolocationPosition){
      const now=Date.now();
-     if(now-lastSentAt<8000)return;
+     if(now-lastSentAt<10000)return;
      lastSentAt=now;
      try{
        const firebaseUser=auth.currentUser;
