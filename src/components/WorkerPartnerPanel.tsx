@@ -3,7 +3,7 @@ import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X
 import { useAuth } from '../lib/authContext';
 import { auth, db } from '../lib/firebase';
 import { OrderRecord } from '../types';
-import { collection, doc, onSnapshot, runTransaction, updateDoc, setDoc, deleteField, query as firestoreQuery, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, setDoc, deleteField, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
 import { getAccurateCurrentPosition, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isServiceAreaMatch, fetchGoogleMapsConfig, GoogleMapsConfig } from '../lib/location';
 import { APIProvider, Map as GoogleMap, useMap } from '@vis.gl/react-google-maps';
