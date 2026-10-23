@@ -577,19 +577,26 @@ export interface GoogleMapsConfig {
 }
 
 export async function fetchGoogleMapsConfig(): Promise<GoogleMapsConfig> {
+  // A browser Maps key is public by design and must be restricted by HTTP
+  // referrer and API in Google Cloud. Use the server response first, then a
+  // configured Vite browser key for previews where runtime origin allowlists
+  // intentionally return no key.
+  const buildBrowserKey = String(import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '').trim();
   try {
-    const res = await fetch('/api/maps/config');
+    const res = await fetch('/api/maps/config', { cache: 'no-store' });
     if (res.ok) {
-      return await res.json();
+      const config = await res.json() as GoogleMapsConfig;
+      const apiKey = String(config.apiKey || buildBrowserKey);
+      return { ...config, apiKey, hasKey: Boolean(config.hasKey || apiKey) };
     }
   } catch (e) {
     console.warn("Could not fetch maps config:", e);
   }
   return {
-    enabled: true,
-    hasKey: false,
-    apiKey: '',
-    mapId: 'PUNCHX_MAP_ID',
+    enabled: Boolean(buildBrowserKey),
+    hasKey: Boolean(buildBrowserKey),
+    apiKey: buildBrowserKey,
+    mapId: String(import.meta.env.VITE_GOOGLE_MAP_ID || 'PUNCHX_MAP_ID'),
     attributionId: 'gmp_mcp_codeassist_v1_aistudio',
     defaultCenter: { lat: 22.9734, lng: 78.6569 },
     serviceAreaMode: 'india-named-areas'

@@ -156,6 +156,7 @@ export const requireWorker = async (req: express.Request, res: express.Response,
 const ALLOWED_ORIGINS = [
   "https://www.punchxapp.co.in",
   "https://punchxapp.co.in",
+  "https://punchx-full-info-sigma.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
 ];
@@ -194,6 +195,9 @@ async function startServer() {
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    // Live GPS has its own authenticated per-worker limiter below. Excluding
+    // it here avoids counting every 10-second GPS update against unrelated APIs.
+    skip: (req) => req.originalUrl.startsWith("/api/tracking/location"),
     message: { success: false, error: "Too many requests, please try again later." },
   }));
 
@@ -996,30 +1000,206 @@ async function startServer() {
     }
   });
 
-  // ─── LIVE LOCATION TELEMETRY & GEOFENCING (TASK SHEET SECTION 9 [P0/P1]) ───
-  app.post("/api/tracking/location", requireFirebaseUser, requireWorker, async (req, res) => {
-    try {
-      const { orderId, lat, lng, heading, accuracy, speed } = req.body;
-      const uid = (req as any).user.uid;
+  const trackingLocationLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => String((req as any).user?.uid || req.ip),
+    message: { success: false, error: "GPS update limit reached. Keep the journey open and retry shortly." },
+  });
 
-      if (!orderId || typeof lat !== "number" || typeof lng !== "number") {
-        return res.status(400).json({ success: false, error: "Missing required orderId and coordinate numbers" });
+  // ─── BOOKING-SCOPED LIVE TRACKING ───
+  // Tracking writes use Firebase Admin against the same named Firestore database
+  // as the web panel. The browser never gets permission to mint tracking sessions.
+  app.post("/api/tracking/session", requireFirebaseUser, async (req, res) => {
+    try {
+      const uid = String((req as any).user?.uid || "");
+      const { orderId, action, sessionId } = req.body || {};
+      const allowed = ["start_journey", "arrived", "start_service", "complete_service", "cancel_booking"];
+      if (!uid || typeof orderId !== "string" || !orderId.trim() || orderId.length > 180 || !allowed.includes(action)) {
+        return res.status(400).json({ success: false, error: "A valid booking ID and tracking action are required." });
       }
 
-      const result = await updateWorkerLocationTelemetry({
-        orderId,
-        workerUid: uid,
-        lat,
-        lng,
-        heading,
-        accuracy,
-        speed,
+      const databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || "ai-studio-punchxservicecus-c71be4cc-9ee1-4ae7-b718-125aa03bcd38";
+      const firestore = getFirestore(undefined, databaseId);
+      const orderRef = firestore.collection("orders").doc(orderId.trim());
+      const actorRef = firestore.collection("users").doc(uid);
+      const result = await firestore.runTransaction(async (transaction) => {
+        const [orderSnap, actorSnap] = await Promise.all([transaction.get(orderRef), transaction.get(actorRef)]);
+        if (!orderSnap.exists) return { statusCode: 404, success: false, error: "Booking not found." };
+        const order = orderSnap.data() as Record<string, any>;
+        const actor = actorSnap.exists ? actorSnap.data() as Record<string, any> : {};
+        const currentStatus = String(order.status || "UNKNOWN");
+        const now = new Date().toISOString();
+        const history = Array.isArray(order.stateHistory) ? order.stateHistory.slice(-99) : [];
+        const appendHistory = (to: string, reason: string, role: string) => [
+          ...history,
+          { from: currentStatus, to, timestamp: now, actorUid: uid, actorRole: role, reason },
+        ];
+
+        if (action === "cancel_booking") {
+          if (order.customerId !== uid) return { statusCode: 403, success: false, error: "Only the customer who owns this booking can cancel it." };
+          if (["Done", "COMPLETED", "Completed", "Cancelled", "CANCELLED"].includes(currentStatus)) {
+            return { statusCode: 409, success: false, error: "This booking can no longer be cancelled." };
+          }
+          transaction.update(orderRef, {
+            status: "Cancelled",
+            workerOutForWork: false,
+            trackingSessionId: FieldValue.delete(),
+            workerLocation: FieldValue.delete(),
+            trackingLastLocationAt: FieldValue.delete(),
+            trackingEndedAt: now,
+            cancelledAt: now,
+            updatedAt: now,
+            stateHistory: appendHistory("Cancelled", "Customer cancelled the booking and live GPS sharing was stopped.", "citizen"),
+          });
+          return { statusCode: 200, success: true, status: "Cancelled" };
+        }
+
+        if (order.workerId !== uid || actor.role !== "worker") {
+          return { statusCode: 403, success: false, error: "Only the assigned PunchX professional can change this tracking session." };
+        }
+
+        if (action === "start_journey") {
+          if (currentStatus === "EN_ROUTE" && order.workerOutForWork === true && order.trackingSessionId) {
+            return { statusCode: 200, success: true, sessionId: String(order.trackingSessionId), status: "EN_ROUTE" };
+          }
+          if (!["ACCEPTED", "In-Progress", "In Progress"].includes(currentStatus)) {
+            return { statusCode: 409, success: false, error: "Start Journey is available only for an accepted booking." };
+          }
+          const newSessionId = crypto.randomUUID();
+          transaction.update(orderRef, {
+            status: "EN_ROUTE",
+            workerOutForWork: true,
+            trackingSessionId: newSessionId,
+            trackingStartedAt: now,
+            trackingEndedAt: FieldValue.delete(),
+            trackingLastLocationAt: FieldValue.delete(),
+            workerLocation: FieldValue.delete(),
+            updatedAt: now,
+            stateHistory: appendHistory("EN_ROUTE", "Professional started journey; booking-scoped GPS sharing enabled.", "worker"),
+          });
+          return { statusCode: 200, success: true, sessionId: newSessionId, status: "EN_ROUTE" };
+        }
+
+        if (action === "arrived") {
+          if (currentStatus !== "EN_ROUTE" || order.workerOutForWork !== true) {
+            return { statusCode: 409, success: false, error: "This booking is not currently tracking an active journey." };
+          }
+          if (typeof sessionId !== "string" || !sessionId || sessionId !== order.trackingSessionId) {
+            return { statusCode: 409, success: false, error: "Tracking session expired. Refresh the booking and try again." };
+          }
+          transaction.update(orderRef, {
+            status: "ARRIVED",
+            workerOutForWork: false,
+            trackingSessionId: FieldValue.delete(),
+            workerLocation: FieldValue.delete(),
+            trackingLastLocationAt: FieldValue.delete(),
+            trackingEndedAt: now,
+            updatedAt: now,
+            stateHistory: appendHistory("ARRIVED", "Professional confirmed arrival; GPS sharing stopped.", "worker"),
+          });
+          return { statusCode: 200, success: true, status: "ARRIVED" };
+        }
+
+        if (action === "start_service") {
+          if (currentStatus !== "ARRIVED") return { statusCode: 409, success: false, error: "Confirm arrival before starting the service." };
+          transaction.update(orderRef, {
+            status: "IN_SERVICE",
+            workerOutForWork: false,
+            trackingSessionId: FieldValue.delete(),
+            workerLocation: FieldValue.delete(),
+            trackingLastLocationAt: FieldValue.delete(),
+            trackingEndedAt: now,
+            updatedAt: now,
+            stateHistory: appendHistory("IN_SERVICE", "Professional started the service.", "worker"),
+          });
+          return { statusCode: 200, success: true, status: "IN_SERVICE" };
+        }
+
+        if (action === "complete_service") {
+          if (currentStatus !== "IN_SERVICE") return { statusCode: 409, success: false, error: "Start the service before completing this booking." };
+          transaction.update(orderRef, {
+            status: "Done",
+            workerOutForWork: false,
+            trackingSessionId: FieldValue.delete(),
+            workerLocation: FieldValue.delete(),
+            trackingLastLocationAt: FieldValue.delete(),
+            trackingEndedAt: now,
+            completedAt: now,
+            updatedAt: now,
+            stateHistory: appendHistory("Done", "Professional marked the service completed.", "worker"),
+          });
+          return { statusCode: 200, success: true, status: "Done" };
+        }
+
+        return { statusCode: 400, success: false, error: "Unsupported tracking action." };
       });
 
-      return res.status(result.statusCode).json({ success: result.success, error: result.error });
+      const { statusCode, ...payload } = result;
+      return res.status(statusCode).json(payload);
+    } catch (err: any) {
+      logger.error("Tracking session action failed:", err);
+      return res.status(500).json({ success: false, error: "Could not update the tracking session. Please retry." });
+    }
+  });
+
+  app.post("/api/tracking/location", requireFirebaseUser, trackingLocationLimiter, async (req, res) => {
+    try {
+      const uid = String((req as any).user?.uid || "");
+      const { orderId, sessionId, lat, lng, heading, accuracy, speed } = req.body || {};
+      if (!uid || typeof orderId !== "string" || !orderId.trim() || typeof sessionId !== "string" || !sessionId ||
+          typeof lat !== "number" || !Number.isFinite(lat) || lat < -90 || lat > 90 ||
+          typeof lng !== "number" || !Number.isFinite(lng) || lng < -180 || lng > 180) {
+        return res.status(400).json({ success: false, error: "Valid booking, tracking session and GPS coordinates are required." });
+      }
+      if (accuracy !== undefined && accuracy !== null && (typeof accuracy !== "number" || !Number.isFinite(accuracy) || accuracy < 0 || accuracy > 10000)) {
+        return res.status(400).json({ success: false, error: "GPS accuracy must be a valid number of metres." });
+      }
+      if (heading !== undefined && heading !== null && (typeof heading !== "number" || !Number.isFinite(heading) || heading < 0 || heading > 360)) {
+        return res.status(400).json({ success: false, error: "GPS heading must be between 0 and 360 degrees." });
+      }
+      if (speed !== undefined && speed !== null && (typeof speed !== "number" || !Number.isFinite(speed) || speed < 0 || speed > 150)) {
+        return res.status(400).json({ success: false, error: "GPS speed is outside the accepted range." });
+      }
+
+      const databaseId = process.env.FIREBASE_DATABASE_ID || process.env.VITE_FIREBASE_DATABASE_ID || "ai-studio-punchxservicecus-c71be4cc-9ee1-4ae7-b718-125aa03bcd38";
+      const firestore = getFirestore(undefined, databaseId);
+      const orderRef = firestore.collection("orders").doc(orderId.trim());
+      const result = await firestore.runTransaction(async (transaction) => {
+        const [orderSnap, workerSnap] = await Promise.all([
+          transaction.get(orderRef),
+          transaction.get(firestore.collection("users").doc(uid)),
+        ]);
+        if (!orderSnap.exists) return { statusCode: 404, success: false, error: "Booking not found." };
+        const order = orderSnap.data() as Record<string, any>;
+        const worker = workerSnap.exists ? workerSnap.data() as Record<string, any> : {};
+        if (order.workerId !== uid || worker.role !== "worker") {
+          return { statusCode: 403, success: false, error: "Only the assigned professional can share this location." };
+        }
+        if (order.status !== "EN_ROUTE" || order.workerOutForWork !== true || order.trackingSessionId !== sessionId) {
+          return { statusCode: 409, success: false, error: "This tracking session is no longer active." };
+        }
+
+        const previousUpdate = Date.parse(String(order.workerLocation?.updatedAt || ""));
+        const nowMs = Date.now();
+        if (Number.isFinite(previousUpdate) && nowMs - previousUpdate < 3000) {
+          return { statusCode: 200, success: true, throttled: true, updatedAt: String(order.workerLocation.updatedAt) };
+        }
+        const updatedAt = new Date(nowMs).toISOString();
+        const workerLocation: Record<string, number | string> = { lat, lng, updatedAt };
+        if (typeof accuracy === "number") workerLocation.accuracy = accuracy;
+        if (typeof heading === "number") workerLocation.heading = heading;
+        if (typeof speed === "number") workerLocation.speed = speed;
+        transaction.update(orderRef, { workerLocation, trackingLastLocationAt: updatedAt, updatedAt });
+        return { statusCode: 200, success: true, throttled: false, updatedAt };
+      });
+      const { statusCode, ...payload } = result;
+      return res.status(statusCode).json(payload);
     } catch (err: any) {
       logger.error("Tracking location update error:", err);
-      return res.status(500).json({ success: false, error: "Failed to update location telemetry" });
+      return res.status(500).json({ success: false, error: "Failed to update location telemetry." });
     }
   });
 
@@ -1040,7 +1220,6 @@ async function startServer() {
       return res.status(500).json({ success: false, error: "Failed to fetch tracking telemetry" });
     }
   });
-
   // ─── WORKER SIGNUP DYNAMIC DUAL OTP API (TASK SHEET SECTION 8 [P0]) ───
   // Replaces hardcoded 8842/9921 with dynamic server-generated challenge
   app.post("/api/auth/worker-signup-otp", async (_req, res) => {

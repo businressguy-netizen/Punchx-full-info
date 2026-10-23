@@ -3,7 +3,7 @@ import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X
 import { useAuth } from '../lib/authContext';
 import { auth, db } from '../lib/firebase';
 import { OrderRecord } from '../types';
-import { collection, doc, onSnapshot, runTransaction, updateDoc, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
 import { getAccurateCurrentPosition, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isServiceAreaMatch, fetchGoogleMapsConfig, GoogleMapsConfig } from '../lib/location';
 import { APIProvider, Map as GoogleMap, useMap } from '@vis.gl/react-google-maps';
@@ -75,6 +75,7 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
        if(cancelled)return;
        const next={lat,lng,area:resolved.area||'Local area',city:resolved.city||'',district:resolved.district||'',state:resolved.state||'',postalCode:resolved.postalCode||'',sector:resolved.sector||'',updatedAt:new Date().toISOString()};
        setGeo(next);setGeoError('');
+       // Keep precise coordinates local to this map; do not publish live GPS in worker discovery profiles.
        const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,district:next.district,state:next.state,postalCode:next.postalCode,sector:next.sector,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
        const targetUid=auth.currentUser?.uid||uid;
        await setDoc(doc(db,'users',targetUid),{uid:targetUid,...payload},{merge:true});
@@ -231,61 +232,118 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
    }
  };
  const locationWatch=useRef<number|null>(null);
+ const [trackingError,setTrackingError]=useState('');
+ const callTrackingAction=async function(orderId:string,action:'start_journey'|'arrived'|'start_service'|'complete_service',sessionId?:string){
+   const firebaseUser=auth.currentUser;
+   if(!firebaseUser)throw new Error('Your secure PunchX session has expired. Please sign in again.');
+   const token=await firebaseUser.getIdToken();
+   const backendBase=String(import.meta.env.VITE_BACKEND_URL||'').replace(/\/+$/,'');
+   const response=await fetch(`${backendBase}/api/tracking/session`,{
+     method:'POST',
+     headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+     body:JSON.stringify({orderId,action,sessionId})
+   });
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok||result?.success!==true)throw new Error(result?.error||'PunchX could not update the tracking session.');
+   return result;
+ };
  useEffect(function(){
-   const activeOrder=orders.find(function(o){return o.raw && ['TRAVELLING','ARRIVED','SERVICE_STARTED'].includes(o.status)});
-   if(!activeOrder?.raw || !online || !navigator.geolocation){
-     if(locationWatch.current!==null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatch.current);
+   const activeOrder=orders.find(function(o){return o.raw && o.status==='TRAVELLING'});
+   const sessionId=String((activeOrder?.raw as any)?.trackingSessionId||'');
+   if(!activeOrder?.raw || !sessionId || typeof navigator==='undefined' || !navigator.geolocation){
+     if(locationWatch.current!==null && typeof navigator!=='undefined' && navigator.geolocation)navigator.geolocation.clearWatch(locationWatch.current);
      locationWatch.current=null;
+     if(activeOrder?.raw && !sessionId)setTrackingError('Journey started, but the tracking session is still syncing. Keep this page open and refresh if it does not connect.');
      return;
    }
-   locationWatch.current=navigator.geolocation.watchPosition(async function(pos){
+
+   let lastSentAt=0;
+   setTrackingError('');
+   const sendLocation=async function(pos:GeolocationPosition){
+     const now=Date.now();
+     if(now-lastSentAt<10000)return;
+     lastSentAt=now;
      try{
-       await updateDoc(doc(db,'orders',activeOrder.raw!.id),{
-         workerLocation:{lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy||null,heading:pos.coords.heading??null,speed:pos.coords.speed??null,updatedAt:new Date().toISOString()},
-         workerOutForWork:true,updatedAt:new Date().toISOString()
+       const firebaseUser=auth.currentUser;
+       if(!firebaseUser)throw new Error('Sign-in session expired. Sign in again to resume tracking.');
+       const token=await firebaseUser.getIdToken();
+       const backendBase=String(import.meta.env.VITE_BACKEND_URL||'').replace(/\/+$/,'');
+       const response=await fetch(`${backendBase}/api/tracking/location`,{
+         method:'POST',
+         headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+         body:JSON.stringify({
+           orderId:activeOrder.raw!.id,
+           sessionId,
+           lat:pos.coords.latitude,
+           lng:pos.coords.longitude,
+           accuracy:pos.coords.accuracy,
+           heading:pos.coords.heading,
+           speed:pos.coords.speed
+         })
        });
-     }catch{}
-   },function(){}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
-   return function(){if(locationWatch.current!==null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatch.current);locationWatch.current=null;};
- },[orders.map(function(o){return o.id+o.status;}).join('|'),online]);
+       const result=await response.json().catch(()=>({}));
+       if(!response.ok||result?.success!==true)throw new Error(result?.error||'GPS update could not be saved.');
+       setTrackingError('');
+     }catch(error:any){
+       console.warn('PunchX booking-scoped GPS update failed:',error);
+       setTrackingError(error?.message||'Network issue: PunchX could not send the latest GPS update.');
+     }
+   };
+
+   locationWatch.current=navigator.geolocation.watchPosition(
+     function(pos){void sendLocation(pos);},
+     function(error){
+       const message=error.code===1?'Location permission denied. Allow location access to share your journey with this booking.':error.code===2?'Your device GPS is unavailable. Move to an area with a clearer signal.':'GPS timed out. Keep PunchX open and try again.';
+       setTrackingError(message);
+     },
+     {enableHighAccuracy:true,maximumAge:5000,timeout:20000}
+   );
+   return function(){
+     if(locationWatch.current!==null&&navigator.geolocation)navigator.geolocation.clearWatch(locationWatch.current);
+     locationWatch.current=null;
+   };
+ },[orders.map(function(o){return o.id+o.status+String((o.raw as any)?.trackingSessionId||'');}).join('|')]);
 
  const action=function(s:Status){return s==='NEW'?'Accept order':s==='ACCEPTED'?'Start travel':s==='TRAVELLING'?'Arrived':s==='ARRIVED'?'Start service':s==='SERVICE_STARTED'?'Complete order':'Completed'};
  const advance=async function(o:Order){
-   if(!o.raw){return;}
+   if(!o.raw)return;
    const raw=o.raw;
    try{
      if(o.status==='NEW'){
-       if(!uid){return;}
+       if(!uid)return;
        await runTransaction(db,async function(tx){
          const ref=doc(db,'orders',raw.id); const snap=await tx.get(ref);
-         if(!snap.exists()) throw new Error('Booking no longer exists.');
+         if(!snap.exists())throw new Error('Booking no longer exists.');
          const current=snap.data() as any;
-         if(!pending(current.status) || (current.workerId && current.workerId!==uid)) throw new Error('This job was already accepted.');
+         if(!pending(current.status)||(current.workerId&&current.workerId!==uid))throw new Error('This job was already accepted.');
          const changedAt=new Date().toISOString();
-         const history=Array.isArray(current.stateHistory)?current.stateHistory:[];
          tx.update(ref,{
            workerId:uid,
            workerName:userProfile?.name||'Verified Professional',
            workerPhone:userProfile?.phone||'',
            status:'In-Progress',
            acceptedAt:changedAt,
-           updatedAt:changedAt,
-           stateHistory:[...history,{from:current.status||'Pending',to:'In-Progress',timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional accepted booking'}],
+           updatedAt:changedAt
          });
        });
        showNotification?.('✅ Job accepted. The customer assignment is now active.');
-     } else {
-       const backendStatus:any=o.status==='ACCEPTED'?'EN_ROUTE':o.status==='TRAVELLING'?'ARRIVED':o.status==='ARRIVED'?'IN_SERVICE':o.status==='SERVICE_STARTED'?'Done':null;
-       if(!backendStatus) return;
-       const changedAt=new Date().toISOString();
-       const history=Array.isArray((raw as any).stateHistory)?(raw as any).stateHistory:[];
-       await updateDoc(doc(db,'orders',raw.id),{
-         status:backendStatus,
-         updatedAt:changedAt,
-         stateHistory:[...history,{from:raw.status,to:backendStatus,timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional updated booking progress'}],
-         ...(backendStatus==='Done'?{completedAt:changedAt,workerOutForWork:false}:{})
-       });
-       showNotification?.(backendStatus==='Done'?'✅ Service completed and recorded.':'Order '+o.id+' updated to '+(labels[mapStatus(backendStatus)]||backendStatus)+'.');
+     }else{
+       const sessionId=String((raw as any).trackingSessionId||'');
+       const nextAction:'start_journey'|'arrived'|'start_service'|'complete_service'|null=
+         o.status==='ACCEPTED'?'start_journey':
+         o.status==='TRAVELLING'?'arrived':
+         o.status==='ARRIVED'?'start_service':
+         o.status==='SERVICE_STARTED'?'complete_service':null;
+       if(!nextAction)return;
+       if(nextAction==='arrived'&&!sessionId)throw new Error('The tracking session is missing. Refresh this booking before confirming arrival.');
+       await callTrackingAction(raw.id,nextAction,sessionId||undefined);
+       setTrackingError('');
+       showNotification?.(
+         nextAction==='start_journey'?'✅ Journey started. Booking-scoped live GPS sharing is now active.':
+         nextAction==='arrived'?'✅ Arrival confirmed. Live GPS sharing has stopped for privacy.':
+         nextAction==='start_service'?'✅ Service started. Live journey tracking remains off.':
+         '✅ Service completed and recorded.'
+       );
      }
      setSelected(null);
    }catch(e:any){showNotification?.('⚠️ '+(e?.message||'Could not update this booking.'));}
@@ -314,6 +372,7 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
   <div className="wx-main">
    <header className="wx-header"><div className="wx-header-left"><button className="wx-menu" onClick={()=>setMobile(true)} aria-label="Open partner menu"><Menu/></button><div className="wx-mobile-brand"><img src={PUNCHX_LOGO} alt="PunchX" /></div></div><div className="wx-header-title"><span className="wx-eyebrow">PUNCHX / PARTNER OPERATIONS</span><h1>{tab==='home'?'Good evening, '+name+' 👋':menu.find(function(m:any){return m[0]===tab})?.[1]}</h1></div><div className="wx-head-actions"><button type="button" className={'wx-status wx-online-toggle '+(online?'online':'offline')+(availabilitySaving?' is-saving':'')} onClick={()=>persistAvailability(!online)} disabled={availabilitySaving} aria-busy={availabilitySaving} aria-label={online?'Go Off and stop receiving new bookings':'Come Online and start receiving bookings'}><i aria-hidden="true"></i><span>{availabilitySaving?'SAVING…':online?'Go Off':'Come Online'}</span></button><button className="wx-bell" onClick={()=>nav('notifications')} aria-label="Notifications"><Bell size={20}/></button><button className="wx-profile-chip" onClick={()=>nav('profile')} aria-label="Open profile"><span>{String(name||"P").slice(0,2).toUpperCase()}</span><strong>{name}</strong><ChevronRight size={15}/></button></div></header>
    <main className="wx-content">
+    {trackingError&&<div className="wx-card" role="status" aria-live="polite" style={{borderColor:'#f59e0b',color:'#92400e'}}><b>Live tracking notice</b><p style={{marginTop:6,fontSize:13,lineHeight:1.5}}>{trackingError}</p></div>}
     {tab==='home'&&<HomeView area={geo?.area||userProfile?.area||workerArea} geo={geo} geoLoading={geoLoading} geoError={geoError} online={online} toggleOnline={()=>persistAvailability(!online)} today={today} completed={completed} pending={pendingCount} cancelled={cancelled} todayEarn={todayEarn} orders={orders} open={setSelected} advance={advance} action={action} nav={nav} serviceAreas={workerServiceAreas} mapsConfig={mapsConfig} availabilitySaving={availabilitySaving}/>}
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
     {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
