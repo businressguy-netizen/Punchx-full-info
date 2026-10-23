@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, ChefHat, CookingPot , Paintbrush, Ruler, ClipboardCheck, PaintBucket } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, ChefHat, CookingPot , Paintbrush, Ruler } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
 import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
@@ -638,7 +638,6 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [paintMaterialMode, setPaintMaterialMode] = useState<'professional-supply'|'customer-supply'>('professional-supply');
   const [paintWallArea, setPaintWallArea] = useState('300');
   const [paintProductAdded, setPaintProductAdded] = useState<string|null>(null);
-  const [paintBriefSaved, setPaintBriefSaved] = useState(false);
 
 
 
@@ -740,7 +739,6 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setLevel('services');
     setDetailTab('services');
     setPaintProductAdded(null);
-    setPaintBriefSaved(false);
     setPaintDate('');
     setPaintTime('');
     setQuery('');
