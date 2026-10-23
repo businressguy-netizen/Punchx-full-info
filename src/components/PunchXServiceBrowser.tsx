@@ -207,6 +207,130 @@ const cleanProductCartAdd = (product: typeof CLEANING_PRODUCTS[number]) => {
     return true;
   } catch { return false; }
 };
+const APPLIANCE_SERVICE_GROUPS = [
+  { id: 'ac-service', name: 'AC Service & Deep Cleaning', description: 'Routine servicing, filter cleaning, foam cleaning and seasonal care', tag: 'Cooling care', image: 'https://images.unsplash.com/photo-1631545806609-4d07a1bd7b30?auto=format&fit=crop&w=1000&q=85', products: ['ac-service','ac-repair-gas'], services: [
+    { name: 'AC General Service', price: 399, duration: '45–60 min', description: 'Routine inspection, filter cleaning and accessible unit cleaning for split or window ACs.' },
+    { name: 'Foam & Jet Deep Cleaning', price: 649, duration: '60–90 min', description: 'Deeper cleaning of eligible indoor-unit coils and drain areas; method depends on unit and site.' },
+    { name: 'AC Filter Cleaning', price: 199, duration: '20–30 min', description: 'Clean accessible filters and check airflow; replacement filters are charged separately.' },
+    { name: 'AC Drain & Performance Check', price: 299, duration: '30–45 min', description: 'Check drainage and basic operating performance; repair work is quoted after diagnosis.' },
+    { name: 'Seasonal AC Care Plan · 2 Visits', price: 1198, duration: 'Two scheduled visits', description: 'Indicative two-visit maintenance package. Coverage, visit dates and final terms must be confirmed before purchase.' },
+  ] },
+  { id: 'ac-repair-gas', name: 'AC Repair & Gas Check', description: 'Cooling issues, leaks, unusual noise and refrigerant diagnosis', tag: 'Repair & diagnosis', image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1000&q=85', products: ['ac-repair-gas','ac-install'], services: [
+    { name: 'AC Inspection & Diagnosis', price: 299, duration: '30–45 min', description: 'Identify likely causes before any repair is authorised. The inspection fee and repair scope are confirmed before work begins.' },
+    { name: 'Low / No Cooling Diagnosis', price: 299, duration: '30–60 min', description: 'Check filters, airflow, settings and operating symptoms before recommending a repair.' },
+    { name: 'Water Leakage Diagnosis', price: 399, duration: '30–60 min', description: 'Inspect drain flow and likely leak points; parts and larger repairs are separate.' },
+    { name: 'Noise & Vibration Diagnosis', price: 399, duration: '30–60 min', description: 'Inspect common mounting, fan and operating issues before repair approval.' },
+    { name: 'Refrigerant Leak Test', price: 499, duration: '45–90 min', description: 'Inspect suspected refrigerant leaks; leak repair and recharge are quoted separately after testing.' },
+    { name: 'Gas Refill / Refrigerant Recharge', price: 3000, duration: '90–150 min', description: 'Price varies by refrigerant type, required quantity and leak status. Confirm the written quote before authorising.' },
+  ] },
+  { id: 'ac-install', name: 'AC Installation & Uninstallation', description: 'New installation, removal, relocation and reinstallation', tag: 'Install & shift', image: 'https://images.unsplash.com/photo-1631545806609-4d07a1bd7b30?auto=format&fit=crop&w=1000&q=85', products: ['ac-install','ac-service'], services: [
+    { name: 'Split AC Installation', price: 1599, duration: '90–150 min', description: 'Installation of indoor and outdoor units for a suitable site; extra piping, drilling or brackets are quoted separately.' },
+    { name: 'Window AC Installation', price: 799, duration: '60–90 min', description: 'Install a compatible window AC into an existing suitable opening; carpentry or civil modifications are extra.' },
+    { name: 'AC Uninstallation', price: 699, duration: '45–75 min', description: 'Careful removal of an existing unit; transport and relocation are not included unless agreed.' },
+    { name: 'AC Reinstallation / Relocation', price: 1799, duration: '90–180 min', description: 'Reinstall a relocated unit; additional copper piping, wiring and structural work require a separate estimate.' },
+  ] },
+  { id: 'refrigerator', name: 'Refrigerator Service & Repair', description: 'Cooling problems, unusual sounds, water leaks and door sealing', tag: 'Fridge care', image: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=1000&q=85', products: ['refrigerator'], services: [
+    { name: 'Refrigerator Inspection', price: 249, duration: '30–45 min', description: 'Initial checks for common cooling, electrical and drainage issues; parts are separate.' },
+    { name: 'Cooling Problem Diagnosis', price: 349, duration: '30–60 min', description: 'Inspect common temperature, airflow and thermostat symptoms before repair approval.' },
+    { name: 'Water Leakage / Drain Check', price: 299, duration: '30–45 min', description: 'Check accessible drainage and water collection areas.' },
+    { name: 'Door Seal & Hinge Check', price: 299, duration: '30–45 min', description: 'Inspect door alignment and seal condition; replacement parts are quoted separately.' },
+  ] },
+  { id: 'washing-machine', name: 'Washing Machine Service & Repair', description: 'Drainage, spin, vibration, inlet and installation support', tag: 'Laundry appliance', image: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=1000&q=85', products: ['washing-machine'], services: [
+    { name: 'Washing Machine Inspection', price: 249, duration: '30–45 min', description: 'Initial checks for power, water inlet, drainage and basic operation.' },
+    { name: 'Drainage / Water Inlet Diagnosis', price: 299, duration: '30–60 min', description: 'Check common water-fill or drain symptoms; replacement parts are separate.' },
+    { name: 'Spin / Vibration Diagnosis', price: 399, duration: '30–60 min', description: 'Inspect load balance and accessible drive or suspension symptoms.' },
+    { name: 'Washing Machine Installation', price: 399, duration: '45–75 min', description: 'Connect a compatible machine to existing power and water points; plumbing changes are extra.' },
+  ] },
+  { id: 'geyser', name: 'Geyser & Water Heater', description: 'No hot water, heating element, thermostat and installation', tag: 'Hot water', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1000&q=85', products: ['geyser'], services: [
+    { name: 'Geyser Inspection', price: 249, duration: '30–45 min', description: 'Initial checks for power, heating and visible leakage symptoms.' },
+    { name: 'Heating Problem Diagnosis', price: 299, duration: '30–60 min', description: 'Check likely thermostat, element and supply issues before repair approval.' },
+    { name: 'Geyser Installation', price: 799, duration: '60–120 min', description: 'Install on a suitable existing point. Plumbing, electrical upgrades and mounting changes are separate.' },
+    { name: 'Geyser Uninstallation', price: 499, duration: '30–60 min', description: 'Safe disconnection and removal; relocation or transport is separate.' },
+  ] },
+  { id: 'ro-water', name: 'Water Purifier & RO', description: 'Filter service, low flow, leaks and installation', tag: 'Water purifier', image: 'https://images.unsplash.com/photo-1585687433148-8f8f4b4e7b42?auto=format&fit=crop&w=1000&q=85', products: ['ro-water'], services: [
+    { name: 'RO Inspection & Service', price: 249, duration: '30–60 min', description: 'Inspect water flow, visible leaks and service needs; replacement cartridges are separate.' },
+    { name: 'Filter Replacement Labour', price: 199, duration: '20–45 min', description: 'Replace compatible filters supplied by the customer or separately quoted.' },
+    { name: 'Low Water Flow Diagnosis', price: 299, duration: '30–60 min', description: 'Check common filter, pressure and pump symptoms before recommending parts.' },
+    { name: 'RO Installation', price: 399, duration: '45–75 min', description: 'Install at a suitable existing inlet, outlet and power point; additional piping is quoted separately.' },
+  ] },
+  { id: 'chimney-kitchen', name: 'Chimney & Kitchen Appliances', description: 'Chimney cleaning, filter, motor and cooktop troubleshooting', tag: 'Kitchen appliances', image: 'https://images.unsplash.com/photo-1600489000022-c2086d79f9d4?auto=format&fit=crop&w=1000&q=85', products: ['chimney-kitchen'], services: [
+    { name: 'Kitchen Chimney Inspection', price: 249, duration: '30–45 min', description: 'Check airflow and visible filter or motor symptoms before repair approval.' },
+    { name: 'Chimney Deep Cleaning', price: 599, duration: '60–90 min', description: 'Clean eligible accessible components; dismantling or replacement parts are quoted separately.' },
+    { name: 'Chimney Motor / Suction Diagnosis', price: 299, duration: '30–60 min', description: 'Inspect common suction, noise and power issues.' },
+    { name: 'Induction Cooktop Diagnosis', price: 249, duration: '30–45 min', description: 'Check basic power and operating symptoms; components are separate.' },
+  ] },
+  { id: 'microwave-oven', name: 'Microwave & Oven', description: 'Heating faults, turntable issues and safety diagnosis', tag: 'Cooking appliances', image: 'https://images.unsplash.com/photo-1585659722983-3a675dabf23d?auto=format&fit=crop&w=1000&q=85', products: ['microwave-oven'], services: [
+    { name: 'Microwave Inspection', price: 249, duration: '30–45 min', description: 'Initial inspection of common power, control and heating symptoms.' },
+    { name: 'Heating Problem Diagnosis', price: 299, duration: '30–60 min', description: 'Inspect likely component or control issues before repair approval.' },
+    { name: 'Turntable / Door Switch Diagnosis', price: 299, duration: '30–45 min', description: 'Check compatible mechanisms and switches; parts are extra.' },
+  ] },
+  { id: 'tv-electronics', name: 'TV & Home Electronics', description: 'Power, display, audio and connectivity troubleshooting', tag: 'Electronics', image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=1000&q=85', products: ['tv-electronics'], services: [
+    { name: 'TV Inspection', price: 249, duration: '30–45 min', description: 'Initial check for power, display and connection symptoms.' },
+    { name: 'Power / Sound Diagnosis', price: 299, duration: '30–60 min', description: 'Identify likely power, audio or connection faults before repair approval.' },
+    { name: 'Wall Mount & Setup', price: 399, duration: '45–75 min', description: 'Setup for a compatible mounting surface; wall brackets and civil work may be extra.' },
+  ] },
+  { id: 'air-cooler', name: 'Air Cooler Service & Repair', description: 'Pump, fan motor, water flow and seasonal checks', tag: 'Cooling appliances', image: 'https://images.unsplash.com/photo-1581275112236-4eab43d0b1b4?auto=format&fit=crop&w=1000&q=85', products: ['air-cooler'], services: [
+    { name: 'Air Cooler Inspection', price: 199, duration: '30–45 min', description: 'Check pump, water flow, fan and basic electrical symptoms.' },
+    { name: 'Pump / Water Flow Diagnosis', price: 249, duration: '30–45 min', description: 'Inspect pump operation and water distribution.' },
+    { name: 'Fan / Motor Diagnosis', price: 299, duration: '30–60 min', description: 'Inspect fan operation and likely motor symptoms; parts are separate.' },
+    { name: 'Seasonal Cooler Cleaning', price: 299, duration: '30–60 min', description: 'Clean accessible surfaces and pads where appropriate; replacement pads are separate.' },
+  ] },
+];
+const APPLIANCE_PRODUCTS = [
+  { id: 'ac-remote', name: 'AC Remote Control', unit: 'piece', minPrice: 250, maxPrice: 1800, specification: 'Universal or model-specific; confirm compatibility', groups: ['ac-service','ac-repair-gas'] },
+  { id: 'ac-capacitor', name: 'AC Capacitor 25–60 µF', unit: 'piece', minPrice: 250, maxPrice: 1800, specification: 'Match capacitance, voltage and unit model', groups: ['ac-repair-gas'] },
+  { id: 'ac-sensor', name: 'AC Temperature Sensor', unit: 'piece', minPrice: 250, maxPrice: 1400, specification: 'Model and connector compatibility', groups: ['ac-repair-gas'] },
+  { id: 'ac-pcb', name: 'AC PCB / Control Board', unit: 'piece', minPrice: 1800, maxPrice: 12000, specification: 'Exact model and inverter type; written quote required', quoteRequired: true, groups: ['ac-repair-gas'] },
+  { id: 'ac-motor', name: 'AC Fan Motor', unit: 'piece', minPrice: 1800, maxPrice: 8500, specification: 'OEM/compatible part and exact model; quote required', quoteRequired: true, groups: ['ac-repair-gas'] },
+  { id: 'ac-copper-pipe', name: 'Copper Piping with Insulation', unit: 'metre', minPrice: 450, maxPrice: 1400, specification: 'Pipe diameter, length and insulation thickness', groups: ['ac-install'] },
+  { id: 'ac-refrigerant', name: 'Refrigerant / Gas Recharge', unit: 'service', minPrice: 1800, maxPrice: 6500, specification: 'Gas type, measured quantity and leak status; inspect before approval', quoteRequired: true, groups: ['ac-repair-gas'] },
+  { id: 'fridge-thermostat', name: 'Refrigerator Thermostat / Sensor', unit: 'piece', minPrice: 500, maxPrice: 2500, specification: 'Exact model and part revision', groups: ['refrigerator'] },
+  { id: 'fridge-compressor', name: 'Refrigerator Compressor', unit: 'piece', minPrice: 3500, maxPrice: 14000, specification: 'Capacity, refrigerant and compatible model; quote required', quoteRequired: true, groups: ['refrigerator'] },
+  { id: 'fridge-gasket', name: 'Refrigerator Door Gasket', unit: 'piece', minPrice: 400, maxPrice: 1800, specification: 'Door dimensions and model compatibility', groups: ['refrigerator'] },
+  { id: 'fridge-relay', name: 'Compressor Start Relay', unit: 'piece', minPrice: 250, maxPrice: 900, specification: 'Compatibility must be confirmed', groups: ['refrigerator'] },
+  { id: 'washer-drain-pump', name: 'Washing Machine Drain Pump', unit: 'piece', minPrice: 1200, maxPrice: 2200, specification: 'Model-compatible replacement; confirm exact part', quoteRequired: true, groups: ['washing-machine'] },
+  { id: 'washer-inlet-valve', name: 'Washing Machine Inlet Valve', unit: 'piece', minPrice: 700, maxPrice: 1400, specification: 'Single/dual inlet and model compatibility', groups: ['washing-machine'] },
+  { id: 'washer-belt', name: 'Washer Belt / Coupler', unit: 'piece', minPrice: 500, maxPrice: 1100, specification: 'Model and part number', groups: ['washing-machine'] },
+  { id: 'washer-bearing', name: 'Washing Machine Bearing Kit', unit: 'kit', minPrice: 2500, maxPrice: 4800, specification: 'Drum design and model; written quote required', quoteRequired: true, groups: ['washing-machine'] },
+  { id: 'geyser-element', name: 'Geyser Heating Element', unit: 'piece', minPrice: 450, maxPrice: 2200, specification: 'Wattage, length and flange type', groups: ['geyser'] },
+  { id: 'geyser-thermostat', name: 'Geyser Thermostat', unit: 'piece', minPrice: 350, maxPrice: 1600, specification: 'Model, power rating and cut-off rating', groups: ['geyser'] },
+  { id: 'geyser-valve', name: 'Geyser Safety Valve', unit: 'piece', minPrice: 250, maxPrice: 1200, specification: 'Pressure rating and connection size', groups: ['geyser'] },
+  { id: 'ro-sediment-filter', name: 'RO Sediment Filter', unit: 'piece', minPrice: 120, maxPrice: 500, specification: 'Size, micron rating and fitting style', groups: ['ro-water'] },
+  { id: 'ro-carbon-filter', name: 'RO Carbon Filter', unit: 'piece', minPrice: 180, maxPrice: 900, specification: 'Inline/block type and model compatibility', groups: ['ro-water'] },
+  { id: 'ro-membrane', name: 'RO Membrane 75–100 GPD', unit: 'piece', minPrice: 700, maxPrice: 2500, specification: 'Membrane capacity and compatible housing', groups: ['ro-water'] },
+  { id: 'ro-pump', name: 'RO Booster Pump', unit: 'piece', minPrice: 900, maxPrice: 2800, specification: 'Pressure rating, voltage and connector', groups: ['ro-water'] },
+  { id: 'chimney-filter', name: 'Chimney Filter', unit: 'piece', minPrice: 200, maxPrice: 2200, specification: 'Mesh/baffle/carbon type and dimensions', groups: ['chimney-kitchen'] },
+  { id: 'chimney-motor', name: 'Chimney Motor', unit: 'piece', minPrice: 1800, maxPrice: 6500, specification: 'Model, suction capacity and compatible part; quote required', quoteRequired: true, groups: ['chimney-kitchen'] },
+  { id: 'induction-board', name: 'Induction Cooktop Control Board', unit: 'piece', minPrice: 900, maxPrice: 3500, specification: 'Exact model and board code', quoteRequired: true, groups: ['chimney-kitchen'] },
+  { id: 'microwave-magnetron', name: 'Microwave Magnetron', unit: 'piece', minPrice: 1200, maxPrice: 4200, specification: 'Model-specific part; quote required', quoteRequired: true, groups: ['microwave-oven'] },
+  { id: 'microwave-turntable', name: 'Microwave Turntable Motor', unit: 'piece', minPrice: 300, maxPrice: 1000, specification: 'Shaft and model compatibility', groups: ['microwave-oven'] },
+  { id: 'microwave-switch', name: 'Microwave Door Switch', unit: 'piece', minPrice: 150, maxPrice: 700, specification: 'Exact switch rating and compatible model', groups: ['microwave-oven'] },
+  { id: 'tv-power-board', name: 'TV Power Board', unit: 'piece', minPrice: 900, maxPrice: 4500, specification: 'Exact TV model and board number; quote required', quoteRequired: true, groups: ['tv-electronics'] },
+  { id: 'tv-mainboard', name: 'TV Mainboard / Logic Board', unit: 'piece', minPrice: 1800, maxPrice: 9500, specification: 'Exact model; confirm repair vs replacement', quoteRequired: true, groups: ['tv-electronics'] },
+  { id: 'tv-backlight', name: 'TV LED Backlight Strip Kit', unit: 'set', minPrice: 500, maxPrice: 3000, specification: 'Screen size and panel model', groups: ['tv-electronics'] },
+  { id: 'cooler-pump', name: 'Air Cooler Water Pump', unit: 'piece', minPrice: 250, maxPrice: 1200, specification: 'Flow rate and fitment type', groups: ['air-cooler'] },
+  { id: 'cooler-motor', name: 'Air Cooler Fan Motor', unit: 'piece', minPrice: 900, maxPrice: 3500, specification: 'Shaft, speed and mounting type', groups: ['air-cooler'] },
+  { id: 'cooler-pad', name: 'Air Cooler Honeycomb Pad', unit: 'set', minPrice: 300, maxPrice: 1800, specification: 'Dimensions and pad thickness', groups: ['air-cooler'] },
+];
+const applianceServiceRange = (price: number, name: string) => {
+  const value = name.toLowerCase();
+  let low = 0.8, high = 1.35;
+  if (/inspection|diagnosis|check/.test(value)) { low = 0.8; high = 1.2; }
+  if (/installation|uninstallation|relocation|gas refill|refrigerant|deep cleaning|annual/.test(value)) { low = 0.8; high = 1.65; }
+  return { min: Math.max(99, Math.floor(price * low / 50) * 50), max: Math.max(Math.floor(price * low / 50) * 50 + 50, Math.ceil(price * high / 50) * 50) };
+};
+const applianceProductCartAdd = (product: typeof APPLIANCE_PRODUCTS[number]) => {
+  try {
+    const existing = JSON.parse(localStorage.getItem('punchx_catalogue_cart') || '[]');
+    const cart = Array.isArray(existing) ? existing : [];
+    const index = cart.findIndex((item: { id?: string; category?: string }) => item.id === product.id && item.category === 'AC & Appliance Repair');
+    if (index >= 0) cart[index] = { ...cart[index], qty: Math.min(99, Number(cart[index].qty || 1) + 1) };
+    else cart.push({ id: product.id, name: product.name, category: 'AC & Appliance Repair', kind: 'product', unit: product.unit, min: product.minPrice, max: product.maxPrice, qty: 1, notes: product.specification, quote: Boolean(product.quoteRequired) });
+    localStorage.setItem('punchx_catalogue_cart', JSON.stringify(cart));
+    return true;
+  } catch { return false; }
+};
+
 const ELECTRICIAN_QUICK_TASKS = [
   { label: 'Fan not working', group: 'Fan', detail: 'Repair or replace' },
   { label: 'Lights out', group: 'Light', detail: 'Bulb or fixture' },
@@ -229,6 +353,13 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [cleaningProductAdded, setCleaningProductAdded] = useState<string | null>(null);
   const [cleaningDate, setCleaningDate] = useState('');
   const [cleaningTime, setCleaningTime] = useState('');
+  const [applianceAddedProduct, setApplianceAddedProduct] = useState<string | null>(null);
+  const [applianceBrandModel, setApplianceBrandModel] = useState('');
+  const [applianceIssueNotes, setApplianceIssueNotes] = useState('');
+  const [applianceBookingMode, setApplianceBookingMode] = useState<'earliest' | 'scheduled'>('earliest');
+  const [appliancePreferredDate, setAppliancePreferredDate] = useState('');
+  const [appliancePreferredTime, setAppliancePreferredTime] = useState('');
+
 
 
   const categories = useMemo(() => PUNCHX_50_CATEGORIES.filter(item => `${item.name} ${item.shortDesc} ${item.keywords.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())), [query]);
@@ -247,7 +378,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const durationLabel = (hours: number) => hours === 0.5 ? '30 minutes' : hours === 1.5 ? '90 minutes' : hours === 1 ? '1 hour' : `${hours} hours`;
 
 
-  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); };
+  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); };
   const close = () => { reset(); onClose(); };
   const openCategory = (category: ServiceCategoryItem) => {
     setDetailTab('services');
