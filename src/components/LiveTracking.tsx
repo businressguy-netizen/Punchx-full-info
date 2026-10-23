@@ -129,7 +129,7 @@ function TrackingMap({ customer, worker, workerName, mapsConfig, onRouteInfo }: 
   </APIProvider>;
 }
 
-export default function LiveTracking({ onTransition }: LiveTrackingProps) {
+export default function LiveTracking({ onTransition, bookingTime }: LiveTrackingProps) {
   const [order, setOrder] = useState<TrackingOrder>(readOrder);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
