@@ -14,7 +14,7 @@ interface InteractivePriceCatalogueProps {
 type CatalogueTab = 'services' | 'products';
 const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
 const normalize = (value: string) => value.trim().toLowerCase();
-type BasketLine = { id:string; name:string; category:string; kind:'service'|'product'; unit:string; min:number; max:number; qty:number; notes:string; quote:boolean };
+type BasketLine = { id:string; name:string; category:string; kind:'service'|'product'; unit:string; min:number; max:number; qty:number; notes:string; quote:boolean; subcategory?:string; audience?:BeautyAudience };
 // Service catalogue prices are labour/visit estimates; keep a clear range until the job is inspected.
 const servicePriceRange = (price: number, name: string, category: string) => {
   const text = `${name} ${category}`.toLowerCase();
@@ -69,20 +69,35 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
   const basketMax=basket.reduce((s,x)=>s+x.max*x.qty,0);
   const addBasketLine=()=>{
     if(!selectedService&&!selectedProduct)return;
+    const beautySelection = selectedCategoryId === 'beautician';
     const line:BasketLine=selectedService
-      ? {id:selectedService.id,name:selectedService.name,category:selectedCategory?.name||selectedService.categoryName,kind:'service',unit:selectedService.unit,min:selectedServicePriceRange(selectedService).min,max:selectedServicePriceRange(selectedService).max,qty:quantity,notes:selectedService.description,quote:false}
-      : {id:selectedProduct!.id,name:selectedProduct!.name,category:selectedCategory?.name||'Home Services',kind:'product',unit:selectedProduct!.unit,min:selectedProduct!.minPrice,max:selectedProduct!.maxPrice,qty:quantity,notes:selectedProduct!.specification,quote:Boolean(selectedProduct!.quoteRequired)};
+      ? {id:selectedService.id,name:selectedService.name,category:selectedCategory?.name||selectedService.categoryName,kind:'service',unit:selectedService.unit,min:selectedServicePriceRange(selectedService).min,max:selectedServicePriceRange(selectedService).max,qty:quantity,notes:selectedService.description,quote:false,subcategory:selectedService.subcategoryName,audience:beautySelection ? beautyGender || undefined : undefined}
+      : {id:selectedProduct!.id,name:selectedProduct!.name,category:selectedCategory?.name||'Home Services',kind:'product',unit:selectedProduct!.unit,min:selectedProduct!.minPrice,max:selectedProduct!.maxPrice,qty:quantity,notes:selectedProduct!.specification,quote:Boolean(selectedProduct!.quoteRequired),subcategory:beautySelection ? selectedBeautyGroup?.name : undefined,audience:beautySelection ? beautyGender || undefined : undefined};
     setBasket(old=>{const i=old.findIndex(x=>x.id===line.id&&x.category===line.category);return i<0?[...old,line]:old.map((x,n)=>n===i?{...x,qty:Math.min(99,x.qty+line.qty)}:x);});
     setSelectedService(null);setSelectedProduct(null);setQuantity(1);setBasketOpen(true);showNotification('Added to your PunchX cart.');
   };
   const checkoutBasket=()=>{
     if(!basket.length){showNotification('Your cart is empty.');return;}
     if(!address.trim()||!date||!time){showNotification('Enter address, date and time to continue.');return;}
-    const lines=basket.map(x=>x.name+' × '+x.qty+' ('+money(x.min*x.qty)+'–'+money(x.max*x.qty)+')').join('; ');
+    const lines=basket.map(x=>[x.category,x.audience ? (x.audience==='female' ? 'Women' : 'Men') : '',x.subcategory||'',x.name+' × '+x.qty+' ('+money(x.min*x.qty)+'–'+money(x.max*x.qty)+')'].filter(Boolean).join(' · ')).join('; ');
     const estimate=Math.round((basketMin+basketMax)/2);
     try{
       localStorage.setItem('punchx_pending_booking',JSON.stringify({serviceId:'catalogue-basket',serviceName:'Household services and products ('+basket.length+' items)',category:basket[0].category,description:lines,note:'Itemised catalogue estimate: '+lines+'. Range '+money(basketMin)+'–'+money(basketMax)+'. Final itemised quote must be approved before work.',price:estimate,customerTotal:estimate,address:address.trim(),date,time,bookingTiming:'later',workerId:null,workerName:null}));
       localStorage.setItem('punchx_catalogue_order_summary',JSON.stringify({items:basket,minTotal:basketMin,maxTotal:basketMax}));
+      const beautyItems = basket.filter(item => item.category === 'Beauty & Salon at Home' && item.audience);
+      if (beautyItems.length) {
+        const firstBeautyItem = beautyItems[0];
+        localStorage.setItem('punchx_beauty_request_details', JSON.stringify({
+          gender: firstBeautyItem.audience,
+          category: firstBeautyItem.subcategory || null,
+          service: firstBeautyItem.kind === 'service' ? firstBeautyItem.name : null,
+          selectedItems: beautyItems.map(item => ({ name: item.name, kind: item.kind, category: item.subcategory || null, gender: item.audience, quantity: item.qty, minPrice: item.min, maxPrice: item.max })),
+          bookingAddress: address.trim(),
+          preferredDate: date,
+          preferredTime: time,
+          createdAt: new Date().toISOString(),
+        }));
+      }
       localStorage.setItem('punchx_catalogue_checkout','true');
     }catch{}
     setBasketOpen(false);onSelectCategory(basket[0].category);onTransition('payment');
