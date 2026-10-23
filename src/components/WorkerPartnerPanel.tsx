@@ -3,7 +3,7 @@ import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X
 import { useAuth } from '../lib/authContext';
 import { auth, db } from '../lib/firebase';
 import { OrderRecord } from '../types';
-import { collection, doc, onSnapshot, runTransaction, setDoc, deleteField, query as firestoreQuery, where } from 'firebase/firestore';
+import { collection, doc, onSnapshot, runTransaction, setDoc, query as firestoreQuery, where } from 'firebase/firestore';
 import PUNCHX_LOGO from '../assets/logo';
 import { getAccurateCurrentPosition, reverseGeocodeCoords, buildPunchXCustomerAreaLabels, isServiceAreaMatch, fetchGoogleMapsConfig, GoogleMapsConfig } from '../lib/location';
 import { APIProvider, Map as GoogleMap, useMap } from '@vis.gl/react-google-maps';
@@ -76,7 +76,7 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
        const next={lat,lng,area:resolved.area||'Local area',city:resolved.city||'',district:resolved.district||'',state:resolved.state||'',postalCode:resolved.postalCode||'',sector:resolved.sector||'',updatedAt:new Date().toISOString()};
        setGeo(next);setGeoError('');
        // Keep precise coordinates local to this map; do not publish live GPS in worker discovery profiles.
-       const payload={location:deleteField(),address:resolved.address,area:next.area,city:next.city,district:next.district,state:next.state,postalCode:next.postalCode,sector:next.sector,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
+       const payload={location:{lat,lng},address:resolved.address,area:next.area,city:next.city,district:next.district,state:next.state,postalCode:next.postalCode,sector:next.sector,geofenceUpdatedAt:next.updatedAt,updatedAt:next.updatedAt};
        const targetUid=auth.currentUser?.uid||uid;
        await setDoc(doc(db,'users',targetUid),{uid:targetUid,...payload},{merge:true});
        try{
