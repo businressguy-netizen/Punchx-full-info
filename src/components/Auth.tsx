@@ -59,34 +59,34 @@ export default function Auth({ onTransition, showNotification, setAuthMethodDeta
         @keyframes punchx-auth-grid { from { background-position: 0 0; } to { background-position: 44px 44px; } }
       `}</style>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-44 -top-36 h-[540px] w-[540px] rounded-full bg-[#2563eb]/10 blur-[110px]" style={{ animation: 'punchx-auth-drift 9s ease-in-out infinite' }} />
-        <div className="absolute -right-40 top-1/3 h-[500px] w-[500px] rounded-full bg-[#38bdf8]/10 blur-[110px]" style={{ animation: 'punchx-auth-drift 12s ease-in-out infinite reverse' }} />
-        <div className="absolute inset-0 opacity-35" style={{ backgroundImage: 'linear-gradient(rgba(37,99,235,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,.055) 1px, transparent 1px)', backgroundSize: '44px 44px', animation: 'punchx-auth-grid 18s linear infinite' }} />
+        <div className="absolute -left-44 -top-36 h-[540px] w-[540px] rounded-full bg-[#B99A62]/10 blur-[110px]" style={{ animation: 'punchx-auth-drift 9s ease-in-out infinite' }} />
+        <div className="absolute -right-40 top-1/3 h-[500px] w-[500px] rounded-full bg-[#D9C28F]/10 blur-[110px]" style={{ animation: 'punchx-auth-drift 12s ease-in-out infinite reverse' }} />
+        <div className="absolute inset-0 opacity-35" style={{ backgroundImage: 'linear-gradient(rgba(185,154,98,.055) 1px, transparent 1px), linear-gradient(90deg, rgba(185,154,98,.055) 1px, transparent 1px)', backgroundSize: '44px 44px', animation: 'punchx-auth-grid 18s linear infinite' }} />
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3.5rem)] w-full max-w-5xl flex-col items-center justify-center">
-        {!isDedicatedApp && <button onClick={() => onTransition('panel-select')} className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-white/80 px-4 py-2 text-xs font-bold text-[#2563eb] shadow-sm backdrop-blur transition-all hover:bg-white hover:shadow-md">
+        {!isDedicatedApp && <button onClick={() => onTransition('panel-select')} className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#D9C28F] bg-white/80 px-4 py-2 text-xs font-bold text-[#B99A62] shadow-sm backdrop-blur transition-all hover:bg-white hover:shadow-md">
           <ArrowLeft className="h-4 w-4" /> Choose Different Panel
         </button>}
 
         <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} className="mb-7 flex flex-col items-center text-center">
-          <div className="mb-4 h-20 w-20 rounded-full border border-[#bfdbfe] bg-white p-1.5 shadow-[0_16px_45px_rgba(37,99,235,.18)]">
+          <div className="mb-4 h-20 w-20 rounded-full border border-[#D9C28F] bg-white p-1.5 shadow-[0_16px_45px_rgba(185,154,98,.18)]">
             <img src={PUNCHX_LOGO} alt="PUNCHX" className="h-full w-full object-contain" />
           </div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#bfdbfe] bg-white/75 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#2563eb] shadow-sm backdrop-blur"><Sparkles className="h-3.5 w-3.5" /> Secure PUNCHX Gateway</div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#D9C28F] bg-white/75 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#B99A62] shadow-sm backdrop-blur"><Sparkles className="h-3.5 w-3.5" /> Secure PUNCHX Gateway</div>
           <h1 className="text-3xl font-black tracking-tight text-[#0f172a] sm:text-4xl">{role.title}</h1>
           <p className="mt-2 max-w-md text-sm leading-6 text-[#64748b]">{role.sub}</p>
         </motion.div>
 
-        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .08 }} className="w-full max-w-2xl rounded-[30px] border border-[#dbeafe] bg-white/90 p-4 shadow-[0_30px_90px_rgba(30,64,175,.12)] backdrop-blur-xl sm:p-6">
-          <div className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] p-3.5 sm:p-4">
+        <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: .08 }} className="w-full max-w-2xl rounded-[30px] border border-[#E6DECC] bg-white/90 p-4 shadow-[0_30px_90px_rgba(30,64,175,.12)] backdrop-blur-xl sm:p-6">
+          <div className="rounded-2xl border border-[#D9C28F] bg-[#eff6ff] p-3.5 sm:p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#2563eb] shadow-sm"><Compass className={`h-5 w-5 ${isLocating ? 'animate-spin' : ''}`} /></div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#B99A62] shadow-sm"><Compass className={`h-5 w-5 ${isLocating ? 'animate-spin' : ''}`} /></div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wide text-[#1e40af]"><MapPin className="h-3.5 w-3.5" /> {locationData?.area || 'Service area detection'}</div>
                 <p className="mt-0.5 truncate text-[11px] text-[#64748b]">{locationData?.address || 'Your device location helps PUNCHX match local professionals.'}</p>
               </div>
-              <button type="button" onClick={handleRequestLocation} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#2563eb] px-3 py-2 text-[10px] font-extrabold uppercase text-white shadow-sm hover:bg-[#1d4ed8]">{locationData ? <RefreshCw className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}{locationData ? 'Re-sync' : 'Allow GPS'}</button>
+              <button type="button" onClick={handleRequestLocation} className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-[#B99A62] px-3 py-2 text-[10px] font-extrabold uppercase text-white shadow-sm hover:bg-[#80663A]">{locationData ? <RefreshCw className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}{locationData ? 'Re-sync' : 'Allow GPS'}</button>
             </div>
           </div>
 
@@ -97,13 +97,13 @@ export default function Auth({ onTransition, showNotification, setAuthMethodDeta
           </div>
 
           <div className="flex items-center justify-center gap-2 border-t border-[#e2e8f0] pt-5 text-center text-[11px] font-medium text-[#64748b]">
-            <ShieldCheck className="h-4 w-4 text-[#2563eb]" />
+            <ShieldCheck className="h-4 w-4 text-[#B99A62]" />
             Secure authentication powered by NamoID
           </div>
           <p className="mt-3 text-center text-[11px] leading-5 text-[#64748b]">
             By signing in, you agree to our{' '}
-            <button onClick={() => onTransition('privacy-policy')} className="font-bold text-[#2563eb] underline underline-offset-2">Privacy Policy</button>{' '}and{' '}
-            <button onClick={() => onTransition('terms-and-conditions')} className="font-bold text-[#2563eb] underline underline-offset-2">Terms & Conditions</button>.
+            <button onClick={() => onTransition('privacy-policy')} className="font-bold text-[#B99A62] underline underline-offset-2">Privacy Policy</button>{' '}and{' '}
+            <button onClick={() => onTransition('terms-and-conditions')} className="font-bold text-[#B99A62] underline underline-offset-2">Terms & Conditions</button>.
           </p>
         </motion.section>
 
