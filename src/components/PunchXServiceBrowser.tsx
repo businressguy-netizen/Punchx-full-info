@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, ChefHat, CookingPot, Utensils } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
 import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
@@ -206,6 +206,106 @@ const cleanProductCartAdd = (product: typeof CLEANING_PRODUCTS[number]) => {
     localStorage.setItem('punchx_catalogue_cart', JSON.stringify(cart));
     return true;
   } catch { return false; }
+};
+
+type CookTaskSeed = { name: string; price: number; duration: string; description: string };
+type CookServiceGroup = { id: string; name: string; description: string; section: 'Cooking services' | 'Home assistance'; tag: string; image: string; products: string[]; services: CookTaskSeed[] };
+const COOK_SERVICE_GROUPS: CookServiceGroup[] = [
+  { id:'daily-cook',name:'Daily Home Cook',description:'Breakfast, lunch or dinner prepared at your home',section:'Cooking services',tag:'Everyday cooking',image:'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1000&q=85',products:['staples','vegetables','proteins','spices'],services:[
+    {name:'Breakfast Cooking',price:199,duration:'30–60 min',description:'Prepare selected breakfast dishes using available ingredients.'},
+    {name:'Lunch Cooking',price:299,duration:'45–75 min',description:'Prepare a home-style lunch from your selected dish list.'},
+    {name:'Dinner Cooking',price:299,duration:'45–75 min',description:'Prepare dinner using customer-provided ingredients or an agreed ingredient plan.'},
+    {name:'Multi-meal Cooking',price:499,duration:'90–150 min',description:'Prepare dishes for more than one meal; confirm the menu and time before booking.'},
+  ]},
+  {id:'breakfast-snacks',name:'Breakfast & Snacks',description:'Parathas, poha, upma, tea-time snacks and simple favourites',section:'Cooking services',tag:'Morning favourites',image:'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=1000&q=85',products:['staples','vegetables','spices'],services:[
+    {name:'Breakfast Preparation',price:199,duration:'30–60 min',description:'Prepare selected breakfast dishes such as poha, upma, parathas or simple hot meals.'},
+    {name:'Tea-time Snacks',price:199,duration:'30–60 min',description:'Prepare agreed snacks or light bites from ingredients available in the kitchen.'},
+    {name:'Roti & Dough Preparation',price:149,duration:'20–45 min',description:'Knead dough and prepare rotis or parathas as agreed.'},
+  ]},
+  {id:'lunch-dinner',name:'Lunch, Dinner & Full Meals',description:'Home-style dal, sabzi, rice, roti and family menus',section:'Cooking services',tag:'Home-style meals',image:'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1000&q=85',products:['staples','vegetables','proteins','spices'],services:[
+    {name:'Dal & Sabzi Preparation',price:249,duration:'45–75 min',description:'Prepare selected dal and vegetable dishes according to your preferences.'},
+    {name:'Rice, Roti & Accompaniments',price:199,duration:'30–60 min',description:'Prepare rice, rotis and simple meal accompaniments.'},
+    {name:'Complete Home-style Meal',price:349,duration:'60–90 min',description:'Prepare an agreed combination of dishes; portions and recipe complexity affect timing.'},
+    {name:'Family Meal Preparation',price:499,duration:'90–150 min',description:'Prepare a family meal plan; confirm servings, dishes and timing before booking.'},
+  ]},
+  {id:'meal-prep',name:'Meal Prep & Ingredient Preparation',description:'Wash, chop, knead, marinate and organise ingredients',section:'Cooking services',tag:'Prep smarter',image:'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=85',products:['vegetables','staples','proteins','spices'],services:[
+    {name:'Vegetable Washing & Chopping',price:149,duration:'30–45 min',description:'Wash and chop vegetables to your preferred size and organise them for cooking.'},
+    {name:'Dough, Batter & Basic Prep',price:149,duration:'30–45 min',description:'Prepare dough, batter and basic mise-en-place from customer-provided ingredients.'},
+    {name:'Marination & Portioning',price:199,duration:'30–60 min',description:'Prepare and portion ingredients using your recipe and instructions.'},
+    {name:'Batch Meal Prep',price:399,duration:'60–120 min',description:'Prep several ingredients or dishes for planned meals; containers are not included unless agreed.'},
+  ]},
+  {id:'regional-cuisine',name:'Regional & Favourite Cuisines',description:'Bengali, North Indian, South Indian and other home-style cooking',section:'Cooking services',tag:'Cook your way',image:'https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&w=1000&q=85',products:['staples','vegetables','proteins','spices'],services:[
+    {name:'Bengali Home-style Cooking',price:299,duration:'45–90 min',description:'Home-style Bengali dishes selected by you, including agreed vegetarian or fish options.'},
+    {name:'North Indian Home-style Cooking',price:299,duration:'45–90 min',description:'Home-style dal, sabzi, roti, rice and agreed dishes.'},
+    {name:'South Indian Home-style Cooking',price:299,duration:'45–90 min',description:'Prepare agreed rice-based meals, breakfast dishes or accompaniments when the required tools are available.'},
+    {name:'Custom Regional Menu',price:399,duration:'60–120 min',description:'Request a regional menu; specialised recipes may require more time or a separate quote.'},
+  ]},
+  {id:'diet-preferences',name:'Diet & Meal Preferences',description:'Vegetarian, non-vegetarian, Jain-style and less-oil preferences',section:'Cooking services',tag:'Your preferences',image:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1000&q=85',products:['vegetables','staples','proteins','spices'],services:[
+    {name:'Vegetarian Meal Preparation',price:249,duration:'45–75 min',description:'Prepare a vegetarian menu from the ingredients and cooking instructions you select.'},
+    {name:'Non-vegetarian Meal Preparation',price:349,duration:'60–90 min',description:'Prepare an agreed non-vegetarian menu when the professional supports it and safe ingredients are available.'},
+    {name:'Jain-style / No Onion-No Garlic Menu',price:299,duration:'45–90 min',description:'Follow customer-specified ingredient restrictions; confirm details with the cook before starting.'},
+    {name:'Less-oil Home-style Menu',price:299,duration:'45–90 min',description:'Follow your preferred cooking method; this is not a medical or dietitian service.'},
+  ]},
+  {id:'party-cook',name:'Party & Small Gathering Cook',description:'Help preparing a menu for family gatherings and small events',section:'Cooking services',tag:'Special occasions',image:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1000&q=85',products:['staples','vegetables','proteins','spices','serveware'],services:[
+    {name:'Small Gathering Cook',price:799,duration:'2–3 hours',description:'Prepare an agreed menu for a small gathering; guest count and dishes must be confirmed.'},
+    {name:'Party Prep & Chopping',price:499,duration:'90–150 min',description:'Wash, chop, portion and organise ingredients for an event menu.'},
+    {name:'Event Cooking Assistance',price:699,duration:'2–3 hours',description:'Cooking support for a small event, subject to menu complexity and professional availability.'},
+  ]},
+  {id:'kitchen-assistant',name:'Kitchen Assistant',description:'Practical kitchen help before, during and after cooking',section:'Home assistance',tag:'Kitchen support',image:'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1000&q=85',products:['kitchen-tools','serveware','staples'],services:[
+    {name:'Kitchen Preparation Assistance',price:199,duration:'30–60 min',description:'Organise ingredients, utensils and the work surface before a meal.'},
+    {name:'Kitchen Reset After Cooking',price:199,duration:'30–45 min',description:'Wipe the cooking counter and hob exterior and put away items used in the session; deep cleaning is separate.'},
+    {name:'Grocery Sorting & Pantry Setup',price:199,duration:'30–60 min',description:'Sort customer-provided groceries and arrange pantry items; shopping and delivery are not included.'},
+    {name:'Meal Plan & Ingredient Checklist',price:149,duration:'20–40 min',description:'Create a simple ingredient checklist around the meals you plan to cook.'},
+  ]},
+  {id:'utensils-dishes',name:'Utensils & Dishwashing',description:'Wash utensils used in the cooking session and tidy the sink area',section:'Home assistance',tag:'After-cooking help',image:'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=1000&q=85',products:['kitchen-tools'],services:[
+    {name:'Cooking Utensils Wash-up',price:149,duration:'20–40 min',description:'Wash utensils used during the booked cooking session and place them in the drying area.'},
+    {name:'Dishes & Sink Reset',price:199,duration:'30–45 min',description:'Wash a reasonable set of dishes and wipe the sink area; large pre-existing piles may require extra time.'},
+  ]},
+  {id:'ingredient-support',name:'Ingredient & Grocery Prep',description:'Lists, produce washing, portioning and pantry organisation',section:'Home assistance',tag:'Ready to cook',image:'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=85',products:['vegetables','staples','proteins','spices'],services:[
+    {name:'Ingredient Checklist for Meals',price:99,duration:'15–30 min',description:'Create a shopping list for selected dishes; shopping and delivery are not included.'},
+    {name:'Wash & Portion Produce',price:149,duration:'30–45 min',description:'Wash and portion customer-provided produce using appropriate food-handling practices.'},
+    {name:'Weekly Ingredient Sorting',price:199,duration:'30–60 min',description:'Sort and organise customer-provided ingredients for upcoming meals.'},
+  ]},
+  {id:'recurring-home-help',name:'Daily & Recurring Home Help',description:'Set a preferred schedule for regular cooking or kitchen assistance',section:'Home assistance',tag:'Repeat visits',image:'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1000&q=85',products:['staples','vegetables','proteins','spices','kitchen-tools'],services:[
+    {name:'Daily Cooking Visit',price:299,duration:'45–90 min',description:'Request a regular cooking visit using your preferred meal slots and cuisine.'},
+    {name:'Weekly Meal Prep Visit',price:599,duration:'90–180 min',description:'Request a weekly preparation session; dishes and duration are confirmed before the visit.'},
+    {name:'Routine Kitchen Assistance',price:249,duration:'45–75 min',description:'Request recurring practical kitchen help, including ingredient prep and post-cooking tidying.'},
+  ]},
+];
+const COOK_PRODUCTS = [
+ {id:'cook-rice',name:'Rice',unit:'kg',minPrice:45,maxPrice:120,specification:'Local rice varieties through branded and premium options',groups:['staples']},
+ {id:'cook-atta',name:'Atta / Flour',unit:'kg',minPrice:35,maxPrice:100,specification:'Whole wheat, multigrain and brand/quality tiers',groups:['staples']},
+ {id:'cook-dal',name:'Dal & Pulses',unit:'kg',minPrice:80,maxPrice:240,specification:'Variety, grade and brand affect the range',groups:['staples']},
+ {id:'cook-oil',name:'Cooking Oil',unit:'litre',minPrice:120,maxPrice:280,specification:'Mustard, sunflower, groundnut and other varieties',groups:['staples']},
+ {id:'cook-spices',name:'Spices & Masala Basics',unit:'pack',minPrice:60,maxPrice:450,specification:'Pack size, whole spices and regional masala mixes',groups:['spices','staples']},
+ {id:'cook-onions-tomatoes',name:'Onions & Tomatoes',unit:'kg',minPrice:25,maxPrice:100,specification:'Seasonal prices vary; confirm the local rate before purchase',groups:['vegetables']},
+ {id:'cook-mixed-vegetables',name:'Seasonal Vegetables',unit:'kg',minPrice:30,maxPrice:160,specification:'Season, variety and quantity change the range',groups:['vegetables']},
+ {id:'cook-herbs',name:'Fresh Herbs & Green Chilli',unit:'bunch',minPrice:10,maxPrice:80,specification:'Seasonal produce and pack size',groups:['vegetables']},
+ {id:'cook-eggs',name:'Eggs',unit:'piece',minPrice:6,maxPrice:15,specification:'Pack size and grade; availability varies',groups:['proteins']},
+ {id:'cook-paneer',name:'Paneer',unit:'kg',minPrice:200,maxPrice:500,specification:'Milk quality, brand and pack size',groups:['proteins']},
+ {id:'cook-chicken',name:'Chicken',unit:'kg',minPrice:180,maxPrice:380,specification:'Cut, freshness and local rate; confirm before purchase',groups:['proteins']},
+ {id:'cook-fish',name:'Fish',unit:'kg',minPrice:180,maxPrice:750,specification:'Fish type, size and seasonal market rates',groups:['proteins']},
+ {id:'cook-milk',name:'Milk & Curd',unit:'litre / kg',minPrice:35,maxPrice:130,specification:'Brand, fat percentage and pack size',groups:['staples','proteins']},
+ {id:'cook-dish-liquid',name:'Dishwashing Liquid',unit:'litre',minPrice:60,maxPrice:320,specification:'Pack size and brand tier',groups:['kitchen-tools']},
+ {id:'cook-scrub',name:'Scrub Sponge & Brush Set',unit:'set',minPrice:50,maxPrice:300,specification:'Pack count and material',groups:['kitchen-tools']},
+ {id:'cook-containers',name:'Food Storage Containers',unit:'set',minPrice:150,maxPrice:900,specification:'Capacity, material and food-safe suitability',groups:['kitchen-tools','serveware']},
+ {id:'cook-serving-set',name:'Serving Bowls & Utensils',unit:'set',minPrice:180,maxPrice:1500,specification:'Material, number of pieces and finish',groups:['serveware']},
+ {id:'cook-gloves',name:'Kitchen Cleaning Gloves',unit:'pair',minPrice:60,maxPrice:300,specification:'Material, fit and reusable/disposable type',groups:['kitchen-tools']},
+];
+const cookPriceRange = (price: number, name: string) => {
+ const value=name.toLowerCase(); let low=0.8, high=1.4;
+ if(/prep|checklist|chopping|washing|sorting|simple/.test(value)){low=0.85;high=1.25;}
+ if(/party|gathering|family|custom|full|multiple|weekly/.test(value)){low=0.8;high=1.7;}
+ return {min:Math.max(49,Math.floor(price*low/10)*10),max:Math.max(Math.floor(price*low/10)*10+20,Math.ceil(price*high/10)*10)};
+};
+const cookProductCartAdd = (product: typeof COOK_PRODUCTS[number]) => {
+ try {
+  const existing=JSON.parse(localStorage.getItem('punchx_catalogue_cart')||'[]'); const cart=Array.isArray(existing)?existing:[];
+  const index=cart.findIndex((item:{id?:string;category?:string})=>item.id===product.id&&item.category==='Cook & Home Assistance');
+  if(index>=0) cart[index]={...cart[index],qty:Math.min(99,Number(cart[index].qty||1)+1)};
+  else cart.push({id:product.id,name:product.name,category:'Cook & Home Assistance',kind:'product',unit:product.unit,min:product.minPrice,max:product.maxPrice,qty:1,notes:product.specification,quote:false});
+  localStorage.setItem('punchx_catalogue_cart',JSON.stringify(cart)); return true;
+ } catch { return false; }
 };
 const APPLIANCE_SERVICE_GROUPS = [
   { id: 'ac-service', name: 'AC Service & Deep Cleaning', description: 'Routine servicing, filter cleaning, foam cleaning and seasonal care', tag: 'Cooling care', image: 'https://images.unsplash.com/photo-1631545806609-4d07a1bd7b30?auto=format&fit=crop&w=1000&q=85', products: ['ac-service','ac-repair-gas'], services: [
