@@ -325,7 +325,7 @@ export default function CitizenHomeCatalog({
         </section>
 
         {/* ── POPULAR CAROUSEL ── */}
-        <section className="pt-4">
+        <section id="px-popular-services" className="pt-4 scroll-mt-24">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-black tracking-tight text-[#24251f]">Popular services</h2>
             <button
