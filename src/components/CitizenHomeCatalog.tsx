@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   ArrowRight, Megaphone, CalendarDays, CheckCircle2, ChevronRight, Clock, Home as HomeIcon,
-  Loader2, MapPin, Search, ShieldCheck, Star, UserRound, X,
+  Loader2, MapPin, Search, ShieldCheck, Star, UserRound, X, LayoutGrid,
   Zap, Droplet, Hammer, Paintbrush, HardHat, Flame, Scissors, Wrench, Bike, Car, Home,
   Wind, Snowflake, Waves, Smartphone, Laptop, Tv, Video, Sun, Droplets, Key,
   Sparkles, Bug, Sprout, Utensils, Cake, Package, Truck, Shield, Palette, Camera, Music, FileText, Info
@@ -64,6 +64,7 @@ export default function CitizenHomeCatalog({
   const [message, setMessage] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'bookings' | 'profile'>('home');
+  const [activeDockItem, setActiveDockItem] = useState<'home' | 'search' | 'bookings' | 'services' | 'profile'>('home');
   const [orderHistory, setOrderHistory] = useState<any[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +121,27 @@ export default function CitizenHomeCatalog({
     onSelectCategory(name);
     onTransition('providers');
   }, [onSelectCategory, onTransition]);
+
+  // Five familiar primary actions reduce choice overload while keeping the
+  // most-used tasks one thumb-tap away on mobile.
+  const handleDockNavigation = useCallback((item: 'home' | 'search' | 'bookings' | 'services' | 'profile') => {
+    setActiveDockItem(item);
+    if (item === 'search') {
+      setActiveTab('home');
+      setQuery('');
+      setSearchOpen(true);
+      return;
+    }
+    if (item === 'services') {
+      setActiveTab('home');
+      window.setTimeout(() => {
+        document.getElementById('px-popular-services')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 80);
+      return;
+    }
+    setActiveTab(item);
+    if (item === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   useEffect(() => {
     if (searchOpen && searchInputRef.current) searchInputRef.current.focus();
@@ -434,7 +456,7 @@ export default function CitizenHomeCatalog({
                 <CalendarDays className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                 <h3 className="text-lg font-bold text-gray-800">No recent bookings</h3>
                 <p className="text-sm text-[#9E8189] mt-2">Services you book will appear here.</p>
-                <button onClick={() => setActiveTab('home')} className="mt-6 rounded-xl bg-[#6B5560] px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#3E3239]">Find a service</button>
+                <button onClick={() => { setActiveTab('home'); setActiveDockItem('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-6 rounded-xl bg-[#6B5560] px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#3E3239]">Find a service</button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -613,20 +635,33 @@ export default function CitizenHomeCatalog({
         )}
       </AnimatePresence>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 grid h-[68px] grid-cols-3 border-t border-[#E8D2C4] bg-[#FFFCF8]/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
-        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center justify-center gap-1 active:scale-95 ${activeTab === 'home' ? 'text-[#6B5560]' : 'text-[#9E8189]'}`}>
-          <HomeIcon className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Home</span>
-        </button>
-        <button onClick={() => setActiveTab('bookings')} className={`flex flex-col items-center justify-center gap-1 active:scale-95 ${activeTab === 'bookings' ? 'text-[#6B5560]' : 'text-[#9E8189]'}`}>
-          <CalendarDays className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Bookings</span>
-        </button>
-        <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center justify-center gap-1 active:scale-95 ${activeTab === 'profile' ? 'text-[#6B5560]' : 'text-[#9E8189]'}`}>
-          <UserRound className="h-5 w-5" />
-          <span className="text-[10px] font-bold">Profile</span>
-        </button>
-      </nav>
+      <div className="px-citizen-dock-safe-area md:hidden">
+        <nav className="px-citizen-dock" aria-label="Citizen navigation">
+          {([
+            { id: 'home', label: 'Home', Icon: HomeIcon },
+            { id: 'search', label: 'Search', Icon: Search },
+            { id: 'bookings', label: 'Bookings', Icon: CalendarDays },
+            { id: 'services', label: 'Services', Icon: LayoutGrid },
+            { id: 'profile', label: 'Profile', Icon: UserRound },
+          ] as const).map(({ id, label, Icon }) => (
+            <motion.button
+              key={id}
+              type="button"
+              onClick={() => handleDockNavigation(id)}
+              whileTap={{ scale: 0.93 }}
+              aria-label={label}
+              aria-current={activeDockItem === id ? 'page' : undefined}
+              className={`px-citizen-dock-item ${activeDockItem === id ? 'is-active' : ''}`}
+            >
+              {activeDockItem === id && (
+                <motion.span layoutId="px-citizen-dock-active" className="px-citizen-dock-active" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
+              )}
+              <Icon className="px-citizen-dock-icon" aria-hidden="true" />
+              <span className="px-citizen-dock-label">{label}</span>
+            </motion.button>
+          ))}
+        </nav>
+      </div>
     </div>
   );
 }
