@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Search, SlidersHorizontal, Package, Wrench, MapP
 import { serviceCategories } from '../data/serviceCatalogs';
 import { getProductsForCategory, PriceProduct } from '../data/expandedPriceCatalogue';
 import { AppScreen } from '../types';
+import { BEAUTY_PRODUCTS, BEAUTY_SERVICE_GROUPS, BeautyAudience } from '../data/beautyServiceCatalog';
 
 interface InteractivePriceCatalogueProps {
   onTransition: (target: AppScreen) => void;
@@ -24,28 +25,52 @@ const servicePriceRange = (price: number, name: string, category: string) => {
   const max = Math.max(min + 20, Math.ceil(price * high / 10) * 10);
   return { min, max };
 };
+type PricedService = { price: number; name: string; categoryName: string; minPrice?: number; maxPrice?: number };
+const selectedServicePriceRange = (service: PricedService) => {
+  const fallback = servicePriceRange(service.price, service.name, service.categoryName);
+  return { min: service.minPrice ?? fallback.min, max: service.maxPrice ?? fallback.max };
+};
 const loadBasket = (): BasketLine[] => { try { const parsed=JSON.parse(localStorage.getItem('punchx_catalogue_cart')||'[]'); return Array.isArray(parsed)?parsed:[]; } catch { return []; } };
 
 export default function InteractivePriceCatalogue({ onTransition, onSelectCategory, showNotification }: InteractivePriceCatalogueProps) {
   const [activeTab, setActiveTab] = useState<CatalogueTab>('services');
-  const [selectedCategoryId, setSelectedCategoryId] = useState(serviceCategories[0]?.id || '');
+  const [selectedCategoryId, setSelectedCategoryId] = useState(() => {
+    try {
+      const requested = localStorage.getItem('punchx_catalogue_selected_category_id') || '';
+      localStorage.removeItem('punchx_catalogue_selected_category_id');
+      if (serviceCategories.some(category => category.id === requested)) return requested;
+    } catch { /* Default category is available when storage is unavailable. */ }
+    return serviceCategories[0]?.id || '';
+  });
+  const [beautyGender, setBeautyGender] = useState<BeautyAudience | null>(null);
+  const [beautyGroupId, setBeautyGroupId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [showQuoteOnly, setShowQuoteOnly] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<PriceProduct | null>(null);
-  const [selectedService, setSelectedService] = useState<{id:string;name:string;price:number;description:string;categoryName:string;unit:string;material?:string} | null>(null);
+  const [selectedService, setSelectedService] = useState<{id:string;name:string;price:number;description:string;categoryName:string;unit:string;material?:string;minPrice?:number;maxPrice?:number} | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [basket,setBasket] = useState<BasketLine[]>(loadBasket);
   const [basketOpen,setBasketOpen] = useState(false);
   const [address,setAddress] = useState('');
   const [date,setDate] = useState(new Date(Date.now()+86400000).toISOString().slice(0,10));
   const [time,setTime] = useState('10:00');
+  const chooseCategory = (categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+    setQuery('');
+    setSelectedProduct(null);
+    setSelectedService(null);
+    setBeautyGender(null);
+    setBeautyGroupId(null);
+    setActiveTab('services');
+    setShowQuoteOnly(false);
+  };
   React.useEffect(()=>{try{localStorage.setItem('punchx_catalogue_cart',JSON.stringify(basket));}catch{}},[basket]);
   const basketMin=basket.reduce((s,x)=>s+x.min*x.qty,0);
   const basketMax=basket.reduce((s,x)=>s+x.max*x.qty,0);
   const addBasketLine=()=>{
     if(!selectedService&&!selectedProduct)return;
     const line:BasketLine=selectedService
-      ? {id:selectedService.id,name:selectedService.name,category:selectedCategory?.name||selectedService.categoryName,kind:'service',unit:selectedService.unit,min:servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).min,max:servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).max,qty:quantity,notes:selectedService.description,quote:false}
+      ? {id:selectedService.id,name:selectedService.name,category:selectedCategory?.name||selectedService.categoryName,kind:'service',unit:selectedService.unit,min:selectedServicePriceRange(selectedService).min,max:selectedServicePriceRange(selectedService).max,qty:quantity,notes:selectedService.description,quote:false}
       : {id:selectedProduct!.id,name:selectedProduct!.name,category:selectedCategory?.name||'Home Services',kind:'product',unit:selectedProduct!.unit,min:selectedProduct!.minPrice,max:selectedProduct!.maxPrice,qty:quantity,notes:selectedProduct!.specification,quote:Boolean(selectedProduct!.quoteRequired)};
     setBasket(old=>{const i=old.findIndex(x=>x.id===line.id&&x.category===line.category);return i<0?[...old,line]:old.map((x,n)=>n===i?{...x,qty:Math.min(99,x.qty+line.qty)}:x);});
     setSelectedService(null);setSelectedProduct(null);setQuantity(1);setBasketOpen(true);showNotification('Added to your PunchX cart.');
@@ -64,6 +89,8 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
   };
 
   const selectedCategory = serviceCategories.find(category => category.id === selectedCategoryId) || serviceCategories[0];
+  const currentBeautyGroups = BEAUTY_SERVICE_GROUPS.filter(group => group.gender === beautyGender);
+  const selectedBeautyGroup = BEAUTY_SERVICE_GROUPS.find(group => group.id === beautyGroupId && group.gender === beautyGender);
   const allServices = useMemo(() => serviceCategories.flatMap(category =>
     category.subcategories.flatMap(subcategory => subcategory.items.map(item => ({
       id: item.id,
@@ -77,18 +104,39 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
       subcategoryName: subcategory.name,
     })))
   ), []);
-  // Derive these inexpensive catalogue filters directly. Memoizing against the
-  // selectedCategory object triggered React Compiler's preserve-manual-memoization
-  // rule because that object is resolved from the category list on each render.
-  const products = selectedCategory ? getProductsForCategory(selectedCategory) : [];
+  // Beauty has its own audience-specific salon groups; every other category uses its own product families.
+  const products: PriceProduct[] = selectedCategoryId === 'beautician'
+    ? BEAUTY_PRODUCTS.filter(product =>
+        (!beautyGender || product.gender === beautyGender) &&
+        (!beautyGroupId || product.groups.includes(beautyGroupId))
+      ).map(({ gender, groups, ...product }) => ({ ...product, keywords: [product.name, ...groups] }))
+    : selectedCategory ? getProductsForCategory(selectedCategory) : [];
   const needle = normalize(query);
   const filteredProducts = products.filter(product => (!showQuoteOnly || product.quoteRequired) &&
-    (!needle || [product.name, product.specification, product.unit, selectedCategory?.name || ''].some(value => normalize(value).includes(needle))));
+    (!needle || [product.name, product.specification, product.unit, ...(product.keywords || []), selectedCategory?.name || ''].some(value => normalize(value).includes(needle))));
   const filteredServices = useMemo(() => {
-    const needle = normalize(query);
+    const search = normalize(query);
+    if (selectedCategoryId === 'beautician') {
+      return BEAUTY_SERVICE_GROUPS
+        .filter(group => group.gender === beautyGender && (!beautyGroupId || group.id === beautyGroupId))
+        .flatMap(group => group.services.map(service => ({
+          id: service.id,
+          name: service.name,
+          description: service.description,
+          price: Math.round((service.minPrice + service.maxPrice) / 2),
+          unit: 'service',
+          material: undefined,
+          categoryId: 'beautician',
+          categoryName: selectedCategory?.name || 'Beauty & Salon at Home',
+          subcategoryName: group.name,
+          minPrice: service.minPrice,
+          maxPrice: service.maxPrice,
+        })))
+        .filter(service => !search || [service.name, service.description, service.subcategoryName].some(value => normalize(value).includes(search)));
+    }
     return allServices.filter(service => service.categoryId === selectedCategoryId &&
-      (!needle || [service.name, service.description, service.subcategoryName, service.material || ''].some(value => normalize(value).includes(needle))));
-  }, [allServices, selectedCategoryId, query]);
+      (!search || [service.name, service.description, service.subcategoryName, service.material || ''].some(value => normalize(value).includes(search))));
+  }, [allServices, selectedCategoryId, query, beautyGender, beautyGroupId, selectedCategory?.name]);
 
   const openBooking = (name: string, description: string, price: number, type: 'service' | 'product', id: string, unit: string) => {
     onSelectCategory(selectedCategory?.name || name);
@@ -134,7 +182,7 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
   };
 
   const categoryCount = serviceCategories.length;
-  const serviceCount = allServices.length;
+  const serviceCount = allServices.filter(service => service.categoryId !== 'beautician').length + BEAUTY_SERVICE_GROUPS.reduce((total, group) => total + group.services.length, 0);
 
   return (
     <div className="min-h-[75vh] bg-[#f7f8fc] text-[#171923]">
