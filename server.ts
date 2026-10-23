@@ -195,6 +195,9 @@ async function startServer() {
     max: 100,
     standardHeaders: true,
     legacyHeaders: false,
+    // Live GPS has its own authenticated per-worker limiter below. Excluding
+    // it here avoids counting every 10-second GPS update against unrelated APIs.
+    skip: (req) => req.originalUrl.startsWith("/api/tracking/location"),
     message: { success: false, error: "Too many requests, please try again later." },
   }));
 
@@ -997,6 +1000,15 @@ async function startServer() {
     }
   });
 
+  const trackingLocationLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => String((req as any).user?.uid || req.ip),
+    message: { success: false, error: "GPS update limit reached. Keep the journey open and retry shortly." },
+  });
+
   // ─── BOOKING-SCOPED LIVE TRACKING ───
   // Tracking writes use Firebase Admin against the same named Firestore database
   // as the web panel. The browser never gets permission to mint tracking sessions.
@@ -1133,7 +1145,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/tracking/location", requireFirebaseUser, async (req, res) => {
+  app.post("/api/tracking/location", requireFirebaseUser, trackingLocationLimiter, async (req, res) => {
     try {
       const uid = String((req as any).user?.uid || "");
       const { orderId, sessionId, lat, lng, heading, accuracy, speed } = req.body || {};
