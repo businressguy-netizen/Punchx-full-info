@@ -33,8 +33,9 @@ test('SEO metadata is present and avoids obsolete keywords metadata', () => {
 });
 
 test('JSON-LD is valid and includes Organization, WebSite and Service', () => {
-  const match = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i);
-  assert.ok(match, 'missing JSON-LD script');
+  const scripts = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi)];
+  const match = scripts.find((item) => /"@type"\s*:\s*"Service"/.test(item[1]));
+  assert.ok(match, 'missing JSON-LD script containing the Service entity');
   const data = JSON.parse(match[1]);
   const types = data['@graph'].map((entry) => entry['@type']);
   assert.ok(types.includes('Organization'));
