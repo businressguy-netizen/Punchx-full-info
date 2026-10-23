@@ -544,9 +544,6 @@ async function startServer() {
       if (!["CASH_DIRECT", "UPI_DIRECT"].includes(requestedMethod) && !paymentReceivedConfirmed) {
         return res.status(400).json({ success: false, error: "Confirm that the payment was received before completing this booking." });
       }
-      if (!["CASH_DIRECT", "UPI_DIRECT"].includes(requestedMethod) && !String(req.body?.orderId || "")) {
-        return res.status(400).json({ success: false, error: "Choose Cash or Direct UPI as the collection method." });
-      }
       if (paymentReceivedConfirmed !== true && ["CASH_DIRECT", "UPI_DIRECT"].includes(requestedMethod)) {
         return res.status(400).json({ success: false, error: "Confirm that the customer has paid you before completing the booking." });
       }
@@ -582,7 +579,14 @@ async function startServer() {
         const history = Array.isArray(order.stateHistory) ? order.stateHistory : [];
         if (gatewayPaid) {
           const customerFeeRupees = fees.platformFeePaise / 100;
-          const amountPaise = Math.round(amountCollectedRupees * 100);
+          // The gateway amount must come from the server-stored booking/payment record,
+          // never from worker-submitted form input.
+          const gatewayAmountRupees = Number(order.gatewayCollectedAmount ?? order.totalAmountToPay ?? order.price ?? 0);
+          if (!Number.isFinite(gatewayAmountRupees) || gatewayAmountRupees <= 0) {
+            rejection = "The verified gateway payment amount is missing from this booking. Contact PunchX support.";
+            return;
+          }
+          const amountPaise = Math.round(gatewayAmountRupees * 100);
           const settlementRef = firestore.collection("workerSettlements").doc(stableWalletEntryId("settlement", orderId));
           transaction.set(settlementRef, {
             id: settlementRef.id, orderId, workerUid: uid,
