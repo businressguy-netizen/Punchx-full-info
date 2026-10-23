@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, ChefHat, CookingPot , Paintbrush, Ruler } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, ChefHat, CookingPot , Paintbrush, Ruler, Bug, ShieldCheck, CalendarCheck, Home as HomeIcon } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
 import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
@@ -423,6 +423,95 @@ const paintProductCartAdd = (product: typeof PAINT_PRODUCTS[number]) => {
  } catch { return false; }
 };
 
+
+type PestTaskSeed = { name: string; minPrice: number; maxPrice: number; duration: string; description: string; unit?: string; quoteRequired?: boolean };
+type PestServiceGroup = { id: string; name: string; description: string; section: 'Home pest control' | 'Specialist & commercial'; tag: string; image: string; products: string[]; services: PestTaskSeed[] };
+const PEST_SERVICE_GROUPS: PestServiceGroup[] = [
+ {id:'cockroach-ant',name:'Cockroach & Ant Control',description:'Kitchen, bathroom, drain and crawling-insect treatment',section:'Home pest control',tag:'Common household pests',image:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1000&q=85',products:['cockroach-ant','monitoring','exclusion'],services:[
+  {name:'Kitchen / Bathroom Cockroach Control',minPrice:699,maxPrice:1600,duration:'45–90 min',description:'Targeted treatment for common kitchen and bathroom infestations. Visit count and preparation requirements are confirmed before booking.'},
+  {name:'1 BHK Cockroach & Ant Control',minPrice:699,maxPrice:1200,duration:'60–90 min',description:'Indicative home package. Infestation severity, property layout and treatment approach affect the final quote.'},
+  {name:'2 BHK Cockroach & Ant Control',minPrice:1000,maxPrice:1800,duration:'60–120 min',description:'Home treatment estimate for common crawling pests; extra rooms or heavy infestation may require a revised quote.'},
+  {name:'3 BHK / Larger Home Treatment',minPrice:1600,maxPrice:3000,duration:'90–150 min',description:'Coverage and treatment method are confirmed after checking the property and infestation level.'},
+  {name:'Cockroach Follow-up Visit',minPrice:399,maxPrice:999,duration:'30–60 min',description:'Follow-up treatment when recommended in the original plan. Eligibility and timing are confirmed by the provider.'}
+ ]},
+ {id:'termite-wood-borer',name:'Termite & Wood Borer',description:'Wood damage, mud tubes, discarded wings and structural protection',section:'Home pest control',tag:'Protect wood & property',image:'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1000&q=85',products:['termite','wood-protection','inspection'],services:[
+  {name:'Termite / Wood Damage Inspection',minPrice:299,maxPrice:799,duration:'30–60 min',description:'Inspect visible signs and recommend a suitable treatment; hidden damage may require further assessment.'},
+  {name:'Post-construction Termite Treatment',minPrice:2000,maxPrice:10000,duration:'Site inspection required',description:'Indicative residential treatment range. Area, access, infestation and treatment system determine the written quote.'},
+  {name:'Wood Borer / Furniture Treatment',minPrice:1499,maxPrice:6000,duration:'1–3 hours',description:'Treatment for eligible wooden furniture or fittings; item size, damage and treatment method affect cost.'},
+  {name:'Pre-construction Anti-termite Treatment',minPrice:5,maxPrice:12,duration:'Site inspection required',unit:'sq ft',description:'Indicative per-square-foot range for suitable pre-construction work. Requires project scope and professional quotation.'}
+ ]},
+ {id:'bed-bug',name:'Bed Bug Treatment',description:'Mattress seams, bed frames, upholstered furniture and room treatment',section:'Home pest control',tag:'Sleep-space care',image:'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1000&q=85',products:['bed-bug','monitoring','encasement'],services:[
+  {name:'Single Room Bed Bug Treatment',minPrice:1900,maxPrice:3500,duration:'45–90 min',description:'Treatment for one room or defined area. Preparation, fabric suitability and follow-up needs are confirmed first.'},
+  {name:'1 BHK Bed Bug Treatment Plan',minPrice:1900,maxPrice:3000,duration:'60–120 min',description:'Indicative plan for a smaller home; bed bugs often require a follow-up round based on the technician’s assessment.'},
+  {name:'2 BHK Bed Bug Treatment Plan',minPrice:3500,maxPrice:4800,duration:'90–150 min',description:'Estimate for a larger treated area; number of rooms, furniture and repeat visit requirements change pricing.'},
+  {name:'Follow-up Bed Bug Visit',minPrice:999,maxPrice:2500,duration:'45–90 min',description:'Follow-up scope and price depend on the original treatment plan and provider terms.'}
+ ]},
+ {id:'mosquito-fly',name:'Mosquito & Fly Control',description:'Indoor mosquitoes, breeding areas, flies and seasonal nuisance',section:'Home pest control',tag:'Seasonal protection',image:'https://images.unsplash.com/photo-1527489377706-5bf97e608852?auto=format&fit=crop&w=1000&q=85',products:['mosquito','monitoring','exclusion'],services:[
+  {name:'Mosquito Control for 1 BHK',minPrice:900,maxPrice:1500,duration:'45–90 min',description:'Treatment plan for indoor nuisance with focus on suitable areas. Source reduction and standing-water checks are important.'},
+  {name:'Mosquito Control for 2–3 BHK',minPrice:1300,maxPrice:2300,duration:'60–120 min',description:'Price depends on treated area, outdoor spaces and selected method.'},
+  {name:'Fly Control / Breeding-source Inspection',minPrice:499,maxPrice:1499,duration:'30–60 min',description:'Identify common fly sources and recommend appropriate treatment and hygiene improvements.'},
+  {name:'Outdoor / Common-area Fogging Assessment',minPrice:999,maxPrice:2999,duration:'Site assessment required',description:'Suitable for eligible outdoor/common areas only; area, access, local rules and method are assessed before booking.'}
+ ]},
+ {id:'rodent',name:'Rat & Rodent Control',description:'Droppings, gnaw marks, scratching sounds and entry-point checks',section:'Home pest control',tag:'Remove & prevent entry',image:'https://images.unsplash.com/photo-1535241749838-299277b6305f?auto=format&fit=crop&w=1000&q=85',products:['rodent','exclusion','monitoring'],services:[
+  {name:'Rodent Inspection & Entry-point Check',minPrice:299,maxPrice:799,duration:'30–60 min',description:'Inspect signs of activity and likely access points, with recommendations for exclusion and monitoring.'},
+  {name:'1–2 BHK Rodent Control',minPrice:650,maxPrice:1500,duration:'45–90 min',description:'Treatment and monitoring estimate based on activity and layout. Trapping, bait stations or sealing are selected by the professional.'},
+  {name:'3 BHK / House Rodent Programme',minPrice:1000,maxPrice:2500,duration:'60–120 min',description:'Larger home estimate, subject to infestation, property access and required monitoring.'},
+  {name:'Entry-point Sealing & Prevention',minPrice:499,maxPrice:2499,duration:'Site assessment required',description:'Seal suitable small gaps and advise on exclusion; civil work, damaged wiring and large openings are quoted separately.'}
+ ]},
+ {id:'lizard-spider-ant',name:'Lizard, Spider & Crawling Insects',description:'House lizards, spiders, silverfish and other crawling pests',section:'Home pest control',tag:'Everyday nuisance',image:'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1000&q=85',products:['monitoring','exclusion','mesh'],services:[
+  {name:'Lizard Prevention & Entry-point Review',minPrice:499,maxPrice:1299,duration:'30–60 min',description:'Review entry points, lights and insect sources and recommend appropriate prevention options.'},
+  {name:'Spider & Silverfish Treatment',minPrice:699,maxPrice:1800,duration:'45–90 min',description:'Treatment for suitable indoor areas with prevention guidance based on moisture, clutter and access points.'},
+  {name:'Mixed Crawling Pest Treatment',minPrice:799,maxPrice:2000,duration:'60–120 min',description:'For more than one common crawling pest. Exact pests, rooms and severity are confirmed before work begins.'}
+ ]},
+ {id:'general-home',name:'General Home Pest Protection',description:'Combined package for common household pests in an apartment or house',section:'Home pest control',tag:'Whole-home option',image:'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1000&q=85',products:['cockroach-ant','mosquito','monitoring','exclusion'],services:[
+  {name:'General Pest Control · 1 BHK',minPrice:699,maxPrice:1500,duration:'60–120 min',description:'Indicative plan for common household pests; excluded pests and included areas must be confirmed.'},
+  {name:'General Pest Control · 2 BHK',minPrice:999,maxPrice:1800,duration:'60–150 min',description:'Common-pest treatment estimate for a typical 2 BHK; infestation and chosen treatment method affect price.'},
+  {name:'General Pest Control · 3 BHK',minPrice:1299,maxPrice:2500,duration:'90–180 min',description:'Indicative multi-room package. Termites, bed bugs and severe/structural infestations may need specialist plans.'},
+  {name:'General Pest Inspection',minPrice:199,maxPrice:699,duration:'30–60 min',description:'Review pest signs and property conditions to help choose the right service; confirm any inspection fee before booking.'}
+ ]},
+ {id:'commercial',name:'Office, Shop & Commercial Pest Control',description:'Business premises, food-service spaces, storage areas and recurring plans',section:'Specialist & commercial',tag:'Business protection',image:'https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1000&q=85',products:['monitoring','exclusion','inspection'],services:[
+  {name:'Office / Shop Pest Inspection',minPrice:499,maxPrice:1999,duration:'Site assessment required',description:'Assess premise size, pest evidence and operational requirements before pricing a treatment programme.'},
+  {name:'Commercial Pest Treatment',minPrice:1500,maxPrice:10000,duration:'Site assessment required',description:'Indicative scope only. Floor area, operating hours, food-safety needs and pest type require a written quote.'},
+  {name:'Recurring Pest Management Plan',minPrice:4000,maxPrice:18000,duration:'Monthly / quarterly plan',description:'Indicative annual/recurring service range; included visits, monitoring and response terms must be written into the plan.'},
+  {name:'Pest Monitoring & Service Report',minPrice:499,maxPrice:2499,duration:'30–90 min',description:'Monitoring visit and service notes for a defined premise; certificates and compliance documentation depend on scope.'}
+ ]},
+ {id:'inspection-prevention',name:'Inspection, Prevention & Follow-up',description:'Not sure what pest it is? Start with assessment and practical prevention',section:'Specialist & commercial',tag:'Choose with confidence',image:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1000&q=85',products:['inspection','monitoring','exclusion'],services:[
+  {name:'Identify the Pest & Recommend Treatment',minPrice:199,maxPrice:699,duration:'30–60 min',description:'A professional reviews visible signs and recommends suitable options; confirm any inspection charge before booking.'},
+  {name:'Prevention & Entry-point Assessment',minPrice:299,maxPrice:899,duration:'30–60 min',description:'Check suitable access points, moisture and sanitation risk factors and recommend preventive action.'},
+  {name:'Post-treatment Follow-up',minPrice:299,maxPrice:999,duration:'30–60 min',description:'Revisit eligibility and charges depend on the original treatment, written service terms and provider policy.'},
+  {name:'Annual Pest Management Plan',minPrice:2500,maxPrice:12000,duration:'Plan based on property',description:'Indicative recurring plan range; included visits, pests, service windows and warranty terms must be confirmed in writing.'}
+ ]}
+];
+const PEST_PRODUCTS = [
+ {id:'pest-insect-screen',name:'Insect Window Mesh',unit:'sq ft',minPrice:35,maxPrice:150,specification:'Mesh material, frame and installation are priced separately',groups:['mesh','exclusion']},
+ {id:'pest-door-sweep',name:'Door Bottom Seal / Sweep',unit:'piece',minPrice:120,maxPrice:650,specification:'Door width and material; useful for reducing some entry gaps',groups:['exclusion']},
+ {id:'pest-gap-seal',name:'Pest Entry Gap Sealant',unit:'tube',minPrice:120,maxPrice:550,specification:'Product compatibility depends on gap, surface and exposure',groups:['exclusion','termite']},
+ {id:'pest-sticky-monitor',name:'Pest Monitoring Glue Traps',unit:'pack',minPrice:80,maxPrice:450,specification:'Monitoring only; not a substitute for an infestation treatment',groups:['monitoring','cockroach-ant','rodent']},
+ {id:'pest-rodent-station',name:'Lockable Rodent Monitoring Station',unit:'piece',minPrice:250,maxPrice:1200,specification:'Station type and tamper resistance; bait placement should follow professional guidance',groups:['rodent','monitoring']},
+ {id:'pest-mosquito-net',name:'Mosquito Net / Screen',unit:'piece',minPrice:250,maxPrice:2500,specification:'Opening size, mesh grade and frame/installation affect price',groups:['mosquito','mesh']},
+ {id:'pest-drain-cover',name:'Drain Cover / Mesh Insert',unit:'piece',minPrice:60,maxPrice:450,specification:'Drain dimensions and material; does not replace drainage maintenance',groups:['cockroach-ant','exclusion']},
+ {id:'pest-bed-encasement',name:'Bed Bug Mattress Encasement',unit:'piece',minPrice:900,maxPrice:4500,specification:'Mattress dimensions, fabric and zip construction',groups:['bed-bug']},
+ {id:'pest-bed-monitor',name:'Bed Bug Interceptor / Monitor',unit:'set',minPrice:250,maxPrice:1100,specification:'Bed/frame compatibility; monitoring does not eradicate an infestation',groups:['bed-bug','monitoring']},
+ {id:'pest-ant-bait-station',name:'Enclosed Ant Monitoring / Bait Station',unit:'pack',minPrice:120,maxPrice:650,specification:'Select only products appropriate for the location and keep away from children and pets as directed',groups:['cockroach-ant','monitoring']},
+ {id:'pest-wood-inspection',name:'Wood / Termite Inspection Kit',unit:'service',minPrice:299,maxPrice:799,specification:'Professional inspection is recommended when there are termite signs; DIY kit is not a substitute',groups:['termite','inspection']},
+ {id:'pest-monitor-log',name:'Pest Monitoring & Prevention Log',unit:'set',minPrice:80,maxPrice:350,specification:'Record activity, treatment dates and follow-up observations',groups:['monitoring','inspection']},
+];
+const pestProductCartAdd = (product: typeof PEST_PRODUCTS[number]) => {
+ try {
+  const current=JSON.parse(localStorage.getItem('punchx_catalogue_cart')||'[]');
+  const cart=Array.isArray(current)?current:[];
+  const index=cart.findIndex((item:{id?:string;category?:string})=>item.id===product.id&&item.category==='Pest Control');
+  if(index>=0) cart[index]={...cart[index],qty:Math.min(99,Number(cart[index].qty||1)+1)};
+  else cart.push({id:product.id,name:product.name,category:'Pest Control',kind:'product',unit:product.unit,min:product.minPrice,max:product.maxPrice,qty:1,notes:product.specification,quote:false});
+  localStorage.setItem('punchx_catalogue_cart',JSON.stringify(cart));return true;
+ } catch {return false;}
+};
+const pestServiceRange = (serviceName: string, groupName?: string) => {
+ const group=PEST_SERVICE_GROUPS.find(item=>item.name===groupName);
+ const service=group?.services.find(item=>item.name===serviceName);
+ return service?{min:service.minPrice,max:service.maxPrice,unit:service.unit||'job',quoteRequired:Boolean(service.quoteRequired)}:null;
+};
+
 const APPLIANCE_SERVICE_GROUPS = [
   { id: 'ac-service', name: 'AC Service & Deep Cleaning', description: 'Routine servicing, filter cleaning, foam cleaning and seasonal care', tag: 'Cooling care', image: 'https://images.unsplash.com/photo-1631545806609-4d07a1bd7b30?auto=format&fit=crop&w=1000&q=85', products: ['ac-service','ac-repair-gas'], services: [
     { name: 'AC General Service', price: 399, duration: '45–60 min', description: 'Routine inspection, filter cleaning and accessible unit cleaning for split or window ACs.' },
@@ -632,6 +721,17 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [paintBookingMode, setPaintBookingMode] = useState<'earliest'|'scheduled'>('earliest');
   const [paintDate, setPaintDate] = useState('');
   const [paintTime, setPaintTime] = useState('');
+  const [pestPropertyType, setPestPropertyType] = useState<'residential'|'commercial'>('residential');
+  const [pestPropertySize, setPestPropertySize] = useState('2 BHK');
+  const [pestAreaSqFt, setPestAreaSqFt] = useState('900');
+  const [pestSeverity, setPestSeverity] = useState<'light'|'moderate'|'heavy'>('moderate');
+  const [pestVisitMode, setPestVisitMode] = useState<'earliest'|'scheduled'>('earliest');
+  const [pestPreferredDate, setPestPreferredDate] = useState('');
+  const [pestPreferredTime, setPestPreferredTime] = useState('');
+  const [pestFrequency, setPestFrequency] = useState<'one-time'|'follow-up'|'annual-plan'>('one-time');
+  const [pestNotes, setPestNotes] = useState('');
+  const [pestProductAdded, setPestProductAdded] = useState<string|null>(null);
+
   const [paintProjectSize, setPaintProjectSize] = useState('one-room');
   const [paintSurfaceCondition, setPaintSurfaceCondition] = useState('minor-prep');
   const [paintFinishTier, setPaintFinishTier] = useState('standard');
@@ -668,7 +768,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const durationLabel = (hours: number) => hours === 0.5 ? '30 minutes' : hours === 1.5 ? '90 minutes' : hours === 1 ? '1 hour' : `${hours} hours`;
 
 
-  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); setPaintProductAdded(null); setPaintDate(''); setPaintTime(''); };
+  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); setPaintProductAdded(null); setPaintDate(''); setPaintTime(''); setPestProductAdded(null); setPestNotes(''); setPestPreferredDate(''); setPestPreferredTime(''); };
   const close = () => { reset(); onClose(); };
   const openCategory = (category: ServiceCategoryItem) => {
     setDetailTab('services');
@@ -741,6 +841,27 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setPaintProductAdded(null);
     setPaintDate('');
     setPaintTime('');
+    setQuery('');
+  };
+  const openPestGroup = (group: PestServiceGroup) => {
+    setSelectedSubcategory({
+      id:group.id,
+      name:group.name,
+      services:group.services.map((service,index)=>({
+        id:`pest-${group.id}-${index}`,
+        name:service.name,
+        categoryId:'pest-control-worker',
+        category:selectedCategory?.name||'Pest Control',
+        subcategory:group.name,
+        description:service.description,
+        price:Math.round((service.minPrice+service.maxPrice)/2),
+        duration:service.duration
+      }))
+    });
+    setLevel('services');
+    setDetailTab('services');
+    setPestProductAdded(null);
+    setPestNotes('');
     setQuery('');
   };
   const selectLeaf = (service: PunchXLeafService) => {
