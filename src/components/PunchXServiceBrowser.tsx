@@ -842,6 +842,12 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [paintMaterialMode, setPaintMaterialMode] = useState<'professional-supply'|'customer-supply'>('professional-supply');
   const [paintWallArea, setPaintWallArea] = useState('300');
   const [paintProductAdded, setPaintProductAdded] = useState<string|null>(null);
+  const [beautyGender, setBeautyGender] = useState<'female'|'male'|null>(null);
+  const [beautyProductAdded, setBeautyProductAdded] = useState<string|null>(null);
+  const [beautyBookingMode, setBeautyBookingMode] = useState<'earliest'|'scheduled'>('earliest');
+  const [beautyPreferredDate, setBeautyPreferredDate] = useState('');
+  const [beautyPreferredTime, setBeautyPreferredTime] = useState('');
+
 
 
 
@@ -872,9 +878,14 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const durationLabel = (hours: number) => hours === 0.5 ? '30 minutes' : hours === 1.5 ? '90 minutes' : hours === 1 ? '1 hour' : `${hours} hours`;
 
 
-  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); setPaintProductAdded(null); setPaintDate(''); setPaintTime(''); setPestProductAdded(null); setPestNotes(''); setPestPreferredDate(''); setPestPreferredTime(''); };
+  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); setPaintProductAdded(null); setPaintDate(''); setPaintTime(''); setPestProductAdded(null); setBeautyGender(null); setBeautyProductAdded(null); setBeautyBookingMode('earliest'); setBeautyPreferredDate(''); setBeautyPreferredTime(''); setPestNotes(''); setPestPreferredDate(''); setPestPreferredTime(''); };
   const close = () => { reset(); onClose(); };
   const openCategory = (category: ServiceCategoryItem) => {
+    setBeautyGender(null);
+    setBeautyProductAdded(null);
+    setBeautyBookingMode('earliest');
+    setBeautyPreferredDate('');
+    setBeautyPreferredTime('');
     setDetailTab('services');
     setSelectedCategory(category);
     setSelectedBranch(getPunchXServiceBranch(category));
@@ -925,6 +936,37 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setCookProductAdded(null);
     setQuery('');
   };
+  const openBeautyGender = (gender: 'female'|'male') => {
+    setBeautyGender(gender);
+    setSelectedSubcategory({ id: 'beauty-' + gender + '-root', name: gender === 'female' ? 'Women’s Salon & Spa' : 'Men’s Salon & Massage', services: [] });
+    setLevel('subcategories');
+    setDetailTab('services');
+    setBeautyProductAdded(null);
+    setQuery('');
+  };
+  const openBeautyGroup = (group: BeautyServiceGroup) => {
+    setSelectedSubcategory({
+      id: group.id,
+      name: group.name,
+      services: group.services.map((service,index)=>({
+        id: 'beauty-' + group.id + '-' + index,
+        name: service.name,
+        categoryId: 'beautician',
+        category: selectedCategory?.name || 'Beauty & Salon at Home',
+        subcategory: group.name,
+        description: service.description,
+        price: Math.round((service.minPrice + service.maxPrice) / 2),
+        duration: service.duration
+      }))
+    });
+    setLevel('services');
+    setDetailTab('services');
+    setBeautyProductAdded(null);
+    setBeautyBookingMode('earliest');
+    setBeautyPreferredDate('');
+    setBeautyPreferredTime('');
+    setQuery('');
+  };
   const openPaintGroup = (group: PaintServiceGroup) => {
     setSelectedSubcategory({
       id: group.id,
@@ -972,13 +1014,16 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     const applianceRange = service.categoryId === 'ac-technician' ? applianceServiceRange(service.price, service.name) : null;
     const paintingRange = service.categoryId === 'painter' ? paintServiceRange(service.name, service.subcategory) : null;
     const pestRange = service.categoryId === 'pest-control-worker' ? pestServiceRange(service.name, service.subcategory) : null;
+    const beautyRange = service.categoryId === 'beautician' ? beautyServiceRange(service.name, service.subcategory) : null;
     const savedLeaf = applianceRange
       ? { ...service, minPrice: applianceRange.min, maxPrice: applianceRange.max, priceIsIndicativeRange: true }
       : paintingRange
         ? { ...service, minPrice: paintingRange.min, maxPrice: paintingRange.max, priceUnit: paintingRange.unit, quoteRequired: paintingRange.quoteRequired, priceIsIndicativeRange: true }
         : pestRange
           ? { ...service, minPrice: pestRange.min, maxPrice: pestRange.max, priceUnit: pestRange.unit, quoteRequired: pestRange.quoteRequired, priceIsIndicativeRange: true }
-          : service;
+          : beautyRange
+            ? { ...service, minPrice: beautyRange.min, maxPrice: beautyRange.max, priceIsIndicativeRange: true }
+            : service;
     localStorage.setItem('punchx_selected_leaf_service', JSON.stringify(savedLeaf));
     localStorage.setItem('punchx_selected_service_path', JSON.stringify({ category: service.category, subcategory: service.subcategory, service: service.name }));
     if (paintingRange) {
@@ -990,6 +1035,21 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
           preferredTime: paintBookingMode === 'scheduled' ? paintTime : null,
           selectedService: service.name, category: service.subcategory,
           minPrice: paintingRange.min, maxPrice: paintingRange.max, priceUnit: paintingRange.unit,
+          createdAt: new Date().toISOString()
+        }));
+      } catch {}
+    }
+    if (beautyRange) {
+      try {
+        localStorage.setItem('punchx_beauty_request_details', JSON.stringify({
+          gender: beautyGender,
+          category: service.subcategory,
+          service: service.name,
+          bookingMode: beautyBookingMode,
+          preferredDate: beautyBookingMode === 'scheduled' ? beautyPreferredDate : null,
+          preferredTime: beautyBookingMode === 'scheduled' ? beautyPreferredTime : null,
+          minPrice: beautyRange.min,
+          maxPrice: beautyRange.max,
           createdAt: new Date().toISOString()
         }));
       } catch {}
@@ -1007,7 +1067,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-[28px] bg-white text-[#17191d] sm:max-w-5xl sm:rounded-[28px]">
       <header className="border-b border-black/5 bg-white px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          {level !== 'categories' && <button onClick={() => { if (level === 'services') { setSelectedSubcategory(null); setLevel('subcategories'); } else { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); } }} className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f6f8]"><ArrowLeft className="h-5 w-5"/></button>}
+          {level !== 'categories' && <button onClick={() => { if (level === 'services') { if (selectedCategory?.id === 'beautician') { setSelectedSubcategory(beautyGender ? { id: 'beauty-' + beautyGender + '-root', name: beautyGender === 'female' ? 'Women’s Salon & Spa' : 'Men’s Salon & Massage', services: [] } : null); setDetailTab('services'); setBeautyProductAdded(null); } else { setSelectedSubcategory(null); } setLevel('subcategories'); } else if (selectedCategory?.id === 'beautician' && beautyGender) { setBeautyGender(null); setSelectedSubcategory(null); setLevel('subcategories'); } else { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); } }} className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f6f8]"><ArrowLeft className="h-5 w-5"/></button>}
           <div className="min-w-0 flex-1"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#7358d7]">PUNCHX catalogue</p><h2 className="truncate text-xl font-black">{title}</h2><p className="text-[11px] text-[#858a93]">{countText}</p></div>
           <button onClick={close} className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f6f8]"><X className="h-5 w-5"/></button>
         </div>
