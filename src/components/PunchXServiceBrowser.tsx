@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap, Sparkles, Package, Droplet, CalendarDays, ShoppingBasket, Snowflake } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
 import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
@@ -393,6 +393,27 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setLevel('services');
     setQuery('');
   };
+  const openApplianceGroup = (group: typeof APPLIANCE_SERVICE_GROUPS[number]) => {
+    const categoryName = selectedCategory?.name || 'AC & Appliance Repair';
+    setSelectedSubcategory({
+      id: group.id,
+      name: group.name,
+      services: group.services.map((service, index) => ({
+        id: `appliance-${group.id}-${index}`,
+        name: service.name,
+        categoryId: 'ac-technician',
+        category: categoryName,
+        subcategory: group.name,
+        description: service.description,
+        price: service.price,
+        duration: service.duration
+      }))
+    });
+    setLevel('services');
+    setDetailTab('services');
+    setApplianceAddedProduct(null);
+    setQuery('');
+  };
   const selectLeaf = (service: PunchXLeafService) => {
     localStorage.setItem('punchx_selected_leaf_service', JSON.stringify(service));
     localStorage.setItem('punchx_selected_service_path', JSON.stringify({ category: service.category, subcategory: service.subcategory, service: service.name }));
@@ -495,6 +516,66 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
           </div></section>
         </div>}
         
+        {level === 'subcategories' && selectedCategory?.id === 'ac-technician' && <div className="space-y-6">
+          <section className="relative isolate min-h-[285px] overflow-hidden rounded-[28px] bg-[#10223b] text-white shadow-lg sm:min-h-[320px]">
+            <img src={selectedCategory.imageUrl || serviceImage('AC and home appliance repair')} alt="Technician servicing a home air conditioner" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-40" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback('AC & Appliance Repair','Servicing, repair and installation for home appliances');}}/>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0d1b31] via-[#0d1b31]/85 to-[#0d1b31]/15"/>
+            <div className="relative max-w-3xl p-5 sm:p-8 lg:p-9">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-sky-200"><Snowflake className="h-3.5 w-3.5"/> PUNCHX appliance care</span>
+              <h3 className="mt-4 max-w-2xl text-3xl font-black leading-[1.05] sm:text-4xl">Repair. Refresh. Reconnect. <span className="text-sky-300">With price clarity.</span></h3>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">Pick your appliance and the issue. Compare service price ranges, see likely spare-part costs separately, and approve the repair quote before work begins.</p>
+              <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-bold"><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Diagnosis before repair</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Parts priced separately</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Schedule when available</span></div>
+            </div>
+          </section>
+          <section className="grid gap-3 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center">
+            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Choose by problem</p><h3 className="mt-1 text-base font-black text-[#142235]">What needs attention today?</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Start with a common fault to see related services and compatible parts.</p></div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[{label:'AC not cooling',group:'ac-repair-gas'},{label:'AC leaking water',group:'ac-repair-gas'},{label:'Washer not draining',group:'washing-machine'},{label:'Geyser not heating',group:'geyser'}].map(issue=>{const group=APPLIANCE_SERVICE_GROUPS.find(item=>item.id===issue.group)!;return <button key={issue.label} type="button" onClick={()=>{setApplianceIssueNotes(issue.label);openApplianceGroup(group);}} className="rounded-xl border border-sky-100 bg-sky-50/70 px-3 py-3 text-left text-xs font-black leading-4 text-[#17395a] transition hover:border-sky-300 hover:bg-sky-50">{issue.label}<ArrowRight className="mt-2 block h-3.5 w-3.5 text-sky-800"/></button>;})}
+            </div>
+          </section>
+          <section>
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Explore service categories</p><h3 className="mt-1 text-lg font-black text-[#142235] sm:text-xl">Air conditioning and everyday appliances</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Each category opens service options and a separate parts & materials list.</p></div><span className="rounded-full bg-sky-50 px-3 py-1.5 text-[10px] font-bold text-sky-900">{APPLIANCE_SERVICE_GROUPS.length} categories</span></div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {APPLIANCE_SERVICE_GROUPS.filter(group=>`${group.name} ${group.description} ${group.tag}`.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} type="button" onClick={()=>openApplianceGroup(group)} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition duration-200 hover:-translate-y-0.5 hover:ring-sky-300 hover:shadow-md">
+                <div className="relative h-36 overflow-hidden bg-sky-50 sm:h-40"><img src={group.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(group.name,group.description);}}/><div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"/><span className="absolute bottom-3 left-3 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">{group.tag}</span><span className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-sky-800 shadow-sm"><ArrowRight className="h-4 w-4"/></span></div>
+                <div className="p-4"><h4 className="text-base font-black text-[#142235]">{group.name}</h4><p className="mt-1.5 min-h-[40px] text-xs leading-5 text-[#748094]">{group.description}</p><div className="mt-3 flex items-center justify-between border-t border-black/5 pt-3"><span className="text-[11px] font-bold text-[#748094]">{group.services.length} service options</span><span className="text-[10px] font-black text-sky-800">View prices <ArrowRight className="ml-1 inline h-3 w-3"/></span></div></div>
+              </button>)}
+            </div>
+          </section>
+          <section className="grid gap-3 rounded-2xl border border-[#e2eaf2] bg-white p-4 sm:grid-cols-3">
+            {[{title:'Inspect first',body:'For faults that need diagnosis, show the inspection range before repair work is approved.'},{title:'Parts are separate',body:'Spare parts show their own min–max range. Exact model compatibility and stock must be confirmed.'},{title:'Multi-appliance care',body:'Tell the professional which other appliances need attention; bundled availability and any savings require confirmation.'}].map(item=><div key={item.title} className="rounded-xl bg-[#f5f8fb] p-3"><h4 className="text-sm font-black text-[#142235]">{item.title}</h4><p className="mt-1 text-xs leading-5 text-[#748094]">{item.body}</p></div>)}
+          </section>
+        </div>}
+        {level === 'subcategories' && selectedCategory?.id === 'ac-technician' && <div className="space-y-6">
+          <section className="relative isolate min-h-[285px] overflow-hidden rounded-[28px] bg-[#10223b] text-white shadow-lg sm:min-h-[320px]">
+            <img src={selectedCategory.imageUrl || serviceImage('AC and home appliance repair')} alt="Technician servicing a home air conditioner" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-40" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback('AC & Appliance Repair','Servicing, repair and installation for home appliances');}}/>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0d1b31] via-[#0d1b31]/85 to-[#0d1b31]/15"/>
+            <div className="relative max-w-3xl p-5 sm:p-8 lg:p-9">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-sky-200"><Snowflake className="h-3.5 w-3.5"/> PUNCHX appliance care</span>
+              <h3 className="mt-4 max-w-2xl text-3xl font-black leading-[1.05] sm:text-4xl">Repair. Refresh. Reconnect. <span className="text-sky-300">With price clarity.</span></h3>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">Pick your appliance and the issue. Compare service price ranges, see likely spare-part costs separately, and approve the repair quote before work begins.</p>
+              <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-bold"><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Diagnosis before repair</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Parts priced separately</span><span className="rounded-full border border-white/15 bg-black/20 px-3 py-2">Schedule when available</span></div>
+            </div>
+          </section>
+          <section className="grid gap-3 rounded-2xl border border-sky-100 bg-white p-4 shadow-sm sm:grid-cols-[1fr_auto] sm:items-center">
+            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Choose by problem</p><h3 className="mt-1 text-base font-black text-[#142235]">What needs attention today?</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Start with a common fault to see related services and compatible parts.</p></div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[{label:'AC not cooling',group:'ac-repair-gas'},{label:'AC leaking water',group:'ac-repair-gas'},{label:'Washer not draining',group:'washing-machine'},{label:'Geyser not heating',group:'geyser'}].map(issue=>{const group=APPLIANCE_SERVICE_GROUPS.find(item=>item.id===issue.group)!;return <button key={issue.label} type="button" onClick={()=>{setApplianceIssueNotes(issue.label);openApplianceGroup(group);}} className="rounded-xl border border-sky-100 bg-sky-50/70 px-3 py-3 text-left text-xs font-black leading-4 text-[#17395a] transition hover:border-sky-300 hover:bg-sky-50">{issue.label}<ArrowRight className="mt-2 block h-3.5 w-3.5 text-sky-800"/></button>;})}
+            </div>
+          </section>
+          <section>
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2"><div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-800">Explore service categories</p><h3 className="mt-1 text-lg font-black text-[#142235] sm:text-xl">Air conditioning and everyday appliances</h3><p className="mt-1 text-xs leading-5 text-[#748094]">Each category opens service options and a separate parts & materials list.</p></div><span className="rounded-full bg-sky-50 px-3 py-1.5 text-[10px] font-bold text-sky-900">{APPLIANCE_SERVICE_GROUPS.length} categories</span></div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {APPLIANCE_SERVICE_GROUPS.filter(group=>`${group.name} ${group.description} ${group.tag}`.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} type="button" onClick={()=>openApplianceGroup(group)} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition duration-200 hover:-translate-y-0.5 hover:ring-sky-300 hover:shadow-md">
+                <div className="relative h-36 overflow-hidden bg-sky-50 sm:h-40"><img src={group.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(group.name,group.description);}}/><div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"/><span className="absolute bottom-3 left-3 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">{group.tag}</span><span className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-sky-800 shadow-sm"><ArrowRight className="h-4 w-4"/></span></div>
+                <div className="p-4"><h4 className="text-base font-black text-[#142235]">{group.name}</h4><p className="mt-1.5 min-h-[40px] text-xs leading-5 text-[#748094]">{group.description}</p><div className="mt-3 flex items-center justify-between border-t border-black/5 pt-3"><span className="text-[11px] font-bold text-[#748094]">{group.services.length} service options</span><span className="text-[10px] font-black text-sky-800">View prices <ArrowRight className="ml-1 inline h-3 w-3"/></span></div></div>
+              </button>)}
+            </div>
+          </section>
+          <section className="grid gap-3 rounded-2xl border border-[#e2eaf2] bg-white p-4 sm:grid-cols-3">
+            {[{title:'Inspect first',body:'For faults that need diagnosis, show the inspection range before repair work is approved.'},{title:'Parts are separate',body:'Spare parts show their own min–max range. Exact model compatibility and stock must be confirmed.'},{title:'Multi-appliance care',body:'Tell the professional which other appliances need attention; bundled availability and any savings require confirmation.'}].map(item=><div key={item.title} className="rounded-xl bg-[#f5f8fb] p-3"><h4 className="text-sm font-black text-[#142235]">{item.title}</h4><p className="mt-1 text-xs leading-5 text-[#748094]">{item.body}</p></div>)}
+          </section>
+        </div>}
         {level === 'subcategories' && selectedCategory?.id === 'electrician' && <div className="space-y-6">
           <section className="relative isolate min-h-[270px] overflow-hidden rounded-[28px] bg-[#17191d] text-white shadow-lg sm:min-h-[300px]">
             <img src={selectedCategory.imageUrl || serviceImage('electrician')} alt="Electrician carrying out a household electrical repair" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-center opacity-45" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback('Electrician services', 'Home electrical repairs and installation'); }}/>
@@ -550,8 +631,39 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
             </div>
           </section>
         </div>}
-        {level === 'subcategories' && !['electrician', 'beautician', 'plumber', 'cleaner-housekeeper'].includes(selectedCategory?.id || '') && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{subcategories.filter(s=>s.name.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} onClick={()=>openSubcategory(group)} className="flex min-h-[130px] flex-col justify-between rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 hover:ring-[#7358d7]/30"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-6 w-6"/></div><div><div className="mt-3 flex items-center justify-between gap-2"><span className="text-sm font-black">{group.name}</span><ChevronRight className="h-4 w-4 text-[#aaaeb6]"/></div><p className="mt-1 text-[10px] text-[#858a93]">{group.services.length} services</p></div></button>)}</div>}
+        {level === 'subcategories' && !['electrician', 'beautician', 'plumber', 'cleaner-housekeeper', 'ac-technician'].includes(selectedCategory?.id || '') && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{subcategories.filter(s=>s.name.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} onClick={()=>openSubcategory(group)} className="flex min-h-[130px] flex-col justify-between rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 hover:ring-[#7358d7]/30"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-6 w-6"/></div><div><div className="mt-3 flex items-center justify-between gap-2"><span className="text-sm font-black">{group.name}</span><ChevronRight className="h-4 w-4 text-[#aaaeb6]"/></div><p className="mt-1 text-[10px] text-[#858a93]">{group.services.length} services</p></div></button>)}</div>}
 
+        {level === 'services' && selectedCategory?.id === 'ac-technician' && <div className="mx-auto max-w-4xl space-y-4">
+          <div className="rounded-2xl bg-[#10223b] p-4 text-white sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-sky-200">Appliance category selected</p><h3 className="mt-1 text-lg font-black">{selectedSubcategory?.name}</h3><p className="mt-1 text-xs text-white/70">See service price ranges or check spare-part and material estimates.</p></div>
+            <div className="mt-3 flex rounded-xl bg-white/10 p-1 sm:mt-0"><button type="button" onClick={()=>setDetailTab('services')} className={`rounded-lg px-4 py-2 text-xs font-black ${detailTab==='services'?'bg-white text-[#10223b]':'text-white'}`}><Wrench className="mr-1 inline h-3.5 w-3.5"/> Services</button><button type="button" onClick={()=>setDetailTab('products')} className={`rounded-lg px-4 py-2 text-xs font-black ${detailTab==='products'?'bg-white text-[#10223b]':'text-white'}`}><Package className="mr-1 inline h-3.5 w-3.5"/> Parts & materials</button></div>
+          </div>
+          {detailTab==='services' ? <div className="space-y-3">
+            <section className="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
+              <div className="mb-3"><h4 className="text-sm font-black text-[#142235]">Appliance details (optional)</h4><p className="mt-1 text-[11px] leading-4 text-[#748094]">Adding brand, model and symptoms can help the professional prepare. Do not open the appliance or handle electrical components yourself.</p></div>
+              <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold text-[#43546a]">Brand / model<input value={applianceBrandModel} onChange={event=>setApplianceBrandModel(event.target.value)} placeholder="e.g. brand and model number" className="mt-1 w-full rounded-xl border border-[#dce5ef] px-3 py-3 text-sm font-normal outline-none focus:border-sky-500"/></label><label className="text-xs font-bold text-[#43546a]">Issue / symptoms<input value={applianceIssueNotes} onChange={event=>setApplianceIssueNotes(event.target.value)} placeholder="e.g. not cooling, error code, leak" className="mt-1 w-full rounded-xl border border-[#dce5ef] px-3 py-3 text-sm font-normal outline-none focus:border-sky-500"/></label></div>
+              <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={()=>setApplianceBookingMode('earliest')} className={`rounded-xl border px-3 py-2 text-xs font-black ${applianceBookingMode==='earliest'?'border-sky-700 bg-sky-700 text-white':'border-[#dce5ef] bg-white text-[#43546a]'}`}>Earliest available</button><button type="button" onClick={()=>setApplianceBookingMode('scheduled')} className={`rounded-xl border px-3 py-2 text-xs font-black ${applianceBookingMode==='scheduled'?'border-sky-700 bg-sky-700 text-white':'border-[#dce5ef] bg-white text-[#43546a]'}`}><CalendarDays className="mr-1 inline h-3.5 w-3.5"/> Schedule a visit</button></div>
+              {applianceBookingMode==='scheduled' && <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold text-[#43546a]">Preferred date<input type="date" value={appliancePreferredDate} min={new Date().toLocaleDateString('en-CA')} onChange={event=>setAppliancePreferredDate(event.target.value)} className="mt-1 w-full rounded-xl border border-[#dce5ef] px-3 py-3 text-sm"/></label><label className="text-xs font-bold text-[#43546a]">Preferred time<input type="time" value={appliancePreferredTime} onChange={event=>setAppliancePreferredTime(event.target.value)} className="mt-1 w-full rounded-xl border border-[#dce5ef] px-3 py-3 text-sm"/></label></div>}
+            </section>
+            {selectedSubcategory && <div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-[11px] leading-5 text-amber-900"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0"/><span>Service prices are indicative labour/visit ranges. Parts, refrigerant, extra piping, difficult access or additional work may be separate. The professional must confirm the total and receive approval before proceeding.</span></div>}
+            {services.filter(service=>`${service.name} ${service.description}`.toLowerCase().includes(query.toLowerCase())).map(service=>{const range=applianceServiceRange(service.price,service.name);return <article key={service.id} className="group flex w-full gap-3 overflow-hidden rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-sky-300 sm:gap-4 sm:p-4">
+              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-sky-50 sm:h-28 sm:w-32"><img src={serviceImage(service.name)} alt={service.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(service.name,service.description);}}/></div>
+              <div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><h4 className="text-sm font-black text-[#142235]">{service.name}</h4><p className="mt-1 text-[10px] font-bold text-sky-800">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-sky-50 px-2 py-1 text-xs font-black text-sky-900">₹{range.min.toLocaleString('en-IN')}–₹{range.max.toLocaleString('en-IN')}</span></div><p className="mt-2 text-xs leading-5 text-[#748094]">{service.description}</p><div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#748094]"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><button type="button" onClick={()=>{try{localStorage.setItem('punchx_appliance_request_details',JSON.stringify({applianceCategory:selectedSubcategory?.name||'AC & Appliance Repair',brandModel:applianceBrandModel.trim()||null,issueNotes:applianceIssueNotes.trim()||null,bookingMode:applianceBookingMode,preferredDate:applianceBookingMode==='scheduled'?appliancePreferredDate:null,preferredTime:applianceBookingMode==='scheduled'?appliancePreferredTime:null,service:service.name,minPrice:range.min,maxPrice:range.max,createdAt:new Date().toISOString()}));}catch{};selectLeaf(service);}} className="inline-flex items-center gap-1 rounded-xl bg-[#10223b] px-3 py-2.5 text-[11px] font-black text-white transition hover:bg-sky-900">Select service <ArrowRight className="h-3.5 w-3.5"/></button></div></div>
+            </article>})}
+            {services.length===0&&<div className="rounded-2xl border border-dashed border-sky-200 bg-white p-8 text-center text-sm text-[#748094]">No service listed for this category yet. Ask for an inspection quote.</div>}
+          </div>
+          : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {APPLIANCE_PRODUCTS.filter(product=>(selectedSubcategory?.id?product.groups.includes(selectedSubcategory.id):true)&&(!query||`${product.name} ${product.specification}`.toLowerCase().includes(query.toLowerCase()))).map(product=><article key={product.id} className="flex flex-col rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:ring-sky-300 sm:p-4">
+              <div className="relative h-24 overflow-hidden rounded-xl bg-sky-50"><img src={serviceImage(product.name)} alt={product.name} loading="lazy" className="h-full w-full object-cover" onError={(event)=>{event.currentTarget.onerror=null;event.currentTarget.src=serviceImageFallback(product.name,product.specification);}}/><span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-1 text-[9px] font-black text-sky-900">Part / material</span></div>
+              <h4 className="mt-3 text-sm font-black text-[#142235]">{product.name}</h4><p className="mt-1 flex-1 text-[11px] leading-4 text-[#748094]">{product.specification}</p>
+              <p className="mt-3 text-xs font-black text-sky-900">₹{product.minPrice.toLocaleString('en-IN')} – ₹{product.maxPrice.toLocaleString('en-IN')} <span className="font-semibold text-[#8490a2]">/ {product.unit}</span></p>
+              {product.quoteRequired&&<p className="mt-2 text-[10px] font-bold text-amber-800">Exact model, stock and written quote required.</p>}
+              <button type="button" onClick={()=>setApplianceAddedProduct(applianceProductCartAdd(product)?product.id:'error')} className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-[10px] font-black text-sky-900 hover:bg-sky-100"><ShoppingBasket className="h-3.5 w-3.5"/>{applianceAddedProduct===product.id?'Added to cart':applianceAddedProduct==='error'?'Try again':'Add to cart'}</button>
+            </article>)}
+            {APPLIANCE_PRODUCTS.filter(product=>(selectedSubcategory?.id?product.groups.includes(selectedSubcategory.id):true)&&(!query||`${product.name} ${product.specification}`.toLowerCase().includes(query.toLowerCase()))).length===0&&<div className="col-span-full rounded-2xl border border-dashed border-sky-200 bg-white p-6 text-center"><p className="text-sm font-bold text-[#142235]">No spare-part range is listed for this category yet.</p><p className="mt-1 text-xs text-[#748094]">Book an inspection and confirm model compatibility and a written parts quote before authorising replacement.</p></div>}
+          </div>}
+          {applianceAddedProduct&&applianceAddedProduct!=='error'&&<p className="rounded-xl bg-sky-50 px-3 py-2 text-xs font-bold text-sky-900">Added to the PunchX catalogue cart. Confirm model compatibility and final price before purchase.</p>}
+        </div>}
         {level === 'services' && selectedCategory?.id === 'cleaner-housekeeper' && <div className="mx-auto max-w-4xl space-y-4">
           <div className="rounded-2xl bg-[#16372c] p-4 text-white sm:flex sm:items-center sm:justify-between sm:gap-4">
             <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-200">Home Cleaning · flexible booking</p><h3 className="mt-1 text-lg font-black">{selectedSubcategory?.name}</h3><p className="mt-1 text-xs text-white/70">Add several chores to one visit, then choose hourly or task-based pricing.</p></div>
