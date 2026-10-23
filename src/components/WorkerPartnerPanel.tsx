@@ -291,13 +291,24 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
    }catch(e:any){showNotification?.('⚠️ '+(e?.message||'Could not update this booking.'));}
  };
  const menu=[['home','Home',Home],['orders','Orders',ClipboardList],['schedule','Schedule',CalendarDays],['earnings','Earnings',Wallet],['performance','Performance',TrendingUp],['training','Training',ShieldCheck],['inventory','Inventory',BriefcaseBusiness],['profile','Profile',UserRound],['notifications','Notifications',Bell],['incentives','Incentives',Gift],['support','Support',LifeBuoy],['settings','Settings',Settings]] as any[];
+ const menuGroups=[
+  {label:'Workspace',keys:['home','orders','schedule']},
+  {label:'Business',keys:['earnings','performance','incentives']},
+  {label:'Tools',keys:['training','inventory']},
+  {label:'Account & help',keys:['profile','notifications','support','settings']},
+ ].map(function(group:any){return {label:group.label,items:group.keys.map(function(key:string){return menu.find(function(m:any){return m[0]===key;});}).filter(Boolean)};});
 
  return <div className="wx-app">
   <aside className={'wx-sidebar '+(mobile?'open':'')}>
    <div className="wx-brand"><div className="wx-logo"><img src={PUNCHX_LOGO} alt="PunchX" /></div><div><b>PunchX</b><span>PARTNER PANEL</span></div><button className="wx-close" onClick={()=>setMobile(false)}><X/></button></div>
    <div className="wx-worker-mini"><div className="wx-avatar">{String(name||"P").slice(0,2).toUpperCase()}</div><div><b>{name}</b><span>{userProfile?.uid||"Partner ID unavailable"}</span></div><i className={online?'online':''}></i></div>
    
-   <nav>{menu.map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={19}/><span>{m[1]}</span>{}</button>})}</nav>
+   <nav aria-label="Professional workspace">
+    {menuGroups.map(function(group:any){return <div className="wx-nav-group" key={group.label}>
+     <span className="wx-nav-group-label">{group.label}</span>
+     {group.items.map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])} aria-current={tab===m[0]?'page':undefined}><I size={19}/><span>{m[1]}</span></button>})}
+    </div>})}
+   </nav>
    <button className="wx-logout" onClick={handleLogout} disabled={loggingOut} aria-busy={loggingOut}><LogOut size={18}/>{loggingOut?'Logging out…':'Logout'}</button>
   </aside>
   <div className="wx-main">
@@ -312,7 +323,10 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
     {tab==='support'&&<SupportView nav={nav}/>}
     {tab==='settings'&&<SettingsView online={online} persistAvailability={persistAvailability} availabilitySaving={availabilitySaving} nav={nav} onTransition={onTransition}/>}
    </main>
-   <footer className="wx-mobile-nav" aria-label="Worker panel navigation">{menu.slice(0,5).map(function(m:any){var I=m[2];return <button key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])}><I size={18}/><span>{m[1]}</span></button>})}</footer>
+   <footer className="wx-mobile-nav" aria-label="Professional navigation">
+     {menu.filter(function(m:any){return ['home','orders','schedule','earnings'].includes(m[0]);}).map(function(m:any){var I=m[2];return <button type="button" key={m[0]} className={tab===m[0]?'active':''} onClick={()=>nav(m[0])} aria-current={tab===m[0]?'page':undefined}><I size={19}/><span>{m[1]}</span></button>})}
+     <button type="button" className={!['home','orders','schedule','earnings'].includes(tab)?'active wx-mobile-more':'wx-mobile-more'} onClick={()=>setMobile(true)} aria-label="Open more professional sections"><MoreHorizontal size={20}/><span>More</span></button>
+    </footer>
    <WorkerWebsiteFooter tab={tab} nav={nav} onTransition={onTransition} onLogout={handleLogout} loggingOut={loggingOut} />
   </div>
   {selected&&<OrderModal order={selected} close={()=>setSelected(null)} advance={()=>advance(selected)} action={action(selected.status)}/>}
