@@ -3,9 +3,9 @@ import { FieldValue } from 'firebase-admin/firestore';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getPunchxFirestore, requireFirebaseUid } from '../_lib/firebaseAdmin';
 
-type TrackingAction = 'start_journey' | 'arrived' | 'start_service' | 'complete_service';
+type TrackingAction = 'start_journey' | 'arrived' | 'start_service' | 'complete_service' | 'cancel_booking';
 
-const allowedActions: TrackingAction[] = ['start_journey', 'arrived', 'start_service', 'complete_service'];
+const allowedActions: TrackingAction[] = ['start_journey', 'arrived', 'start_service', 'complete_service', 'cancel_booking'];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -51,10 +51,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const now = new Date().toISOString();
       const history = Array.isArray(order.stateHistory) ? order.stateHistory.slice(-99) : [];
-      const appendHistory = (to: string, reason: string) => [
+      const appendHistory = (to: string, reason: string, actorRole: 'worker' | 'citizen' = 'worker') => [
         ...history,
-        { from: String(order.status || 'UNKNOWN'), to, timestamp: now, actorUid: uid, actorRole: 'worker', reason },
+        { from: String(order.status || 'UNKNOWN'), to, timestamp: now, actorUid: uid, actorRole, reason },
       ];
+
+      // Cancellation is authorized against the booking customer, not the
+      // assigned worker. It also terminates any live GPS session immediately.
+      if (action === 'cancel_booking') {
+        if (order.customerId !== uid) {
+          return { statusCode: 403, success: false, error: 'Only the customer who owns this booking can cancel it.' };
+        }
+        if (['Done', 'COMPLETED', 'Completed', 'Cancelled', 'CANCELLED'].includes(String(order.status))) {
+          return { statusCode: 409, success: false, error: 'This booking can no longer be cancelled.' };
+        }
+        transaction.update(orderRef, {
+          status: 'Cancelled',
+          workerOutForWork: false,
+          trackingSessionId: FieldValue.delete(),
+          trackingEndedAt: now,
+          cancelledAt: now,
+          updatedAt: now,
+          stateHistory: appendHistory('Cancelled', 'Customer cancelled the booking and GPS sharing was stopped.', 'citizen'),
+        });
+        return { statusCode: 200, success: true, status: 'Cancelled' };
+      }
 
       if (action === 'start_journey') {
         // Idempotent retry: do not create a second session when the first
