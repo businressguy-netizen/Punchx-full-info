@@ -397,6 +397,37 @@ async function startServer() {
       const uid = String((req as any).user.uid || "");
       const firestore = getFirestore();
       const walletRef = firestore.collection("workerWallets").doc(uid);
+      // Release wallet holds for jobs that were cancelled before completion.
+      // This runs server-side so a stale cancelled job cannot lock credits forever.
+      const assignedOrders = await firestore.collection("orders").where("workerId", "==", uid).get();
+      for (const candidate of assignedOrders.docs) {
+        const candidateData = candidate.data();
+        const candidateStatus = String(candidateData.status || "");
+        const heldPaise = Math.max(0, Math.trunc(Number(candidateData.walletFeeReservationPaise) || 0));
+        if (!["Cancelled", "CANCELLED"].includes(candidateStatus) || heldPaise <= 0) continue;
+        const releaseLedgerRef = firestore.collection("workerWalletTransactions").doc(stableWalletEntryId("release", candidate.id));
+        await firestore.runTransaction(async (transaction) => {
+          const orderSnap = await transaction.get(candidate.ref);
+          const walletSnap = await transaction.get(walletRef);
+          const releaseSnap = await transaction.get(releaseLedgerRef);
+          if (!orderSnap.exists) return;
+          const currentOrder = orderSnap.data() || {};
+          const currentHold = Math.max(0, Math.trunc(Number(currentOrder.walletFeeReservationPaise) || 0));
+          if (!["Cancelled", "CANCELLED"].includes(String(currentOrder.status || "")) || currentHold <= 0) return;
+          const wallet = walletSnap.exists ? walletSnap.data() || {} : {};
+          const balancePaise = Math.max(0, Math.trunc(Number(wallet.balancePaise) || 0));
+          const reservedPaise = Math.max(0, Math.trunc(Number(wallet.reservedPaise) || 0));
+          const nowIso = new Date().toISOString();
+          transaction.set(walletRef, { uid, balancePaise, reservedPaise: Math.max(0, reservedPaise - currentHold), updatedAt: FieldValue.serverTimestamp(), updatedAtIso: nowIso }, { merge: true });
+          transaction.update(candidate.ref, { walletFeeReservationPaise: 0, walletFeeReservationStatus: "RELEASED", walletFeeReservationReleasedAt: nowIso, updatedAt: nowIso });
+          if (!releaseSnap.exists) transaction.set(releaseLedgerRef, {
+            id: releaseLedgerRef.id, workerUid: uid, type: "RESERVATION_RELEASE", orderId: candidate.id,
+            amountPaise: currentHold, balanceBeforePaise: balancePaise, balanceAfterPaise: balancePaise,
+            status: "RECORDED", createdAt: FieldValue.serverTimestamp(), createdAtIso: nowIso,
+            note: "Fee reservation released because the booking was cancelled before completion",
+          });
+        });
+      }
       const [walletSnap, ledgerSnap, topUpSnap] = await Promise.all([
         walletRef.get(),
         firestore.collection("workerWalletTransactions").where("workerUid", "==", uid).get(),
@@ -617,6 +648,7 @@ async function startServer() {
           });
           transaction.update(orderRef, {
             status: "Done", completedAt: nowIso, updatedAt: nowIso, workerOutForWork: false,
+            walletFeeReservationPaise: 0, walletFeeReservationStatus: "RELEASED",
             paymentMethod: "PUNCHX_GATEWAY", paymentStatus: "PAID_GATEWAY_VERIFIED",
             paymentCollectionRoute: "PUNCHX_GATEWAY", workerPayoutStatus: "PENDING_PROVIDER_SETTLEMENT",
             platformCommission: fees.commissionPaise / 100, commissionRate: fees.commissionRate,
@@ -651,6 +683,10 @@ async function startServer() {
         }
         const nextBalancePaise = balancePaise - totalDebitPaise;
         const nextReservedPaise = Math.max(0, currentReservedPaise - thisOrderReservationPaise);
+        if (nextBalancePaise < nextReservedPaise) {
+          rejection = "This fee would use credits reserved for another active job. Contact PunchX support to reconcile this booking.";
+          return;
+        }
         const amountCollectedPaise = Math.round(amountCollectedRupees * 100);
         const walletTransaction = {
           id: ledgerRef.id, workerUid: uid, type: "JOB_FEE_DEBIT", orderId,
