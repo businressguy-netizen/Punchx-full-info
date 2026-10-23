@@ -60,15 +60,119 @@ const electricianGroupVisual = (name: string) => {
   };
 };
 
-const BEAUTICIAN_SERVICE_GROUPS = [
-  { id: 'facial', name: 'Facial & Skin Care', description: 'Clean-up, facial and skin treatments', image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=85' },
-  { id: 'waxing', name: 'Waxing', description: 'Face, arms, legs and underarms', image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=1000&q=85' },
-  { id: 'threading', name: 'Threading', description: 'Eyebrows, upper lip and full face', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=1000&q=85' },
-  { id: 'hands-feet', name: 'Manicure & Pedicure', description: 'Nail care, hand and foot spa', image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1000&q=85' },
-  { id: 'hair-care', name: 'Hair Spa & Treatments', description: 'Hair spa, conditioning and care', image: 'https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&w=1000&q=85' },
-  { id: 'hair-styling', name: 'Hair Studio & Styling', description: 'Blow-dry, straightening and styling', image: 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1000&q=85' },
-  { id: 'makeup-saree', name: 'Makeup & Saree Styling', description: 'Makeup, draping and occasion looks', image: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?auto=format&fit=crop&w=1000&q=85' },
+
+type BeautyServiceSeed = { name: string; minPrice: number; maxPrice: number; duration: string; description: string };
+type BeautyServiceGroup = { id: string; gender: 'female'|'male'; name: string; description: string; tag: string; image: string; productGroups: string[]; services: BeautyServiceSeed[] };
+const BEAUTY_SERVICE_GROUPS: BeautyServiceGroup[] = [
+ {id:'women-salon',gender:'female',name:'Salon for Women',description:'Waxing, threading, facials, cleanup and nail care',tag:'Everyday salon',image:'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1000&q=85',productGroups:['skin-care','waxing','nails'],services:[
+  {name:'Express Face Cleanup',minPrice:299,maxPrice:599,duration:'30–45 min',description:'Basic cleanse and skin refresh. Products and technique are selected after discussing your skin preferences.'},
+  {name:'Basic Facial',minPrice:399,maxPrice:899,duration:'40–60 min',description:'A basic facial session using suitable salon products; confirm the steps and product brand before starting.'},
+  {name:'Premium / Brightening Facial',minPrice:899,maxPrice:2199,duration:'50–75 min',description:'Premium facial options vary by product line and steps. Results vary by skin type; not a medical skin treatment.'},
+  {name:'Eyebrow Threading',minPrice:49,maxPrice:99,duration:'10–15 min',description:'Shape eyebrows to your preferred style with clean thread and suitable hygiene practices.'},
+  {name:'Upper Lip Threading',minPrice:39,maxPrice:79,duration:'5–10 min',description:'Facial hair removal using threading.'},
+  {name:'Full Face Threading',minPrice:149,maxPrice:299,duration:'15–25 min',description:'Face threading, with areas confirmed before the service.'},
+  {name:'Underarm Waxing',minPrice:149,maxPrice:299,duration:'15–25 min',description:'Waxing using a suitable wax type, after checking your preference and skin sensitivity.'},
+  {name:'Full Arms Waxing',minPrice:249,maxPrice:499,duration:'25–40 min',description:'Hair removal for both arms. Wax type and service area affect the final price.'},
+  {name:'Full Legs Waxing',minPrice:399,maxPrice:799,duration:'35–55 min',description:'Hair removal for both legs using the selected wax option.'},
+  {name:'Full Arms, Legs & Underarms Waxing',minPrice:699,maxPrice:1199,duration:'60–90 min',description:'Combined waxing package; confirm the wax type and included areas before booking.'},
+  {name:'Manicure',minPrice:299,maxPrice:599,duration:'30–45 min',description:'Nail shaping, cuticle care and hand grooming; polish or upgrades may be additional.'},
+  {name:'Pedicure',minPrice:399,maxPrice:799,duration:'35–60 min',description:'Foot soak, nail care and routine foot grooming; selected treatment determines the price.'},
+  {name:'Bleach / De-tan',minPrice:299,maxPrice:699,duration:'20–40 min',description:'A product-based beauty service. Patch testing and suitability checks are recommended before use.'}
+ ]},
+ {id:'women-spa',gender:'female',name:'Spa for Women',description:'Relaxation massage, body care and mini spa experiences',tag:'Relax & unwind',image:'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1000&q=85',productGroups:['spa-care','massage-care'],services:[
+  {name:'Head, Neck & Shoulder Massage',minPrice:299,maxPrice:599,duration:'20–30 min',description:'A relaxation-focused massage for head, neck and shoulder areas.'},
+  {name:'Quick Comfort Massage',minPrice:899,maxPrice:1299,duration:'30–45 min',description:'Short wellness massage session. Not a substitute for medical diagnosis or treatment.'},
+  {name:'Swedish Relaxation Massage',minPrice:1299,maxPrice:1799,duration:'60 min',description:'Full-body relaxation massage using a chosen massage oil and agreed pressure.'},
+  {name:'Deep Tissue Wellness Massage',minPrice:1499,maxPrice:2199,duration:'60–75 min',description:'A firmer massage option for general relaxation; disclose injuries or health concerns to the provider first.'},
+  {name:'Leg & Foot Relief Massage',minPrice:699,maxPrice:999,duration:'30–40 min',description:'Relaxation massage focused on feet and lower legs.'},
+  {name:'Body Scrub & Care',minPrice:1299,maxPrice:1999,duration:'60–75 min',description:'Body-care treatment using suitable products; confirm any skin sensitivities and included areas.'},
+  {name:'Back Relaxation Massage',minPrice:699,maxPrice:1099,duration:'30–40 min',description:'A focused relaxation massage for the back area.'}
+ ]},
+ {id:'women-hair',gender:'female',name:'Hair Studio for Women',description:'Haircuts, styling, hair spa, colour and treatments',tag:'Hair care & styling',image:'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&w=1000&q=85',productGroups:['hair-care','hair-styling','hair-colour'],services:[
+  {name:'Women’s Haircut',minPrice:299,maxPrice:699,duration:'30–50 min',description:'Haircut based on preferred length and style; long-hair or complex cuts may cost more.'},
+  {name:'Wash & Blow-dry',minPrice:299,maxPrice:699,duration:'30–45 min',description:'Hair wash and blow-dry finish; length and desired styling affect duration.'},
+  {name:'Hair Spa',minPrice:699,maxPrice:1499,duration:'45–75 min',description:'Conditioning-focused hair spa using an agreed product range.'},
+  {name:'Hair Mask / Conditioning Treatment',minPrice:499,maxPrice:1199,duration:'30–60 min',description:'Product-based conditioning treatment selected for your hair needs.'},
+  {name:'Root Touch-up Colour',minPrice:599,maxPrice:1499,duration:'45–75 min',description:'Root colour service; shade, hair length and colour product affect the estimate.'},
+  {name:'Full Hair Colour',minPrice:999,maxPrice:2999,duration:'60–120 min',description:'Colour range depends on hair length, shade, product and application complexity.'},
+  {name:'Hair Straightening / Smoothening',minPrice:1799,maxPrice:4999,duration:'2–4 hours',description:'Chemical hair services need a consultation and strand/sensitivity assessment; exact price depends on length and product.'},
+  {name:'Party Hair Styling',minPrice:499,maxPrice:1499,duration:'30–60 min',description:'Curls, waves, blowout or an agreed occasion style; accessories may be extra.'}
+ ]},
+ {id:'women-makeup',gender:'female',name:'Makeup, Saree & Styling',description:'Party makeup, bridal looks, saree draping and occasion styling',tag:'Occasion ready',image:'https://images.unsplash.com/photo-1487412947147-5cebf100ffc8?auto=format&fit=crop&w=1000&q=85',productGroups:['makeup','styling','hair-styling'],services:[
+  {name:'Basic / Natural Makeup',minPrice:799,maxPrice:1999,duration:'45–75 min',description:'Natural makeup for an everyday event; product range and add-ons determine price.'},
+  {name:'Party Makeup',minPrice:1499,maxPrice:3999,duration:'60–100 min',description:'Makeup for parties or celebrations; lashes, premium products and hairstyling may be extra.'},
+  {name:'Engagement / Occasion Makeup',minPrice:2499,maxPrice:6999,duration:'75–120 min',description:'Event makeup tailored to the chosen look. Trial, hair styling and travel may be charged separately.'},
+  {name:'Bridal Makeup',minPrice:4999,maxPrice:17999,duration:'2–4 hours',description:'Bridal packages vary by artist, products, trial and included styling. Confirm inclusions in writing.'},
+  {name:'Saree Draping',minPrice:399,maxPrice:999,duration:'20–40 min',description:'Drape a customer-provided saree in the selected style; pleating complexity affects timing.'},
+  {name:'Hairdo with Saree Styling',minPrice:999,maxPrice:2999,duration:'60–100 min',description:'Combined hairstyle and saree draping; confirm accessory and pin requirements.'},
+  {name:'Mehendi for Hands',minPrice:299,maxPrice:1499,duration:'30–90 min',description:'Decorative henna application; price depends on design detail and coverage.'},
+  {name:'Pre-bridal Grooming Package',minPrice:2999,maxPrice:8999,duration:'2–4 hours',description:'A customised combination of grooming services; choose included services and confirm final package pricing.'}
+ ]},
+ {id:'men-salon',gender:'male',name:'Salon for Men',description:'Haircuts, beard grooming, facials and grooming essentials',tag:'Grooming essentials',image:'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1000&q=85',productGroups:['mens-grooming','shaving','hair-care','skin-care','nails'],services:[
+  {name:'Haircut for Men',minPrice:199,maxPrice:399,duration:'25–40 min',description:'Haircut based on preferred style and length.'},
+  {name:'Haircut + Beard Styling',minPrice:299,maxPrice:599,duration:'40–60 min',description:'Combined haircut and beard shaping in one session.'},
+  {name:'Beard Trimming & Styling',minPrice:99,maxPrice:249,duration:'15–25 min',description:'Trim and shape the beard to your preferred style.'},
+  {name:'Clean Shave',minPrice:99,maxPrice:249,duration:'15–25 min',description:'Shaving service using hygienic tools and a fresh blade.'},
+  {name:'Beard Colour',minPrice:199,maxPrice:499,duration:'20–35 min',description:'Beard-colour application using an agreed shade and product; patch testing is recommended.'},
+  {name:'Hair Colour / Grey Coverage',minPrice:399,maxPrice:999,duration:'30–60 min',description:'Hair-colour service; shade, product and hair length affect pricing.'},
+  {name:'Hair Spa for Men',minPrice:499,maxPrice:1199,duration:'35–60 min',description:'Hair and scalp conditioning service with an agreed product.'},
+  {name:'Face Cleanup / Detan',minPrice:299,maxPrice:799,duration:'25–45 min',description:'Facial cleansing or de-tan service; products are chosen based on customer preference.'},
+  {name:'Express Manicure',minPrice:249,maxPrice:499,duration:'25–40 min',description:'Routine nail and hand grooming.'},
+  {name:'Express Pedicure',minPrice:349,maxPrice:699,duration:'30–50 min',description:'Routine nail and foot grooming.'},
+  {name:'Head Massage with Oil',minPrice:149,maxPrice:399,duration:'10–20 min',description:'Short relaxation massage; oil preference can be discussed before starting.'}
+ ]},
+ {id:'men-massage',gender:'male',name:'Massage for Men',description:'Relaxation massage options for back, feet and full body',tag:'Relax & recover',image:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1000&q=85',productGroups:['massage-care','spa-care'],services:[
+  {name:'Head, Neck & Shoulder Massage',minPrice:299,maxPrice:599,duration:'20–30 min',description:'A relaxation-focused massage for head, neck and shoulder areas.'},
+  {name:'Quick Comfort Massage',minPrice:899,maxPrice:1299,duration:'30–45 min',description:'A short wellness massage session, subject to provider availability.'},
+  {name:'Swedish Relaxation Massage',minPrice:1299,maxPrice:1799,duration:'60 min',description:'Full-body relaxation massage with agreed pressure and massage oil.'},
+  {name:'Deep Tissue Wellness Massage',minPrice:1499,maxPrice:2199,duration:'60–75 min',description:'A firmer massage option for relaxation; not a medical treatment.'},
+  {name:'Back Relief Massage',minPrice:699,maxPrice:1099,duration:'30–40 min',description:'Focused back massage for relaxation and comfort.'},
+  {name:'Foot & Calf Massage',minPrice:699,maxPrice:999,duration:'30–40 min',description:'Relaxation massage focused on lower legs and feet.'},
+  {name:'Full Body Massage & Scrub',minPrice:1699,maxPrice:2499,duration:'75–100 min',description:'Combined wellness massage and body-care session; confirm included areas and products.'}
+ ]}
 ];
+const BEAUTY_PRODUCTS = [
+ {id:'beauty-cleanser',name:'Facial Cleanser',unit:'bottle',minPrice:150,maxPrice:900,specification:'Skin type, ingredient list and brand tier',groups:['skin-care']},
+ {id:'beauty-moisturiser',name:'Face Moisturiser',unit:'bottle',minPrice:180,maxPrice:1200,specification:'Skin type, ingredients and pack size',groups:['skin-care']},
+ {id:'beauty-sunscreen',name:'Face Sunscreen',unit:'tube',minPrice:200,maxPrice:1200,specification:'SPF, finish and pack size',groups:['skin-care']},
+ {id:'beauty-facial-kit',name:'Facial / Cleanup Kit',unit:'kit',minPrice:250,maxPrice:2500,specification:'Brand, treatment steps and number of uses',groups:['skin-care']},
+ {id:'beauty-wax',name:'Wax Tub / Wax Cartridge',unit:'piece',minPrice:120,maxPrice:850,specification:'Wax type, weight and skin suitability',groups:['waxing']},
+ {id:'beauty-wax-strips',name:'Wax Strips',unit:'pack',minPrice:80,maxPrice:450,specification:'Pack count and intended use',groups:['waxing']},
+ {id:'beauty-thread',name:'Threading Thread Pack',unit:'pack',minPrice:40,maxPrice:250,specification:'Thread type and pack size',groups:['waxing']},
+ {id:'beauty-nail-kit',name:'Manicure / Pedicure Kit',unit:'kit',minPrice:180,maxPrice:1200,specification:'Tool set, quality and sanitation requirements',groups:['nails']},
+ {id:'beauty-nail-polish',name:'Nail Polish',unit:'bottle',minPrice:60,maxPrice:500,specification:'Brand and finish',groups:['nails']},
+ {id:'beauty-shampoo',name:'Shampoo',unit:'bottle',minPrice:150,maxPrice:900,specification:'Hair type, ingredients and pack size',groups:['hair-care']},
+ {id:'beauty-conditioner',name:'Conditioner / Hair Mask',unit:'jar',minPrice:180,maxPrice:1200,specification:'Formula, hair length and pack size',groups:['hair-care']},
+ {id:'beauty-serum',name:'Hair Serum',unit:'bottle',minPrice:180,maxPrice:1100,specification:'Formula, finish and pack size',groups:['hair-care','hair-styling']},
+ {id:'beauty-hair-colour',name:'Hair Colour / Root Touch-up Kit',unit:'kit',minPrice:180,maxPrice:1200,specification:'Shade, product type and pack size',groups:['hair-colour','hair-care','mens-grooming']},
+ {id:'beauty-styling-spray',name:'Hair Styling Spray / Wax',unit:'piece',minPrice:180,maxPrice:900,specification:'Hold level, finish and brand tier',groups:['hair-styling','mens-grooming']},
+ {id:'beauty-foundation',name:'Foundation / Base Makeup',unit:'piece',minPrice:250,maxPrice:2500,specification:'Shade match, brand and finish',groups:['makeup']},
+ {id:'beauty-lipstick',name:'Lipstick',unit:'piece',minPrice:120,maxPrice:1800,specification:'Brand, formula and finish',groups:['makeup']},
+ {id:'beauty-makeup-brush',name:'Makeup Brush Set',unit:'set',minPrice:250,maxPrice:2500,specification:'Brush count, material and quality',groups:['makeup','styling']},
+ {id:'beauty-saree-kit',name:'Saree Pins & Pleating Kit',unit:'kit',minPrice:80,maxPrice:500,specification:'Pin type and kit contents',groups:['styling']},
+ {id:'beauty-beard-oil',name:'Beard Oil',unit:'bottle',minPrice:150,maxPrice:900,specification:'Ingredients, fragrance and pack size',groups:['mens-grooming']},
+ {id:'beauty-pomade',name:'Hair Pomade / Styling Cream',unit:'jar',minPrice:150,maxPrice:850,specification:'Hold level, finish and hair type',groups:['mens-grooming','hair-styling']},
+ {id:'beauty-shaving-kit',name:'Shaving / Beard Grooming Kit',unit:'kit',minPrice:180,maxPrice:1500,specification:'Razor, brush, comb and aftercare items included',groups:['shaving','mens-grooming']},
+ {id:'beauty-aftershave',name:'Aftershave Balm',unit:'bottle',minPrice:120,maxPrice:750,specification:'Formula, fragrance and skin sensitivity',groups:['shaving','mens-grooming','skin-care']},
+ {id:'beauty-massage-oil',name:'Massage Oil',unit:'bottle',minPrice:250,maxPrice:1200,specification:'Ingredients, fragrance and volume',groups:['massage-care']},
+ {id:'beauty-body-scrub',name:'Body Scrub',unit:'jar',minPrice:180,maxPrice:1000,specification:'Ingredients, skin sensitivity and pack size',groups:['spa-care']},
+ {id:'beauty-spa-lotion',name:'Body Lotion / Massage Lotion',unit:'bottle',minPrice:180,maxPrice:900,specification:'Formula, skin sensitivity and pack size',groups:['spa-care','massage-care']},
+];
+const beautyServiceRange = (serviceName: string, groupName?: string) => {
+ const group=BEAUTY_SERVICE_GROUPS.find(item=>item.name===groupName);
+ const service=group?.services.find(item=>item.name===serviceName);
+ return service?{min:service.minPrice,max:service.maxPrice}:null;
+};
+const beautyProductCartAdd = (product: typeof BEAUTY_PRODUCTS[number]) => {
+ try {
+  const current=JSON.parse(localStorage.getItem('punchx_catalogue_cart')||'[]');
+  const cart=Array.isArray(current)?current:[];
+  const index=cart.findIndex((item:{id?:string;category?:string})=>item.id===product.id&&item.category==='Beauty & Salon at Home');
+  if(index>=0) cart[index]={...cart[index],qty:Math.min(99,Number(cart[index].qty||1)+1)};
+  else cart.push({id:product.id,name:product.name,category:'Beauty & Salon at Home',kind:'product',unit:product.unit,min:product.minPrice,max:product.maxPrice,qty:1,notes:product.specification,quote:false});
+  localStorage.setItem('punchx_catalogue_cart',JSON.stringify(cart));return true;
+ } catch {return false;}
+};
 const PLUMBING_SERVICE_GROUPS = [
   { id: 'tap-mixer', name: 'Taps & Mixers', description: 'Tap leaks, mixer repairs, new taps and fittings', image: 'https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&w=1000&q=85' },
   { id: 'toilet-flush', name: 'Toilet & Flush', description: 'Flush tanks, jet sprays, toilet seats and blockages', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1000&q=85' },
