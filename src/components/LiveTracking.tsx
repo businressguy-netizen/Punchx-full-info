@@ -32,8 +32,11 @@ function RouteLine({ from, to, onRouteInfo }: { from: Coords; to: Coords; onRout
   const map = useMap();
   const latestFrom = useRef(from);
   const latestTo = useRef(to);
-  latestFrom.current = from;
-  latestTo.current = to;
+
+  useEffect(() => {
+    latestFrom.current = from;
+    latestTo.current = to;
+  }, [from.lat, from.lng, to.lat, to.lng]);
 
   useEffect(() => {
     if (!map || typeof google === 'undefined') return;
