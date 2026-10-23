@@ -43,7 +43,7 @@ const families: Family[] = [
     {name:'Door lock set',unit:'piece',minPrice:250,maxPrice:4500,specification:'Mortise, cylindrical or smart lock',confidence:'C'},
     {name:'Plywood 6–18 mm',unit:'sheet',minPrice:700,maxPrice:4500,specification:'Grade, thickness and sheet size',confidence:'C'},
     {name:'Wood adhesive',unit:'kg/litre',minPrice:120,maxPrice:850,specification:'Brand and pack size',confidence:'C'}]},
-  { match: /ac\\b|air condition|ac repair/i, products: [
+  { match: /ac\b|air condition|ac repair/i, products: [
     {name:'AC remote control',unit:'piece',minPrice:250,maxPrice:1800,specification:'Universal or model-specific',confidence:'B'},
     {name:'AC capacitor 25–60 µF',unit:'piece',minPrice:250,maxPrice:1800,specification:'Match capacitance and voltage',confidence:'B'},
     {name:'AC temperature sensor',unit:'piece',minPrice:250,maxPrice:1400,specification:'Model/connector compatibility',confidence:'C'},
