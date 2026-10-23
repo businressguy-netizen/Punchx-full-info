@@ -272,6 +272,16 @@ const COOK_SERVICE_GROUPS: CookServiceGroup[] = [
     {name:'Routine Kitchen Assistance',price:249,duration:'45–75 min',description:'Request recurring practical kitchen help, including ingredient prep and post-cooking tidying.'},
   ]},
 ];
+const COOK_LEAF_SERVICES = COOK_SERVICE_GROUPS.flatMap(group => group.services.map((service,index)=>({
+  id:`cook-${group.id}-${index}`,
+  name:service.name,
+  categoryId:'cook',
+  category:'Cook & Home Assistance',
+  subcategory:group.name,
+  description:service.description,
+  price:service.price,
+  duration:service.duration
+})));
 const COOK_PRODUCTS = [
  {id:'cook-rice',name:'Rice',unit:'kg',minPrice:45,maxPrice:120,specification:'Local rice varieties through branded and premium options',groups:['staples']},
  {id:'cook-atta',name:'Atta / Flour',unit:'kg',minPrice:35,maxPrice:100,specification:'Whole wheat, multigrain and brand/quality tiers',groups:['staples']},
@@ -500,12 +510,36 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [applianceBookingMode, setApplianceBookingMode] = useState<'earliest' | 'scheduled'>('earliest');
   const [appliancePreferredDate, setAppliancePreferredDate] = useState('');
   const [appliancePreferredTime, setAppliancePreferredTime] = useState('');
+  const [cookBookingMode, setCookBookingMode] = useState<'instant'|'scheduled'|'recurring'>('instant');
+  const [cookCadence, setCookCadence] = useState<'daily'|'weekly'|'custom'>('weekly');
+  const [cookPricingMode, setCookPricingMode] = useState<'hourly'|'per-task'>('hourly');
+  const [cookDuration, setCookDuration] = useState(2);
+  const [cookSelectedTasks, setCookSelectedTasks] = useState<string[]>([]);
+  const [cookMealSlots, setCookMealSlots] = useState<string[]>(['lunch','dinner']);
+  const [cookCuisine, setCookCuisine] = useState('Bengali');
+  const [cookDiet, setCookDiet] = useState('No restriction');
+  const [cookServings, setCookServings] = useState(2);
+  const [cookIngredientMode, setCookIngredientMode] = useState<'customer-provided'|'ingredient-planning'>('customer-provided');
+  const [cookDate, setCookDate] = useState('');
+  const [cookTime, setCookTime] = useState('');
+  const [cookProductAdded, setCookProductAdded] = useState<string|null>(null);
+
 
 
 
   const categories = useMemo(() => PUNCHX_50_CATEGORIES.filter(item => `${item.name} ${item.shortDesc} ${item.keywords.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())), [query]);
   const subcategories = selectedBranch?.subcategories || [];
   const services = selectedSubcategory?.services || [];
+  const selectedCookServices = COOK_LEAF_SERVICES.filter(service => cookSelectedTasks.includes(service.id));
+  const selectedCookMinimum = cookPricingMode === 'hourly'
+    ? Math.round(cookDuration * 199)
+    : selectedCookServices.reduce((sum,service)=>sum+cookPriceRange(service.price,service.name).min,0);
+  const selectedCookMaximum = cookPricingMode === 'hourly'
+    ? Math.round(cookDuration * 299)
+    : selectedCookServices.reduce((sum,service)=>sum+cookPriceRange(service.price,service.name).max,0);
+  const toggleCookTask = (taskId: string) => setCookSelectedTasks(current =>
+    current.includes(taskId) ? current.filter(id=>id!==taskId) : [...current,taskId]
+  );
   const selectedCleaningServices = CLEANING_LEAF_SERVICES.filter(service => selectedCleaningTasks.includes(service.id));
   const selectedCleaningMinimum = cleaningPricingMode === 'hourly'
     ? Math.round(cleaningDuration * 149)
@@ -519,7 +553,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const durationLabel = (hours: number) => hours === 0.5 ? '30 minutes' : hours === 1.5 ? '90 minutes' : hours === 1 ? '1 hour' : `${hours} hours`;
 
 
-  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); };
+  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); };
   const close = () => { reset(); onClose(); };
   const openCategory = (category: ServiceCategoryItem) => {
     setDetailTab('services');
@@ -559,6 +593,17 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setApplianceBookingMode('earliest');
     setAppliancePreferredDate('');
     setAppliancePreferredTime('');
+    setQuery('');
+  };
+  const openCookGroup = (group: CookServiceGroup) => {
+    setSelectedSubcategory({
+      id: group.id,
+      name: group.name,
+      services: COOK_LEAF_SERVICES.filter(service=>service.subcategory===group.name)
+    });
+    setLevel('services');
+    setDetailTab('services');
+    setCookProductAdded(null);
     setQuery('');
   };
   const selectLeaf = (service: PunchXLeafService) => {
