@@ -161,6 +161,16 @@ const CLEANING_SERVICE_GROUPS = [
     { name: 'Move-out Routine Clean', price: 799, duration: '2–4 hours', description: 'Routine cleaning of accessible surfaces and floors before handover.' },
   ] },
 ];
+const CLEANING_LEAF_SERVICES = CLEANING_SERVICE_GROUPS.flatMap(group => group.services.map((service, index) => ({
+  id: `cleaning-${group.id}-${index}`,
+  name: service.name,
+  categoryId: 'cleaner-housekeeper',
+  category: 'Home Cleaning',
+  subcategory: group.name,
+  description: service.description,
+  price: service.price,
+  duration: service.duration,
+})));
 const CLEANING_PRODUCTS = [
   { id: 'clean-floor-concentrate', name: 'Floor Cleaner Concentrate', unit: 'litre', minPrice: 120, maxPrice: 650, specification: 'Concentration and floor-surface compatibility', groups: ['everyday-cleaning','floor-care'] },
   { id: 'clean-microfibre-set', name: 'Microfibre Cloth Set', unit: 'set', minPrice: 100, maxPrice: 650, specification: 'Pack size and fabric GSM', groups: ['everyday-cleaning','tools','kitchen-care'] },
@@ -210,11 +220,32 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [selectedBranch, setSelectedBranch] = useState<PunchXServiceBranch | null>(null);
   const [selectedSubcategory, setSelectedSubcategory] = useState<PunchXSubcategory | null>(null);
   const [query, setQuery] = useState('');
-  const [detailTab, setBeauticianTab] = useState<'services' | 'products'>('services');
+  const [detailTab, setDetailTab] = useState<'services' | 'products'>('services');
+  const [cleaningDuration, setCleaningDuration] = useState(2);
+  const [cleaningMode, setCleaningMode] = useState<'instant' | 'scheduled' | 'recurring'>('instant');
+  const [cleaningCadence, setCleaningCadence] = useState<'daily' | 'weekly' | 'custom'>('weekly');
+  const [cleaningPricingMode, setCleaningPricingMode] = useState<'hourly' | 'per-task'>('hourly');
+  const [selectedCleaningTasks, setSelectedCleaningTasks] = useState<string[]>([]);
+  const [cleaningProductAdded, setCleaningProductAdded] = useState<string | null>(null);
+  const [cleaningDate, setCleaningDate] = useState('');
+  const [cleaningTime, setCleaningTime] = useState('');
+
 
   const categories = useMemo(() => PUNCHX_50_CATEGORIES.filter(item => `${item.name} ${item.shortDesc} ${item.keywords.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())), [query]);
   const subcategories = selectedBranch?.subcategories || [];
   const services = selectedSubcategory?.services || [];
+  const selectedCleaningServices = CLEANING_LEAF_SERVICES.filter(service => selectedCleaningTasks.includes(service.id));
+  const selectedCleaningMinimum = cleaningPricingMode === 'hourly'
+    ? Math.round(cleaningDuration * 149)
+    : selectedCleaningServices.reduce((sum, service) => sum + cleanPriceRange(service.price, service.name).min, 0);
+  const selectedCleaningMaximum = cleaningPricingMode === 'hourly'
+    ? Math.round(cleaningDuration * 249)
+    : selectedCleaningServices.reduce((sum, service) => sum + cleanPriceRange(service.price, service.name).max, 0);
+  const toggleCleaningTask = (taskId: string) => setSelectedCleaningTasks(current =>
+    current.includes(taskId) ? current.filter(id => id !== taskId) : [...current, taskId]
+  );
+  const durationLabel = (hours: number) => hours === 0.5 ? '30 minutes' : hours === 1.5 ? '90 minutes' : hours === 1 ? '1 hour' : `${hours} hours`;
+
 
   const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); };
   const close = () => { reset(); onClose(); };
