@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft, ChevronRight, Search, X, MapPin, Home, Clock3, Wrench } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronRight, Search, X, MapPin, Home, Clock3, ShieldCheck, Wrench, Zap } from 'lucide-react';
 import { PUNCHX_50_CATEGORIES, ServiceCategoryItem } from '../data/categories';
 import { PunchXLeafService, PunchXServiceBranch, PunchXSubcategory, getPunchXServiceBranch } from '../data/serviceHierarchy';
+import { serviceImage, serviceImageFallback } from '../data/serviceVisuals';
 
 interface Props {
   open: boolean;
@@ -12,6 +13,57 @@ interface Props {
 }
 
 type Level = 'categories' | 'subcategories' | 'services';
+const ELECTRICIAN_GROUP_COPY: Record<string, { description: string; image: string; tag: string }> = {
+  'switch & socket': {
+    description: 'Loose switches, damaged sockets, plug points and smart-switch installs.',
+    image: 'https://images.unsplash.com/photo-1517336714739-489689fd1ca8?auto=format&fit=crop&w=1000&q=85',
+    tag: 'Switches & plugs',
+  },
+  fan: {
+    description: 'Fan repair, installation, replacement, regulator and BLDC fan help.',
+    image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1000&q=85',
+    tag: 'Fans & regulators',
+  },
+  light: {
+    description: 'Bulbs, LED battens, ceiling lights and decorative fixture installation.',
+    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4771?auto=format&fit=crop&w=1000&q=85',
+    tag: 'Lights & fixtures',
+  },
+  'wiring & power': {
+    description: 'Power faults, wiring checks, MCB trips and fuse replacement.',
+    image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1000&q=85',
+    tag: 'Wiring & safety',
+  },
+  'doorbell & security': {
+    description: 'Doorbells, video doorbells and basic electrical security-device fitting.',
+    image: 'https://images.unsplash.com/photo-1557597774-9d273605dfa9?auto=format&fit=crop&w=1000&q=85',
+    tag: 'Home security',
+  },
+  appliances: {
+    description: 'Electrical connections for geysers, exhaust fans and home appliances.',
+    image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=1000&q=85',
+    tag: 'Appliance connections',
+  },
+};
+
+const electricianGroupVisual = (name: string) => {
+  const key = name.toLowerCase();
+  const entry = Object.entries(ELECTRICIAN_GROUP_COPY).find(([match]) =>
+    key.includes(match) || match.includes(key)
+  );
+  return entry?.[1] || {
+    description: 'Get help with a household electrical repair, installation or replacement.',
+    image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=1000&q=85',
+    tag: 'Electrical service',
+  };
+};
+
+const ELECTRICIAN_QUICK_TASKS = [
+  { label: 'Fan not working', group: 'Fan', detail: 'Repair or replace' },
+  { label: 'Lights out', group: 'Light', detail: 'Bulb or fixture' },
+  { label: 'Socket problem', group: 'Switch & socket', detail: 'Switches and plugs' },
+  { label: 'Power keeps tripping', group: 'Wiring & power', detail: 'MCB and wiring checks' },
+];
 
 export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, onTransition, citizenAddress }: Props) {
   const [level, setLevel] = useState<Level>('categories');
@@ -67,9 +119,78 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{categories.map(category=><button key={category.id} onClick={()=>openCategory(category)} className="group rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:ring-[#7358d7]/30"><div className="relative mb-3 h-24 overflow-hidden rounded-xl bg-[#f1effa]"><img src={category.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"/><div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"/></div><div className="mt-3 flex items-start justify-between gap-2"><span className="text-sm font-black leading-4">{category.name}</span><ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[#aaaeb6]"/></div><p className="mt-1 line-clamp-2 text-[10px] leading-4 text-[#858a93]">{category.shortDesc}</p><p className="mt-2 text-[11px] font-black">Starts ₹{category.basePrice.toLocaleString('en-IN')}</p></button>)}</div>
         </>}
 
-        {level === 'subcategories' && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{subcategories.filter(s=>s.name.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} onClick={()=>openSubcategory(group)} className="flex min-h-[130px] flex-col justify-between rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 hover:ring-[#7358d7]/30"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-6 w-6"/></div><div><div className="mt-3 flex items-center justify-between gap-2"><span className="text-sm font-black">{group.name}</span><ChevronRight className="h-4 w-4 text-[#aaaeb6]"/></div><p className="mt-1 text-[10px] text-[#858a93]">{group.services.length} services</p></div></button>)}</div>}
+        {level === 'subcategories' && selectedCategory?.id === 'electrician' && <div className="space-y-6">
+          <section className="relative isolate min-h-[270px] overflow-hidden rounded-[28px] bg-[#17191d] text-white shadow-lg sm:min-h-[300px]">
+            <img src={selectedCategory.imageUrl || serviceImage('electrician')} alt="Electrician carrying out a household electrical repair" loading="lazy" className="absolute inset-0 h-full w-full object-cover object-center opacity-45" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback('Electrician services', 'Home electrical repairs and installation'); }}/>
+            <div className="absolute inset-0 bg-gradient-to-r from-[#17191d] via-[#17191d]/90 to-[#17191d]/30"/>
+            <div className="relative max-w-2xl p-5 sm:p-8 lg:p-10">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-orange-200"><Zap className="h-3.5 w-3.5"/> PUNCHX electrical care</span>
+              <h3 className="mt-4 max-w-xl text-3xl font-black leading-[1.05] tracking-tight sm:text-4xl">Power problems? <span className="text-orange-400">Let’s fix them smartly.</span></h3>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-white/75 sm:text-base">Choose the issue, compare clear starting prices and find the right electrical service for your home.</p>
+              <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-bold">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/20 px-3 py-2"><Check className="h-3.5 w-3.5 text-orange-300"/> Task-based selection</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/20 px-3 py-2"><ShieldCheck className="h-3.5 w-3.5 text-orange-300"/> Safety-first service choices</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/20 px-3 py-2"><MapPin className="h-3.5 w-3.5 text-orange-300"/> Local availability checks</span>
+              </div>
+            </div>
+          </section>
 
-        {level === 'services' && <div className="mx-auto max-w-3xl space-y-3">{services.filter(s=>`${s.name} ${s.description}`.toLowerCase().includes(query.toLowerCase())).map(service=><button key={service.id} onClick={()=>selectLeaf(service)} className="flex w-full gap-4 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-[#7358d7]/30"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-7 w-7"/></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-black">{service.name}</h3><p className="mt-1 text-[10px] font-bold text-[#7358d7]">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-[#f3f0ff] px-2 py-1 text-xs font-black text-[#7358d7]">Starts ₹{service.price.toLocaleString('en-IN')}</span></div><p className="mt-2 text-xs leading-5 text-[#777c85]">{service.description}</p><div className="mt-2 flex items-center gap-3 text-[10px] font-bold text-[#858a93]"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><span>View details</span><span className="text-[#7358d7]">Add</span></div></div></button>)}</div>}
+          <section>
+            <div className="mb-3 flex items-end justify-between gap-3">
+              <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-600">Start with the problem</p><h3 className="mt-1 text-lg font-black text-[#17191d] sm:text-xl">What do you need fixed?</h3></div>
+              <span className="text-xs font-semibold text-[#858a93]">{subcategories.length} service groups</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+              {ELECTRICIAN_QUICK_TASKS.map((task) => {
+                const targetGroup = subcategories.find((group) => group.name.toLowerCase() === task.group.toLowerCase());
+                return <button key={task.label} type="button" disabled={!targetGroup} onClick={() => targetGroup && openSubcategory(targetGroup)} className="group flex min-h-[104px] flex-col justify-between rounded-2xl border border-orange-100 bg-orange-50/70 p-3 text-left transition duration-200 hover:-translate-y-0.5 hover:border-orange-300 hover:bg-orange-50 disabled:opacity-50">
+                  <span className="text-sm font-black leading-5 text-[#252525]">{task.label}</span>
+                  <span className="mt-3 flex items-center justify-between gap-1 text-[10px] font-bold text-orange-700"><span>{task.detail}</span><ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"/></span>
+                </button>;
+              })}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3"><p className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-600">Browse by category</p><h3 className="mt-1 text-lg font-black text-[#17191d] sm:text-xl">Electrical services for every room</h3><p className="mt-1 max-w-2xl text-xs leading-5 text-[#737780]">Explore repair, installation and replacement options with relevant service photos.</p></div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {subcategories.filter((group) => group.name.toLowerCase().includes(query.toLowerCase())).map((group) => {
+                const visual = electricianGroupVisual(group.name);
+                const startingPrice = group.services.length ? Math.min(...group.services.map((item) => item.price)) : 0;
+                return <button key={group.id} type="button" onClick={() => openSubcategory(group)} className="group overflow-hidden rounded-2xl bg-white text-left shadow-sm ring-1 ring-black/5 transition duration-200 hover:-translate-y-0.5 hover:ring-orange-300 hover:shadow-md">
+                  <div className="relative h-36 overflow-hidden bg-[#eee8df] sm:h-40">
+                    <img src={visual.image} alt={group.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback(group.name, visual.description); }}/>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"/>
+                    <span className="absolute bottom-3 left-3 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">{visual.tag}</span>
+                    <span className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-orange-600 shadow-sm transition group-hover:bg-orange-500 group-hover:text-white"><ArrowRight className="h-4 w-4"/></span>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2"><h4 className="text-base font-black text-[#17191d]">{group.name}</h4><ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[#a1a1aa]"/></div>
+                    <p className="mt-1.5 min-h-[40px] text-xs leading-5 text-[#737780]">{visual.description}</p>
+                    <div className="mt-3 flex items-center justify-between border-t border-black/5 pt-3"><span className="text-[11px] font-bold text-[#737780]">{group.services.length} service options</span><span className="text-xs font-black text-orange-700">From ₹{startingPrice.toLocaleString('en-IN')}</span></div>
+                  </div>
+                </button>;
+              })}
+            </div>
+          </section>
+        </div>}
+        {level === 'subcategories' && selectedCategory?.id !== 'electrician' && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{subcategories.filter(s=>s.name.toLowerCase().includes(query.toLowerCase())).map(group=><button key={group.id} onClick={()=>openSubcategory(group)} className="flex min-h-[130px] flex-col justify-between rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 hover:ring-[#7358d7]/30"><div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-6 w-6"/></div><div><div className="mt-3 flex items-center justify-between gap-2"><span className="text-sm font-black">{group.name}</span><ChevronRight className="h-4 w-4 text-[#aaaeb6]"/></div><p className="mt-1 text-[10px] text-[#858a93]">{group.services.length} services</p></div></button>)}</div>}
+
+        {level === 'services' && selectedCategory?.id === 'electrician' && <div className="mx-auto max-w-4xl space-y-3">
+          <div className="rounded-2xl bg-[#17191d] p-4 text-white sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-5">
+            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-300">Selected electrical category</p><h3 className="mt-1 text-lg font-black">{selectedSubcategory?.name}</h3><p className="mt-1 text-xs text-white/65">Choose the exact job to view its starting price and continue.</p></div>
+            <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-[11px] font-bold sm:mt-0"><ShieldCheck className="h-4 w-4 text-orange-300"/> Safety-first task selection</span>
+          </div>
+          {services.filter(s=>`${s.name} ${s.description}`.toLowerCase().includes(query.toLowerCase())).map(service=><button key={service.id} onClick={()=>selectLeaf(service)} className="group flex w-full gap-3 overflow-hidden rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-orange-300 sm:gap-4 sm:p-4">
+            <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#f6f0e8] sm:h-28 sm:w-32"><img src={serviceImage(service.name)} alt={service.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback(service.name, service.description); }}/></div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2"><div><h4 className="text-sm font-black text-[#17191d]">{service.name}</h4><p className="mt-1 text-[10px] font-bold text-orange-700">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-orange-50 px-2 py-1 text-xs font-black text-orange-700">From ₹{service.price.toLocaleString('en-IN')}</span></div>
+              <p className="mt-2 text-xs leading-5 text-[#777c85]">{service.description}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold text-[#858a93]"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><span className="inline-flex items-center gap-1 text-orange-700">Choose this service <ArrowRight className="h-3 w-3"/></span></div>
+            </div>
+          </button>)}
+        </div>}
+        {level === 'services' && selectedCategory?.id !== 'electrician' && <div className="mx-auto max-w-3xl space-y-3">{services.filter(s=>`${s.name} ${s.description}`.toLowerCase().includes(query.toLowerCase())).map(service=><button key={service.id} onClick={()=>selectLeaf(service)} className="flex w-full gap-4 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-[#7358d7]/30"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-7 w-7"/></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-black">{service.name}</h3><p className="mt-1 text-[10px] font-bold text-[#7358d7]">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-[#f3f0ff] px-2 py-1 text-xs font-black text-[#7358d7]">Starts ₹{service.price.toLocaleString('en-IN')}</span></div><p className="mt-2 text-xs leading-5 text-[#777c85]">{service.description}</p><div className="mt-2 flex items-center gap-3 text-[10px] font-bold text-[#858a93]"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><span>View details</span><span className="text-[#7358d7]">Add</span></div></div></button>)}</div>}
       </div>
       {citizenAddress && <div className="border-t border-black/5 bg-white px-4 py-3 text-xs sm:px-6"><div className="flex items-center gap-2"><Home className="h-4 w-4 text-[#7358d7]"/><span className="font-black">Residential address:</span><span className="truncate text-[#6f747d]">{citizenAddress}</span></div></div>}
     </div>
