@@ -781,6 +781,36 @@ const applianceProductCartAdd = (product: typeof APPLIANCE_PRODUCTS[number]) => 
   } catch { return false; }
 };
 
+type CatalogueProduct = ReturnType<typeof getProductsForCategory>[number];
+
+const addCategoryProductToCart = (product: CatalogueProduct, categoryName: string) => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('punchx_catalogue_cart') || '[]');
+    const cart = Array.isArray(stored) ? stored : [];
+    const existingIndex = cart.findIndex((item: { id?: string; category?: string }) => item.id === product.id && item.category === categoryName);
+    if (existingIndex >= 0) {
+      cart[existingIndex] = { ...cart[existingIndex], qty: Math.min(99, Number(cart[existingIndex].qty || 1) + 1) };
+    } else {
+      cart.push({
+        id: product.id,
+        name: product.name,
+        category: categoryName,
+        kind: 'product',
+        unit: product.unit,
+        min: product.minPrice,
+        max: product.maxPrice,
+        qty: 1,
+        notes: product.specification,
+        quote: Boolean(product.quoteRequired),
+      });
+    }
+    localStorage.setItem('punchx_catalogue_cart', JSON.stringify(cart));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const ELECTRICIAN_QUICK_TASKS = [
   { label: 'Fan not working', group: 'Fan', detail: 'Repair or replace' },
   { label: 'Lights out', group: 'Light', detail: 'Bulb or fixture' },
@@ -847,12 +877,18 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   const [beautyBookingMode, setBeautyBookingMode] = useState<'earliest'|'scheduled'>('earliest');
   const [beautyPreferredDate, setBeautyPreferredDate] = useState('');
   const [beautyPreferredTime, setBeautyPreferredTime] = useState('');
+  const [genericProductAdded, setGenericProductAdded] = useState<string | null>(null);
 
 
 
 
 
   const categories = useMemo(() => PUNCHX_50_CATEGORIES.filter(item => `${item.name} ${item.shortDesc} ${item.keywords.join(' ')}`.toLowerCase().includes(query.trim().toLowerCase())), [query]);
+  const activeCatalogueCategory = selectedCategory ? serviceCategories.find(category => category.id === selectedCategory.id) : undefined;
+  const activeCategoryProducts = activeCatalogueCategory ? getProductsForCategory(activeCatalogueCategory) : [];
+  const visibleCategoryProducts = activeCategoryProducts.filter(product =>
+    !query || `${product.name} ${product.specification} ${product.unit} ${(product.keywords || []).join(' ')}`.toLowerCase().includes(query.toLowerCase())
+  );
   const subcategories = selectedBranch?.subcategories || [];
   const services = selectedSubcategory?.services || [];
   const selectedCookServices = COOK_LEAF_SERVICES.filter(service => cookSelectedTasks.includes(service.id));
@@ -877,11 +913,41 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   );
   const durationLabel = (hours: number) => hours === 0.5 ? '30 minutes' : hours === 1.5 ? '90 minutes' : hours === 1 ? '1 hour' : `${hours} hours`;
 
+  const renderCategoryProducts = () => (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-[#e7e1f7] bg-white p-4 sm:p-5">
+        <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#7358d7]">Category product catalogue</p>
+        <h4 className="mt-1 text-lg font-black text-[#17191d]">{selectedCategory?.name} products & materials</h4>
+        <p className="mt-1 text-xs leading-5 text-[#737780]">Browse products matched to this service category. Prices are indicative ranges; confirm brand, specification, quantity and availability before purchase.</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {visibleCategoryProducts.map(product => (
+          <article key={product.id} className="flex min-w-0 flex-col rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:ring-[#7358d7]/30 sm:p-4">
+            <div className="relative h-24 overflow-hidden rounded-xl bg-[#f1effa]">
+              <img src={serviceImage(product.name)} alt={product.name} loading="lazy" className="h-full w-full object-cover" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback(product.name, product.specification); }} />
+              <span className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2 py-1 text-[9px] font-black text-[#5a43b0]">Product / material</span>
+            </div>
+            <h5 className="mt-3 text-sm font-black leading-5 text-[#17191d]">{product.name}</h5>
+            <p className="mt-1 flex-1 text-[11px] leading-4 text-[#737780]">{product.specification}</p>
+            <p className="mt-3 text-xs font-black text-[#5a43b0]">₹{product.minPrice.toLocaleString('en-IN')} – ₹{product.maxPrice.toLocaleString('en-IN')} <span className="font-semibold text-[#858a93]">/ {product.unit}</span></p>
+            {product.quoteRequired && <p className="mt-1 text-[10px] font-bold text-amber-800">Model/measurement-specific quote required.</p>}
+            <button type="button" onClick={() => setGenericProductAdded(addCategoryProductToCart(product, selectedCategory?.name || 'Home Services') ? product.id : 'error')} className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#e3dcfa] bg-[#f5f2ff] px-3 py-2 text-[10px] font-black text-[#5a43b0] hover:bg-[#ece6ff]">
+              <ShoppingBasket className="h-3.5 w-3.5" /> {genericProductAdded === product.id ? 'Added to cart' : genericProductAdded === 'error' ? 'Try again' : 'Add to cart'}
+            </button>
+          </article>
+        ))}
+        {visibleCategoryProducts.length === 0 && <div className="col-span-full rounded-2xl border border-dashed border-[#d8d0ef] bg-white p-6 text-center"><Package className="mx-auto h-7 w-7 text-[#8b7ac6]"/><p className="mt-2 text-sm font-bold text-[#302b3b]">No matching products</p><p className="mt-1 text-xs text-[#737780]">Clear the search to view all products available in this category.</p></div>}
+      </div>
+      {genericProductAdded && genericProductAdded !== 'error' && <p className="rounded-xl bg-[#f5f2ff] px-3 py-2 text-xs font-bold text-[#5a43b0]">Product added to your PunchX catalogue cart. Open the catalogue cart to review quantities and estimated totals.</p>}
+    </div>
+  );
 
-  const reset = () => { setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); setPaintProductAdded(null); setPaintDate(''); setPaintTime(''); setPestProductAdded(null); setBeautyGender(null); setBeautyProductAdded(null); setBeautyBookingMode('earliest'); setBeautyPreferredDate(''); setBeautyPreferredTime(''); setPestNotes(''); setPestPreferredDate(''); setPestPreferredTime(''); };
+
+  const reset = () => { setGenericProductAdded(null); setLevel('categories'); setSelectedCategory(null); setSelectedBranch(null); setSelectedSubcategory(null); setQuery(''); setSelectedCleaningTasks([]); setCleaningProductAdded(null); setApplianceAddedProduct(null); setApplianceBrandModel(''); setApplianceIssueNotes(''); setApplianceBookingMode('earliest'); setAppliancePreferredDate(''); setAppliancePreferredTime(''); setCookSelectedTasks([]); setCookProductAdded(null); setCookDate(''); setCookTime(''); setPaintProductAdded(null); setPaintDate(''); setPaintTime(''); setPestProductAdded(null); setBeautyGender(null); setBeautyProductAdded(null); setBeautyBookingMode('earliest'); setBeautyPreferredDate(''); setBeautyPreferredTime(''); setPestNotes(''); setPestPreferredDate(''); setPestPreferredTime(''); };
   const close = () => { reset(); onClose(); };
   const openCategory = (category: ServiceCategoryItem) => {
     setBeautyGender(null);
+    setGenericProductAdded(null);
     setBeautyProductAdded(null);
     setBeautyBookingMode('earliest');
     setBeautyPreferredDate('');
@@ -894,6 +960,8 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
     setQuery('');
   };
   const openSubcategory = (group: PunchXSubcategory) => {
+    setDetailTab('services');
+    setGenericProductAdded(null);
     setSelectedSubcategory(group);
     setLevel('services');
     setQuery('');
@@ -1060,7 +1128,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
   };
   if (!open) return null;
 
-  const title = level === 'categories' ? 'All 10 PUNCHX service categories' : level === 'subcategories' ? selectedCategory?.name || 'Services' : selectedSubcategory?.name || 'Select a service';
+  const title = level === 'categories' ? `All ${PUNCHX_50_CATEGORIES.length} PUNCHX service categories` : level === 'subcategories' ? selectedCategory?.name || 'Services' : selectedSubcategory?.name || 'Select a service';
   const countText = level === 'categories' ? `${PUNCHX_50_CATEGORIES.length} main categories` : level === 'subcategories' ? `${subcategories.length} service groups` : `${services.length} service options`;
 
   return <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-5" role="dialog" aria-modal="true">
@@ -1445,19 +1513,35 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
         </div>}
         {level === 'services' && selectedCategory?.id === 'electrician' && <div className="mx-auto max-w-4xl space-y-3">
           <div className="rounded-2xl bg-[#17191d] p-4 text-white sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-5">
-            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-300">Selected electrical category</p><h3 className="mt-1 text-lg font-black">{selectedSubcategory?.name}</h3><p className="mt-1 text-xs text-white/65">Choose the exact job to view its starting price and continue.</p></div>
-            <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-2 text-[11px] font-bold sm:mt-0"><ShieldCheck className="h-4 w-4 text-orange-300"/> Safety-first task selection</span>
-          </div>
-          {services.filter(s=>`${s.name} ${s.description}`.toLowerCase().includes(query.toLowerCase())).map(service=><button key={service.id} onClick={()=>selectLeaf(service)} className="group flex w-full gap-3 overflow-hidden rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-orange-300 sm:gap-4 sm:p-4">
-            <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#f6f0e8] sm:h-28 sm:w-32"><img src={serviceImage(service.name)} alt={service.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback(service.name, service.description); }}/></div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2"><div><h4 className="text-sm font-black text-[#17191d]">{service.name}</h4><p className="mt-1 text-[10px] font-bold text-orange-700">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-orange-50 px-2 py-1 text-xs font-black text-orange-700">From ₹{service.price.toLocaleString('en-IN')}</span></div>
-              <p className="mt-2 text-xs leading-5 text-[#777c85]">{service.description}</p>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold text-[#858a93]"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><span className="inline-flex items-center gap-1 text-orange-700">Choose this service <ArrowRight className="h-3 w-3"/></span></div>
+            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-orange-300">Electrical work & materials</p><h3 className="mt-1 text-lg font-black">{selectedSubcategory?.name}</h3><p className="mt-1 text-xs text-white/65">Choose a service job or browse the electrical parts catalogue.</p></div>
+            <div className="mt-3 flex rounded-xl bg-white/10 p-1 sm:mt-0">
+              <button type="button" onClick={()=>setDetailTab('services')} className={`rounded-lg px-3 py-2 text-xs font-black ${detailTab==='services'?'bg-white text-[#17191d]':'text-white'}`}><Wrench className="mr-1 inline h-3.5 w-3.5"/>Services</button>
+              <button type="button" onClick={()=>setDetailTab('products')} className={`rounded-lg px-3 py-2 text-xs font-black ${detailTab==='products'?'bg-white text-[#17191d]':'text-white'}`}><Package className="mr-1 inline h-3.5 w-3.5"/>Products</button>
             </div>
-          </button>)}
+          </div>
+          {detailTab === 'services' ? <div className="space-y-3">
+            {services.filter(service=>`${service.name} ${service.description}`.toLowerCase().includes(query.toLowerCase())).map(service=><button key={service.id} onClick={()=>selectLeaf(service)} className="group flex w-full gap-3 overflow-hidden rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-orange-300 sm:gap-4 sm:p-4">
+              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#f6f0e8] sm:h-28 sm:w-32"><img src={serviceImage(service.name)} alt={service.name} loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = serviceImageFallback(service.name, service.description); }}/></div>
+              <div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-2"><div><h4 className="text-sm font-black text-[#17191d]">{service.name}</h4><p className="mt-1 text-[10px] font-bold text-orange-700">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-orange-50 px-2 py-1 text-xs font-black text-orange-700">From ₹{service.price.toLocaleString('en-IN')}</span></div><p className="mt-2 text-xs leading-5 text-[#777c85]">{service.description}</p><div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold text-[#858a93]"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><span className="inline-flex items-center gap-1 text-orange-700">Choose this service <ArrowRight className="h-3 w-3"/></span></div></div>
+            </button>)}
+          </div> : renderCategoryProducts()}
         </div>}
-        {level === 'services' && !['electrician', 'beautician', 'plumber', 'cleaner-housekeeper', 'ac-technician', 'cook', 'painter', 'pest-control-worker'].includes(selectedCategory?.id || '') && <div className="mx-auto max-w-3xl space-y-3">{services.filter(s=>`${s.name} ${s.description}`.toLowerCase().includes(query.toLowerCase())).map(service=><button key={service.id} onClick={()=>selectLeaf(service)} className="flex w-full gap-4 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-[#7358d7]/30"><div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-7 w-7"/></div><div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-black">{service.name}</h3><p className="mt-1 text-[10px] font-bold text-[#7358d7]">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-[#f3f0ff] px-2 py-1 text-xs font-black text-[#7358d7]">Starts ₹{service.price.toLocaleString('en-IN')}</span></div><p className="mt-2 text-xs leading-5 text-[#777c85]">{service.description}</p><div className="mt-2 flex items-center gap-3 text-[10px] font-bold text-[#858a93]"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><span>View details</span><span className="text-[#7358d7]">Add</span></div></div></button>)}</div>}
+        {level === 'services' && !['electrician', 'beautician', 'plumber', 'cleaner-housekeeper', 'ac-technician', 'cook', 'painter', 'pest-control-worker'].includes(selectedCategory?.id || '') && <div className="mx-auto max-w-4xl space-y-4">
+          <div className="rounded-2xl bg-[#28233d] p-4 text-white sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-5">
+            <div><p className="text-[10px] font-black uppercase tracking-[0.15em] text-violet-200">Service category catalogue</p><h3 className="mt-1 text-lg font-black">{selectedCategory?.name} · {selectedSubcategory?.name}</h3><p className="mt-1 text-xs leading-5 text-white/70">Choose a service for booking, or switch to products and materials related to this category.</p></div>
+            <div className="mt-3 flex shrink-0 rounded-xl bg-white/10 p-1 sm:mt-0">
+              <button type="button" onClick={()=>setDetailTab('services')} className={`rounded-lg px-3 py-2 text-xs font-black ${detailTab==='services'?'bg-white text-[#28233d]':'text-white'}`}><Wrench className="mr-1 inline h-3.5 w-3.5"/>Services</button>
+              <button type="button" onClick={()=>{setDetailTab('products');setGenericProductAdded(null);}} className={`rounded-lg px-3 py-2 text-xs font-black ${detailTab==='products'?'bg-white text-[#28233d]':'text-white'}`}><Package className="mr-1 inline h-3.5 w-3.5"/>Products ({activeCategoryProducts.length})</button>
+            </div>
+          </div>
+          {detailTab === 'services' ? <div className="space-y-3">
+            {services.filter(service=>`${service.name} ${service.description}`.toLowerCase().includes(query.toLowerCase())).map(service=><button key={service.id} onClick={()=>selectLeaf(service)} className="group flex w-full gap-4 rounded-2xl bg-white p-4 text-left shadow-sm ring-1 ring-black/5 transition hover:ring-[#7358d7]/30">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-[#f1effa] text-[#7358d7]"><Wrench className="h-7 w-7"/></div>
+              <div className="min-w-0 flex-1"><div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-black">{service.name}</h3><p className="mt-1 text-[10px] font-bold text-[#7358d7]">{service.subcategory}</p></div><span className="shrink-0 rounded-lg bg-[#f3f0ff] px-2 py-1 text-xs font-black text-[#7358d7]">Starts ₹{service.price.toLocaleString('en-IN')}</span></div><p className="mt-2 text-xs leading-5 text-[#777c85]">{service.description}</p><div className="mt-2 flex items-center gap-3 text-[10px] font-bold text-[#858a93]"><span className="flex items-center gap-1"><Clock3 className="h-3.5 w-3.5"/>{service.duration}</span><span className="text-[#7358d7]">Select service</span></div></div>
+            </button>)}
+            {services.length === 0 && <div className="rounded-2xl bg-white p-6 text-center text-sm text-[#737780]">No services match this search. Clear the search to see all services in this group.</div>}
+          </div> : renderCategoryProducts()}
+        </div>}
       </div>
       {citizenAddress && <div className="border-t border-black/5 bg-white px-4 py-3 text-xs sm:px-6"><div className="flex items-center gap-2"><Home className="h-4 w-4 text-[#7358d7]"/><span className="font-black">Residential address:</span><span className="truncate text-[#6f747d]">{citizenAddress}</span></div></div>}
     </div>

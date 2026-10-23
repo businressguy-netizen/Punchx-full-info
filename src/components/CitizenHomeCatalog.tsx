@@ -24,10 +24,10 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 const CATEGORY_GROUPS: { title: string; emoji: string; ids: string[] }[] = [
   { title: 'Home Repairs', emoji: '🏠', ids: ['electrician', 'plumber', 'carpenter', 'painter'] },
   { title: 'Cleaning & Appliances', emoji: '🧹', ids: ['cleaner-housekeeper', 'ac-technician', 'pest-control-worker'] },
-  { title: 'Lifestyle & Care', emoji: '✨', ids: ['beautician', 'cook', 'home-care-physiotherapy'] },
+  { title: 'Lifestyle & Care', emoji: '✨', ids: ['beautician', 'cook', 'home-care', 'physiotherapy', 'catering'] },
 ];
 
-const POPULAR_IDS = ['electrician', 'plumber', 'cleaner-housekeeper', 'ac-technician', 'pest-control-worker', 'beautician', 'carpenter', 'painter', 'cook', 'home-care-physiotherapy'];
+const POPULAR_IDS = ['electrician', 'plumber', 'cleaner-housekeeper', 'ac-technician', 'pest-control-worker', 'beautician', 'carpenter', 'painter', 'cook', 'home-care', 'physiotherapy', 'catering'];
 
 /* ── Accent color per group for visual variety ── */
 const GROUP_COLORS = [
@@ -115,8 +115,13 @@ export default function CitizenHomeCatalog({
   const openCategory = useCallback((name: string) => {
     setSearchOpen(false);
     setQuery('');
-    onSelectCategory(name);
-    onTransition('providers');
+    const category = PUNCHX_50_CATEGORIES.find(item => item.id === name || item.name === name);
+    if (category) {
+      try { localStorage.setItem('punchx_catalogue_selected_category_id', category.id); } catch { /* Category selection can still proceed without storage. */ }
+    }
+    onSelectCategory(category?.name || name);
+    // Open the category-first service catalogue rather than skipping straight to provider results.
+    onTransition('catalogue');
   }, [onSelectCategory, onTransition]);
 
   // Five familiar primary actions reduce choice overload while keeping the

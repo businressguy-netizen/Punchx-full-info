@@ -49,10 +49,20 @@ const SERVICE_WORKS: Record<string, readonly WorkGroup[]> = {
   ...SERVICE_WORKS_3,
   ...SERVICE_WORKS_4,
   ...SERVICE_WORKS_5,
-  'home-care-physiotherapy': [
-    ['Physiotherapy at Home', ['Initial physiotherapy assessment', 'Mobility and flexibility exercises', 'Post-surgery recovery visit', 'Pain and movement consultation', 'Follow-up physiotherapy session']],
-    ['Elderly & Daily Care', ['Elderly companion visit', 'Daily living assistance', 'Walking and mobility support', 'Caregiver relief visit']],
-    ['Recovery Support', ['Home exercise guidance', 'Balance and coordination practice', 'Recovery progress review']],
+  'home-care': [
+    ['Elderly & Daily Assistance', ['Elderly companion visit', 'Daily living assistance', 'Walking and mobility support', 'Caregiver relief visit', 'Meal assistance and serving']],
+    ['Personal Care & Safety', ['Personal care assistance', 'Bathing and dressing assistance', 'Medication reminder visit', 'Fall-prevention home support']],
+    ['Scheduled Care Visits', ['Hourly caregiver visit', 'Half-day caregiver support', 'Full-day caregiver support', 'Family caregiver relief visit']],
+  ],
+  'physiotherapy': [
+    ['Assessment & Consultation', ['Initial physiotherapy assessment', 'Pain and movement consultation', 'Physiotherapy follow-up visit']],
+    ['Rehabilitation & Recovery', ['Mobility and flexibility exercises', 'Post-surgery recovery visit', 'Balance and coordination practice', 'Recovery progress review']],
+    ['Home Exercise Support', ['Home exercise guidance', 'Strength and conditioning session', 'Gait and posture training']],
+  ],
+  'catering': [
+    ['Party & Event Catering', ['Birthday party catering', 'Family event catering', 'Office catering', 'Small gathering catering consultation']],
+    ['Menu Planning', ['Bengali menu planning', 'Vegetarian catering menu', 'Non-vegetarian catering menu', 'Custom menu and guest-count quotation']],
+    ['Meal Packages & Service', ['Buffet meal package', 'Snacks and refreshments package', 'Packed meal delivery', 'Serving staff add-on']],
   ],
 };
 
@@ -80,8 +90,10 @@ const WORK_ALIASES: Record<string, string[]> = {
   'cleaner-housekeeper': ['cleaner-housekeeper', 'upholstery-sofa-cleaner', 'home-disinfection'],
   carpenter: ['carpenter', 'locksmith', 'glass-glazier-worker', 'welder', 'fabricator'],
   painter: ['painter', 'house-painter', 'mason', 'tile-marble-installer', 'waterproofing-specialist', 'pop-false-ceiling-worker'],
-  cook: ['cook', 'domestic-help', 'caterer', 'tiffin-home-food-provider'],
-  'home-care-physiotherapy': ['home-care-physiotherapy'],
+  cook: ['cook', 'domestic-help', 'tiffin-home-food-provider'],
+  'home-care': ['home-care'],
+  physiotherapy: ['physiotherapy'],
+  catering: ['catering', 'caterer'],
   beautician: ['beautician', 'hair-stylist', 'barber'],
 };
 

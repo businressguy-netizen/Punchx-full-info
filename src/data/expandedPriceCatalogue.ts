@@ -43,7 +43,7 @@ const families: Family[] = [
     {name:'Door lock set',unit:'piece',minPrice:250,maxPrice:4500,specification:'Mortise, cylindrical or smart lock',confidence:'C'},
     {name:'Plywood 6–18 mm',unit:'sheet',minPrice:700,maxPrice:4500,specification:'Grade, thickness and sheet size',confidence:'C'},
     {name:'Wood adhesive',unit:'kg/litre',minPrice:120,maxPrice:850,specification:'Brand and pack size',confidence:'C'}]},
-  { match: /ac service|air condition|ac repair/i, products: [
+  { match: /ac\b|air condition|ac repair/i, products: [
     {name:'AC remote control',unit:'piece',minPrice:250,maxPrice:1800,specification:'Universal or model-specific',confidence:'B'},
     {name:'AC capacitor 25–60 µF',unit:'piece',minPrice:250,maxPrice:1800,specification:'Match capacitance and voltage',confidence:'B'},
     {name:'AC temperature sensor',unit:'piece',minPrice:250,maxPrice:1400,specification:'Model/connector compatibility',confidence:'C'},
@@ -168,6 +168,50 @@ const families: Family[] = [
     {name:'Stretch wrap roll',unit:'roll',minPrice:120,maxPrice:550,specification:'Width and thickness',confidence:'C'},
     {name:'Vehicle shampoo',unit:'litre',minPrice:150,maxPrice:800,specification:'pH and vehicle-safe formula',confidence:'C'},
     {name:'Microfibre detailing kit',unit:'set',minPrice:250,maxPrice:1800,specification:'Towels, brushes and applicators',confidence:'C'}]},
+  { match: /cook|home assistance|kitchen helper/i, products: [
+    {name:'Cookware set',unit:'set',minPrice:900,maxPrice:8500,specification:'Material, number of pieces and induction compatibility',confidence:'C'},
+    {name:'Pressure cooker 3–5 L',unit:'piece',minPrice:850,maxPrice:4500,specification:'Capacity, material and pressure-regulator type',confidence:'C'},
+    {name:'Chopping board',unit:'piece',minPrice:120,maxPrice:1200,specification:'Food-safe material and size',confidence:'B'},
+    {name:'Chef knife / kitchen knife set',unit:'set',minPrice:250,maxPrice:2800,specification:'Blade material, number of knives and safe storage',confidence:'C'},
+    {name:'Food storage container set',unit:'set',minPrice:250,maxPrice:2200,specification:'Capacity, lid seal and food-safe material',confidence:'B'},
+    {name:'Spice and ingredient organiser',unit:'set',minPrice:180,maxPrice:1800,specification:'Number of jars and material',confidence:'B'},
+    {name:'Apron and reusable kitchen gloves',unit:'set',minPrice:180,maxPrice:1200,specification:'Sizing, fabric and heat/water resistance',confidence:'B'},
+    {name:'Insulated casserole / hot pot',unit:'piece',minPrice:450,maxPrice:3200,specification:'Capacity and insulation',confidence:'C'},
+    {name:'Kitchen measuring cup & spoon set',unit:'set',minPrice:100,maxPrice:700,specification:'Metric markings and material',confidence:'B'}
+  ]},
+  { match: /home care|elderly|caregiver/i, products: [
+    {name:'Walking stick / cane',unit:'piece',minPrice:250,maxPrice:1800,specification:'Height adjustment, handle type and load rating',confidence:'C'},
+    {name:'Folding walker',unit:'piece',minPrice:900,maxPrice:4500,specification:'Frame width, wheels, brakes and user fit',confidence:'C'},
+    {name:'Grab bar / support rail',unit:'piece',minPrice:350,maxPrice:2200,specification:'Wall type and professional fixing required',confidence:'C',quoteRequired:true},
+    {name:'Non-slip bathroom mat',unit:'piece',minPrice:180,maxPrice:1000,specification:'Dimensions, drainage and grip surface',confidence:'B'},
+    {name:'Shower chair',unit:'piece',minPrice:1200,maxPrice:5500,specification:'Seat height, frame material and weight capacity',confidence:'C'},
+    {name:'Bedside safety rail',unit:'piece',minPrice:900,maxPrice:4200,specification:'Bed compatibility and correct installation',confidence:'C'},
+    {name:'Reusable care gloves',unit:'pair',minPrice:60,maxPrice:400,specification:'Size, material and intended use',confidence:'B'},
+    {name:'Pill organiser case',unit:'piece',minPrice:80,maxPrice:650,specification:'Compartments and labelling; does not include medicine',confidence:'B'},
+    {name:'Washable bed protection pad',unit:'piece',minPrice:350,maxPrice:1800,specification:'Bed size, absorbency and wash instructions',confidence:'C'}
+  ]},
+  { match: /physiotherap|rehabilitation|physio/i, products: [
+    {name:'Resistance band set',unit:'set',minPrice:180,maxPrice:1200,specification:'Resistance levels and latex-free options',confidence:'B'},
+    {name:'Exercise / yoga mat',unit:'piece',minPrice:350,maxPrice:2200,specification:'Length, thickness and grip',confidence:'B'},
+    {name:'Therapy exercise ball',unit:'piece',minPrice:450,maxPrice:1800,specification:'Ball diameter chosen for user height',confidence:'C'},
+    {name:'Foam roller',unit:'piece',minPrice:350,maxPrice:2200,specification:'Length, density and surface texture',confidence:'C'},
+    {name:'Ankle / wrist weights',unit:'pair',minPrice:250,maxPrice:1500,specification:'Weight per side and fastening style',confidence:'B'},
+    {name:'Hot / cold reusable pack',unit:'piece',minPrice:180,maxPrice:950,specification:'Size and use instructions; confirm suitability with clinician',confidence:'B'},
+    {name:'Balance pad',unit:'piece',minPrice:500,maxPrice:2500,specification:'Dimensions and firmness',confidence:'C'},
+    {name:'Finger / hand therapy putty',unit:'set',minPrice:180,maxPrice:900,specification:'Resistance grade and pack size',confidence:'B'},
+    {name:'Walking support aid',unit:'piece',minPrice:600,maxPrice:4500,specification:'Type, dimensions and fit should be reviewed by clinician',confidence:'C'}
+  ]},
+  { match: /cater|event catering/i, products: [
+    {name:'Insulated food delivery container',unit:'piece',minPrice:650,maxPrice:4500,specification:'Capacity, insulation and food-safe material',confidence:'C'},
+    {name:'Chafing dish / buffet warmer',unit:'piece',minPrice:1800,maxPrice:9500,specification:'Capacity, fuel/electric type and rental availability',confidence:'C'},
+    {name:'Serving tray set',unit:'set',minPrice:350,maxPrice:2800,specification:'Tray count, material and size',confidence:'B'},
+    {name:'Serving spoon & tong set',unit:'set',minPrice:250,maxPrice:1800,specification:'Food-safe material and item count',confidence:'B'},
+    {name:'Disposable plates & bowls',unit:'pack',minPrice:100,maxPrice:1200,specification:'Pack count and compostable/material type',confidence:'C'},
+    {name:'Food takeaway containers',unit:'pack',minPrice:120,maxPrice:1600,specification:'Container volume, leak resistance and pack count',confidence:'C'},
+    {name:'Water / beverage dispenser',unit:'piece',minPrice:700,maxPrice:4500,specification:'Capacity, tap type and material',confidence:'C'},
+    {name:'Buffet table linen',unit:'piece',minPrice:350,maxPrice:2500,specification:'Table dimensions, fabric and laundry terms',confidence:'C'},
+    {name:'Chairs, tables & buffet equipment rental',unit:'event',minPrice:1500,maxPrice:18000,specification:'Guest count, venue access and rental duration; confirm quote',confidence:'C',quoteRequired:true}
+  ]},
   { match: /garden|cook|cater|food|interior|event|photo|video|dj|security/i, products: [
     {name:'Consumables / materials allowance',unit:'job',minPrice:100,maxPrice:2500,specification:'Depends on selected scope; itemised quote required',confidence:'C',quoteRequired:true},
     {name:'Tools / equipment rental',unit:'day',minPrice:250,maxPrice:5000,specification:'Equipment, duration and delivery vary',confidence:'C',quoteRequired:true},
@@ -180,12 +224,33 @@ const genericProducts: ProductSeed[] = [
   {name:'Tools / equipment rental',unit:'day',minPrice:250,maxPrice:3500,specification:'Availability and delivery must be confirmed',confidence:'C',quoteRequired:true},
 ];
 
+const PRODUCT_FAMILY_ALIASES: Record<string, string[]> = {
+  electrician: ['lighting', 'switches', 'wiring', 'electrical fittings'],
+  plumber: ['plumbing', 'water pipe', 'bathroom fittings', 'water pump'],
+  'cleaner-housekeeper': ['home cleaning', 'sofa', 'mattress', 'carpet', 'upholstery', 'laundry'],
+  'ac-technician': ['air conditioning', 'appliance', 'washing machine', 'refrigerator', 'water purifier', 'television'],
+  'pest-control-worker': ['pest control', 'termite', 'rodent'],
+  beautician: ['beauty', 'salon', 'massage', 'spa', 'hair styling'],
+  carpenter: ['carpentry', 'furniture', 'locksmith', 'door', 'window', 'glass', 'welding', 'fabrication'],
+  painter: ['painting', 'waterproofing', 'masonry', 'tiles', 'false ceiling'],
+  cook: ['cook', 'kitchen', 'food preparation', 'home assistance'],
+  'home-care': ['home care', 'elderly', 'caregiver', 'mobility aids'],
+  physiotherapy: ['physiotherapy', 'rehabilitation', 'exercise therapy'],
+  catering: ['catering', 'event catering', 'buffet', 'food service'],
+};
+
 export function getProductsForCategory(category: ServiceCategory): PriceProduct[] {
-  const family = families.find(({match}) => match.test(category.name) || match.test(category.id));
-  const seeds = family?.products || genericProducts;
+  const aliases = PRODUCT_FAMILY_ALIASES[category.id] || [];
+  const familySearchText = [category.name, category.id, ...aliases].join(' ');
+  const matchingFamilies = families.filter(({match}) => match.test(familySearchText));
+  const seeds = matchingFamilies.length
+    ? matchingFamilies.flatMap(family => family.products).filter((product, index, all) =>
+        all.findIndex(candidate => candidate.name.toLowerCase() === product.name.toLowerCase()) === index
+      )
+    : genericProducts;
   return seeds.map((product, index) => ({
     ...product,
     id: `${category.id}-product-${index + 1}`,
-    keywords: [category.name, product.name, product.specification],
+    keywords: [category.name, ...aliases, product.name, product.specification],
   }));
 }
