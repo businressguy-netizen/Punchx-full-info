@@ -45,10 +45,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!snapshot.exists) return { statusCode: 404, success: false, error: 'Booking not found.' };
 
       const order = snapshot.data() as Record<string, any>;
-      if (order.workerId !== uid) {
-        return { statusCode: 403, success: false, error: 'Only the assigned professional can change this tracking session.' };
-      }
-
       const now = new Date().toISOString();
       const history = Array.isArray(order.stateHistory) ? order.stateHistory.slice(-99) : [];
       const appendHistory = (to: string, reason: string, actorRole: 'worker' | 'citizen' = 'worker') => [
@@ -75,6 +71,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           stateHistory: appendHistory('Cancelled', 'Customer cancelled the booking and GPS sharing was stopped.', 'citizen'),
         });
         return { statusCode: 200, success: true, status: 'Cancelled' };
+      }
+
+      if (order.workerId !== uid) {
+        return { statusCode: 403, success: false, error: 'Only the assigned professional can change this tracking session.' };
       }
 
       if (action === 'start_journey') {
