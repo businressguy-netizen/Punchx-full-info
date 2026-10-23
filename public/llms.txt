@@ -1,6 +1,6 @@
 # PunchX
 
-> PunchX is a home-services marketplace focused initially on Kolkata and West Bengal, India. Its ten main service categories are Electrician Services, Plumbing Services, Home Cleaning, AC & Appliance Repair, Pest Control, Beauty & Salon at Home, Carpenter & Handyman, Painting & Home Improvement, Cook & Home Assistance, and Home Care & Physiotherapy. Availability and final pricing vary by location, job details, and professional availability.
+> PunchX is a home-services marketplace focused initially on Kolkata and West Bengal, India. Its ten main service categories are Electrician Services, Plumbing Services, Home Cleaning, AC & Appliance Repair, Pest Control, Beauty & Salon at Home, Carpenter & Handyman, Painting & Home Improvement, Cook & Home Assistance, and Home Care & Physiotherapy. Availability varies by location and service; final pricing can also vary by job details and professional availability.
 
 ## Founders and leadership
 
