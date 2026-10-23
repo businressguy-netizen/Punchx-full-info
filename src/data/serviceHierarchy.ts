@@ -94,10 +94,17 @@ const specific: Record<string, Array<[string, LeafSeed[]]>> = {
     ['Kitchen & Household Assistance', [['Kitchen cleanup assistance', 249], ['Dishwashing assistance', 199], ['Routine household help visit', 299]]],
     ['Scheduled Home Help', [['Part-time cook visit', 299], ['Daily cooking arrangement consultation', 99]]]
   ],
-  'home-care-physiotherapy': [
-    ['Physiotherapy at Home', [['Initial physiotherapy assessment', 699, '60 mins'], ['Physiotherapy follow-up visit', 599, '45 mins'], ['Mobility and flexibility session', 499, '45 mins'], ['Post-surgery recovery session', 699, '60 mins']]],
-    ['Elderly & Daily Care', [['Elderly assistance visit', 399, '60 mins'], ['Walking and mobility support', 299, '45 mins'], ['Daily living assistance visit', 399, '60 mins'], ['Caregiver relief visit', 499, '120 mins']]],
-    ['Recovery Support', [['Home exercise guidance', 399, '45 mins'], ['Balance and coordination practice', 499, '45 mins'], ['Recovery progress review', 299, '30 mins']]]
+  'home-care': [
+    ['Elderly & Daily Care', [['Elderly assistance visit', 399, '60 mins'], ['Walking and mobility support', 299, '45 mins'], ['Daily living assistance visit', 399, '60 mins'], ['Caregiver relief visit', 499, '120 mins'], ['Companion visit for seniors', 299, '60 mins']]],
+    ['Routine Home Assistance', [['Meal assistance and serving', 249, '45 mins'], ['Medication reminder visit', 199, '30 mins'], ['Mobility support at home', 299, '45 mins'], ['Scheduled caregiver visit', 399, '60 mins']]]
+  ],
+  'physiotherapy': [
+    ['Physiotherapy Assessment', [['Initial physiotherapy assessment', 699, '60 mins'], ['Pain and movement consultation', 499, '45 mins'], ['Physiotherapy follow-up visit', 599, '45 mins']]],
+    ['Rehabilitation & Recovery', [['Mobility and flexibility session', 499, '45 mins'], ['Post-surgery recovery session', 699, '60 mins'], ['Balance and coordination practice', 499, '45 mins'], ['Recovery progress review', 299, '30 mins'], ['Home exercise guidance', 399, '45 mins']]]
+  ],
+  'catering': [
+    ['Party & Event Catering', [['Small gathering catering consultation', 499, '30 mins'], ['Birthday party catering', 999, '120 mins'], ['Family event catering', 1499, '180 mins'], ['Office catering', 1499, '120 mins']]],
+    ['Meal Plans & Menu', [['Bengali menu planning', 299, '30 mins'], ['Vegetarian catering menu', 999, '120 mins'], ['Non-vegetarian catering menu', 1299, '120 mins'], ['Custom menu and guest-count quotation', 199, '30 mins']]]
   ],
 };
 
