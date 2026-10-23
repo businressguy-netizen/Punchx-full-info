@@ -81,7 +81,9 @@ const WORK_ALIASES: Record<string, string[]> = {
   carpenter: ['carpenter', 'locksmith', 'glass-glazier-worker', 'welder', 'fabricator'],
   painter: ['painter', 'house-painter', 'mason', 'tile-marble-installer', 'waterproofing-specialist', 'pop-false-ceiling-worker'],
   cook: ['cook', 'domestic-help', 'caterer', 'tiffin-home-food-provider'],
-  'home-care-physiotherapy': ['home-care-physiotherapy'],
+  'home-care': ['home-care-physiotherapy'],
+  physiotherapy: ['home-care-physiotherapy'],
+  catering: ['caterer', 'tiffin-home-food-provider'],
   beautician: ['beautician', 'hair-stylist', 'barber'],
 };
 
