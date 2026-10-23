@@ -30,18 +30,13 @@ const isJourneyActive = (order: TrackingOrder) =>
 
 function RouteLine({ from, to, onRouteInfo }: { from: Coords; to: Coords; onRouteInfo: (info: RouteInfo) => void }) {
   const map = useMap();
-  const lastRequest = useRef<{ key: string; at: number } | null>(null);
+  const latestFrom = useRef(from);
+  const latestTo = useRef(to);
+  latestFrom.current = from;
+  latestTo.current = to;
 
   useEffect(() => {
     if (!map || typeof google === 'undefined') return;
-    const key = [from.lat.toFixed(4), from.lng.toFixed(4), to.lat.toFixed(5), to.lng.toFixed(5)].join(':');
-    const now = Date.now();
-    // Avoid billing a routing request for every GPS point.
-    if (lastRequest.current && lastRequest.current.key === key && now - lastRequest.current.at < 30000) return;
-    if (lastRequest.current && now - lastRequest.current.at < 25000) return;
-    lastRequest.current = { key, at: now };
-    onRouteInfo(null);
-
     const renderer = new google.maps.DirectionsRenderer({
       map,
       suppressMarkers: true,
@@ -50,30 +45,47 @@ function RouteLine({ from, to, onRouteInfo }: { from: Coords; to: Coords; onRout
     });
     const service = new google.maps.DirectionsService();
     let cancelled = false;
-    service.route({
-      origin: from,
-      destination: to,
-      travelMode: google.maps.TravelMode.DRIVING,
-      drivingOptions: { departureTime: new Date(), trafficModel: google.maps.TrafficModel.BEST_GUESS },
-      provideRouteAlternatives: false,
-    }, (result, status) => {
-      if (cancelled) return;
-      const leg = result?.routes?.[0]?.legs?.[0];
-      if (status === 'OK' && leg) {
-        const seconds = leg.duration_in_traffic?.value ?? leg.duration?.value;
-        const meters = leg.distance?.value;
-        if (typeof seconds === 'number' && typeof meters === 'number') {
-          onRouteInfo({ distanceKm: meters / 1000, etaMinutes: Math.max(1, Math.ceil(seconds / 60)) });
+    let requestInFlight = false;
+
+    const calculateRoute = () => {
+      if (cancelled || requestInFlight) return;
+      requestInFlight = true;
+      const origin = latestFrom.current;
+      const destination = latestTo.current;
+      service.route({
+        origin,
+        destination,
+        travelMode: google.maps.TravelMode.DRIVING,
+        drivingOptions: { departureTime: new Date(), trafficModel: google.maps.TrafficModel.BEST_GUESS },
+        provideRouteAlternatives: false,
+      }, (result, status) => {
+        requestInFlight = false;
+        if (cancelled) return;
+        const leg = result?.routes?.[0]?.legs?.[0];
+        if (status === 'OK' && leg) {
+          const seconds = leg.duration_in_traffic?.value ?? leg.duration?.value;
+          const meters = leg.distance?.value;
+          if (typeof seconds === 'number' && typeof meters === 'number') {
+            onRouteInfo({ distanceKm: meters / 1000, etaMinutes: Math.max(1, Math.ceil(seconds / 60)) });
+          } else {
+            onRouteInfo(null);
+          }
+          renderer.setDirections(result);
         } else {
           onRouteInfo(null);
         }
-        renderer.setDirections(result);
-      } else {
-        onRouteInfo(null);
-      }
-    });
-    return () => { cancelled = true; renderer.setMap(null); };
-  }, [map, from.lat, from.lng, to.lat, to.lng, onRouteInfo]);
+      });
+    };
+
+    calculateRoute();
+    // Recalculate no more often than every 30s, even when GPS positions update faster.
+    const timer = window.setInterval(calculateRoute, 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      renderer.setMap(null);
+    };
+  }, [map, onRouteInfo]);
   return null;
 }
 
