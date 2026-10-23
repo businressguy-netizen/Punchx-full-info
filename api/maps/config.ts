@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const ALLOWED_ORIGINS = new Set([
   'https://www.punchxapp.co.in',
   'https://punchxapp.co.in',
+  'https://punchx-full-info-sigma.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',
 ]);
