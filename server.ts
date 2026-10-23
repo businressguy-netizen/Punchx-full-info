@@ -156,6 +156,7 @@ export const requireWorker = async (req: express.Request, res: express.Response,
 const ALLOWED_ORIGINS = [
   "https://www.punchxapp.co.in",
   "https://punchxapp.co.in",
+  "https://punchx-full-info-sigma.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
 ];
