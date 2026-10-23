@@ -14,6 +14,16 @@ type CatalogueTab = 'services' | 'products';
 const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
 const normalize = (value: string) => value.trim().toLowerCase();
 type BasketLine = { id:string; name:string; category:string; kind:'service'|'product'; unit:string; min:number; max:number; qty:number; notes:string; quote:boolean };
+// Service catalogue prices are labour/visit estimates; keep a clear range until the job is inspected.
+const servicePriceRange = (price: number, name: string, category: string) => {
+  const text = `${name} ${category}`.toLowerCase();
+  let low = 0.8, high = 1.35;
+  if (/bulb|switch|socket|plug|tap repair|minor|small|basic|threading|upper lip|single shirt/.test(text)) { low = 0.85; high = 1.2; }
+  if (/deep clean|installation|replacement|geyser|ac |air condition|refrigerator|washing machine|pest|physiotherap|painting|waterproof|catering|move|wedding|custom|fabrication|compressor|short circuit|inspection/.test(text)) { low = 0.75; high = 1.6; }
+  const min = Math.max(49, Math.floor(price * low / 10) * 10);
+  const max = Math.max(min + 20, Math.ceil(price * high / 10) * 10);
+  return { min, max };
+};
 const loadBasket = (): BasketLine[] => { try { const parsed=JSON.parse(localStorage.getItem('punchx_catalogue_cart')||'[]'); return Array.isArray(parsed)?parsed:[]; } catch { return []; } };
 
 export default function InteractivePriceCatalogue({ onTransition, onSelectCategory, showNotification }: InteractivePriceCatalogueProps) {
@@ -35,7 +45,7 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
   const addBasketLine=()=>{
     if(!selectedService&&!selectedProduct)return;
     const line:BasketLine=selectedService
-      ? {id:selectedService.id,name:selectedService.name,category:selectedCategory?.name||selectedService.categoryName,kind:'service',unit:selectedService.unit,min:selectedService.price,max:selectedService.price,qty:quantity,notes:selectedService.description,quote:false}
+      ? {id:selectedService.id,name:selectedService.name,category:selectedCategory?.name||selectedService.categoryName,kind:'service',unit:selectedService.unit,min:servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).min,max:servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).max,qty:quantity,notes:selectedService.description,quote:false}
       : {id:selectedProduct!.id,name:selectedProduct!.name,category:selectedCategory?.name||'Home Services',kind:'product',unit:selectedProduct!.unit,min:selectedProduct!.minPrice,max:selectedProduct!.maxPrice,qty:quantity,notes:selectedProduct!.specification,quote:Boolean(selectedProduct!.quoteRequired)};
     setBasket(old=>{const i=old.findIndex(x=>x.id===line.id&&x.category===line.category);return i<0?[...old,line]:old.map((x,n)=>n===i?{...x,qty:Math.min(99,x.qty+line.qty)}:x);});
     setSelectedService(null);setSelectedProduct(null);setQuantity(1);setBasketOpen(true);showNotification('Added to your PunchX cart.');
@@ -202,7 +212,7 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
                     <div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-wider text-[#8a8ea0]">{service.subcategoryName}</div><h3 className="mt-1 font-extrabold text-[#222534]">{service.name}</h3></div><span className="shrink-0 rounded-lg bg-[#f0edff] px-2 py-1 text-[10px] font-extrabold text-[#6453c5]">Service</span></div>
                     <p className="mt-2 flex-1 text-xs leading-5 text-[#74798b]">{service.description}</p>
                     {service.material && <p className="mt-2 text-[11px] text-[#656a7c]"><span className="font-bold">Materials:</span> {service.material}</p>}
-                    <div className="mt-4 flex items-end justify-between gap-2 border-t border-[#eef0f5] pt-3"><div><div className="text-[10px] font-bold text-[#8a8ea0]">Indicative service price</div><div className="text-lg font-black text-[#171923]">{money(service.price)} <span className="text-[10px] font-semibold text-[#8a8ea0]">/ {service.unit}</span></div></div><button onClick={() => {setSelectedService(service);setSelectedProduct(null);}} className="rounded-xl bg-[#171c35] px-3 py-2.5 text-xs font-extrabold text-white hover:bg-[#2a3157]">Select</button></div>
+                    <div className="mt-4 flex items-end justify-between gap-2 border-t border-[#eef0f5] pt-3"><div><div className="text-[10px] font-bold text-[#8a8ea0]">Indicative service price</div><div className="text-lg font-black text-[#171923]">{money(servicePriceRange(service.price, service.name, service.categoryName).min)} – {money(servicePriceRange(service.price, service.name, service.categoryName).max)} <span className="text-[10px] font-semibold text-[#8a8ea0]">/ {service.unit}</span></div></div><button onClick={() => {setSelectedService(service);setSelectedProduct(null);}} className="rounded-xl bg-[#171c35] px-3 py-2.5 text-xs font-extrabold text-white hover:bg-[#2a3157]">Select</button></div>
                   </article>
                 ))}
                 {filteredServices.length === 0 && <div className="col-span-full rounded-2xl border border-dashed border-[#d9dce7] bg-white p-10 text-center"><Search className="mx-auto h-7 w-7 text-[#a5a8b5]" /><p className="mt-3 font-bold">No service matched that search.</p><p className="mt-1 text-xs text-[#85899a]">Try a different keyword or clear the search field.</p></div>}
@@ -226,7 +236,7 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
 
         {(selectedService || selectedProduct) && <div className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-3xl rounded-2xl border border-[#dcd7ff] bg-white p-4 shadow-[0_20px_70px_rgba(20,24,50,.25)] sm:inset-x-6 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0"><div className="text-[10px] font-extrabold uppercase tracking-wider text-[#7968d5]">{selectedService ? 'Service selected' : 'Product / material selected'}</div><div className="mt-1 truncate font-black">{selectedService?.name || selectedProduct?.name}</div><div className="mt-1 text-xs text-[#74798b]">{selectedService ? `Indicative service price: ${money(selectedService.price)} per ${selectedService.unit}` : `Range: ${money(selectedProduct!.minPrice)}–${money(selectedProduct!.maxPrice)} per ${selectedProduct!.unit}`}</div></div>
+            <div className="min-w-0"><div className="text-[10px] font-extrabold uppercase tracking-wider text-[#7968d5]">{selectedService ? 'Service selected' : 'Product / material selected'}</div><div className="mt-1 truncate font-black">{selectedService?.name || selectedProduct?.name}</div><div className="mt-1 text-xs text-[#74798b]">{selectedService ? `Indicative service range: ${money(servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).min)}–${money(servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).max)} per ${selectedService.unit}` : `Range: ${money(selectedProduct!.minPrice)}–${money(selectedProduct!.maxPrice)} per ${selectedProduct!.unit}`}</div></div>
             <div className="flex shrink-0 items-center gap-2"><label className="text-xs font-bold text-[#626779]" htmlFor="catalogue-quantity">Qty</label><input id="catalogue-quantity" type="number" min={1} max={99} value={quantity} onChange={event => setQuantity(Math.max(1,Math.min(99,Number(event.target.value)||1)))} className="w-16 rounded-lg border border-[#e2e4ed] px-2 py-2 text-sm font-bold" /><button onClick={addBasketLine} className="inline-flex items-center gap-2 rounded-xl bg-[#6653ce] px-4 py-3 text-xs font-extrabold text-white hover:bg-[#5341b7]"><ShoppingBasket className="h-4 w-4" /> Add to cart <ArrowRight className="h-4 w-4" /></button><button onClick={() => {setSelectedService(null);setSelectedProduct(null);}} aria-label="Clear selected item" className="rounded-lg px-2 py-2 text-[#8a8ea0] hover:bg-[#f4f4fa]">×</button></div>
           </div>
         </div>}
