@@ -137,6 +137,12 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
     return allServices.filter(service => service.categoryId === selectedCategoryId &&
       (!search || [service.name, service.description, service.subcategoryName, service.material || ''].some(value => normalize(value).includes(search))));
   }, [allServices, selectedCategoryId, query, beautyGender, beautyGroupId, selectedCategory?.name]);
+  const serviceSections = (selectedCategory?.subcategories || []).map(group => ({
+    id: group.id,
+    name: group.name,
+    description: group.description,
+    services: filteredServices.filter(service => service.subcategoryName === group.name),
+  })).filter(group => group.services.length > 0);
 
   const openBooking = (name: string, description: string, price: number, type: 'service' | 'product', id: string, unit: string) => {
     onSelectCategory(selectedCategory?.name || name);
@@ -214,14 +220,14 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
           <aside className="h-fit rounded-3xl border border-[#e4e6ef] bg-white p-4 shadow-sm lg:sticky lg:top-24">
             <label htmlFor="catalogue-category" className="text-xs font-extrabold uppercase tracking-wider text-[#74798b]">Choose a category</label>
             <div className="relative mt-2">
-              <select id="catalogue-category" value={selectedCategoryId} onChange={event => { setSelectedCategoryId(event.target.value); setQuery(''); setSelectedProduct(null); setSelectedService(null); }} className="w-full appearance-none rounded-xl border border-[#e2e4ed] bg-[#fafbfe] px-3 py-3 pr-9 text-sm font-bold outline-none focus:border-[#7762df] focus:ring-2 focus:ring-[#7762df]/15">
+              <select id="catalogue-category" value={selectedCategoryId} onChange={event => chooseCategory(event.target.value)} className="w-full appearance-none rounded-xl border border-[#e2e4ed] bg-[#fafbfe] px-3 py-3 pr-9 text-sm font-bold outline-none focus:border-[#7762df] focus:ring-2 focus:ring-[#7762df]/15">
                 {serviceCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-3.5 h-4 w-4 text-[#7c8090]" />
             </div>
             <div className="mt-5 space-y-2">
               {serviceCategories.map(category => (
-                <button key={category.id} onClick={() => { setSelectedCategoryId(category.id); setQuery(''); setSelectedProduct(null); setSelectedService(null); }} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-bold transition ${selectedCategoryId === category.id ? 'bg-[#eeeaff] text-[#5b48bf]' : 'text-[#626779] hover:bg-[#f5f6fb] hover:text-[#202331]'}`}>
+                <button key={category.id} onClick={() => chooseCategory(category.id)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-xs font-bold transition ${selectedCategoryId === category.id ? 'bg-[#eeeaff] text-[#5b48bf]' : 'text-[#626779] hover:bg-[#f5f6fb] hover:text-[#202331]'}`}>
                   <span className="pr-2">{category.name}</span><span className="text-[10px] opacity-60">{category.subcategories.reduce((sum, sub) => sum + sub.items.length, 0)}</span>
                 </button>
               ))}
@@ -239,31 +245,86 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
                 <div className="inline-flex w-fit items-center gap-1.5 rounded-full bg-[#edf8f2] px-3 py-1.5 text-[11px] font-bold text-[#23754c]"><MapPin className="h-3.5 w-3.5" /> Kolkata / West Bengal focus</div>
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 md:flex-row">
+              {!(selectedCategoryId === 'beautician' && !beautyGender) && <div className="mt-5 flex flex-col gap-3 md:flex-row">
                 <div className="relative min-w-0 flex-1">
                   <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-[#8a8ea0]" />
                   <input value={query} onChange={event => setQuery(event.target.value)} placeholder={activeTab === 'services' ? 'Search services in this category…' : 'Search parts, sizes, materials…'} className="w-full rounded-xl border border-[#e2e4ed] bg-[#fafbfe] py-3 pl-10 pr-3 text-sm outline-none focus:border-[#7762df] focus:ring-2 focus:ring-[#7762df]/15" />
                 </div>
                 <div className="flex rounded-xl bg-[#f0f1f7] p-1">
                   <button onClick={() => {setActiveTab('services');setQuery('');}} className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-extrabold transition ${activeTab === 'services' ? 'bg-white text-[#5747b8] shadow-sm' : 'text-[#74798b]'}`}><Wrench className="h-4 w-4" /> Services</button>
-                  <button onClick={() => {setActiveTab('products');setQuery('');}} className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-extrabold transition ${activeTab === 'products' ? 'bg-white text-[#5747b8] shadow-sm' : 'text-[#74798b]'}`}><Package className="h-4 w-4" /> Parts & materials</button>
+                  <button onClick={() => {setActiveTab('products');setQuery('');setSelectedProduct(null);setSelectedService(null);}} className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-extrabold transition ${activeTab === 'products' ? 'bg-white text-[#5747b8] shadow-sm' : 'text-[#74798b]'}`}><Package className="h-4 w-4" /> Products & materials</button>
                 </div>
-              </div>
+              </div>}
 
-              {activeTab === 'products' && <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-[#85899a]">Prices shown are indicative product/material ranges, not guaranteed stock quotes.</p><label className="flex items-center gap-2 text-xs font-bold text-[#626779]"><input type="checkbox" checked={showQuoteOnly} onChange={event => setShowQuoteOnly(event.target.checked)} className="accent-[#7160d7]" /> Quote required only</label></div>}
+              {activeTab === 'products' && !(selectedCategoryId === 'beautician' && !beautyGender) && <div className="mt-3 flex flex-wrap items-center justify-between gap-3"><p className="text-xs text-[#85899a]">Prices shown are indicative product/material ranges, not guaranteed stock quotes.</p><label className="flex items-center gap-2 text-xs font-bold text-[#626779]"><input type="checkbox" checked={showQuoteOnly} onChange={event => setShowQuoteOnly(event.target.checked)} className="accent-[#7160d7]" /> Quote required only</label></div>}
             </div>
 
-            {activeTab === 'services' ? (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {filteredServices.map(service => (
-                  <article key={service.id} className="flex flex-col rounded-2xl border border-[#e4e6ef] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#c9c0ff] hover:shadow-md">
-                    <div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-wider text-[#8a8ea0]">{service.subcategoryName}</div><h3 className="mt-1 font-extrabold text-[#222534]">{service.name}</h3></div><span className="shrink-0 rounded-lg bg-[#f0edff] px-2 py-1 text-[10px] font-extrabold text-[#6453c5]">Service</span></div>
-                    <p className="mt-2 flex-1 text-xs leading-5 text-[#74798b]">{service.description}</p>
-                    {service.material && <p className="mt-2 text-[11px] text-[#656a7c]"><span className="font-bold">Materials:</span> {service.material}</p>}
-                    <div className="mt-4 flex items-end justify-between gap-2 border-t border-[#eef0f5] pt-3"><div><div className="text-[10px] font-bold text-[#8a8ea0]">Indicative service price</div><div className="text-lg font-black text-[#171923]">{money(servicePriceRange(service.price, service.name, service.categoryName).min)} – {money(servicePriceRange(service.price, service.name, service.categoryName).max)} <span className="text-[10px] font-semibold text-[#8a8ea0]">/ {service.unit}</span></div></div><button onClick={() => {setSelectedService(service);setSelectedProduct(null);}} className="rounded-xl bg-[#171c35] px-3 py-2.5 text-xs font-extrabold text-white hover:bg-[#2a3157]">Select</button></div>
-                  </article>
-                ))}
-                {filteredServices.length === 0 && <div className="col-span-full rounded-2xl border border-dashed border-[#d9dce7] bg-white p-10 text-center"><Search className="mx-auto h-7 w-7 text-[#a5a8b5]" /><p className="mt-3 font-bold">No service matched that search.</p><p className="mt-1 text-xs text-[#85899a]">Try a different keyword or clear the search field.</p></div>}
+            {selectedCategoryId === 'beautician' && !beautyGender ? (
+              <section className="mt-4 space-y-4">
+                <div className="rounded-2xl border border-[#ead8e8] bg-gradient-to-r from-[#fff5fb] to-[#f6f1ff] p-5 sm:p-7">
+                  <p className="text-[10px] font-black uppercase tracking-[.16em] text-[#9b4678]">Beauty & Salon at Home</p>
+                  <h3 className="mt-2 text-2xl font-black text-[#2b2030] sm:text-3xl">Choose who the services are for</h3>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[#766879]">The service categories, treatments and products are separated by collection. Choose Women or Men to continue.</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <button type="button" onClick={() => {setBeautyGender('female');setBeautyGroupId(null);setActiveTab('services');setQuery('');}} className="group overflow-hidden rounded-3xl border border-[#eed5e4] bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <div className="relative h-48 overflow-hidden bg-[#faeaf2]"><img src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1200&q=85" alt="Women’s salon treatment" className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/><div className="absolute inset-0 bg-gradient-to-t from-[#2d1725]/80 to-transparent"/><span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#903d70]">Female collection</span></div>
+                    <div className="p-5"><div className="flex items-center justify-between"><h4 className="text-xl font-black text-[#302231]">Women</h4><ArrowRight className="h-5 w-5 text-[#b14980]"/></div><p className="mt-2 text-sm leading-6 text-[#766879]">Salon for Women · Spa for Women · Hair Studio for Women · Makeup, Saree & Styling</p><div className="mt-3 flex flex-wrap gap-2">{['Facials & waxing','Hair & nails','Makeup & draping'].map(tag=><span key={tag} className="rounded-full bg-[#fff0f6] px-2.5 py-1 text-[10px] font-bold text-[#903d70]">{tag}</span>)}</div></div>
+                  </button>
+                  <button type="button" onClick={() => {setBeautyGender('male');setBeautyGroupId(null);setActiveTab('services');setQuery('');}} className="group overflow-hidden rounded-3xl border border-[#dddaf6] bg-white text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <div className="relative h-48 overflow-hidden bg-[#eeedff]"><img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=1200&q=85" alt="Men’s barber and grooming" className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/><div className="absolute inset-0 bg-gradient-to-t from-[#201c3b]/80 to-transparent"/><span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#5b50a4]">Male collection</span></div>
+                    <div className="p-5"><div className="flex items-center justify-between"><h4 className="text-xl font-black text-[#292540]">Men</h4><ArrowRight className="h-5 w-5 text-[#6559b6]"/></div><p className="mt-2 text-sm leading-6 text-[#766879]">Salon for Men · Massage for Men</p><div className="mt-3 flex flex-wrap gap-2">{['Hair & beard','Facial & grooming','Massage & care'].map(tag=><span key={tag} className="rounded-full bg-[#f2f0ff] px-2.5 py-1 text-[10px] font-bold text-[#5b50a4]">{tag}</span>)}</div></div>
+                  </button>
+                </div>
+              </section>
+            ) : selectedCategoryId === 'beautician' && beautyGender && activeTab === 'services' && !beautyGroupId ? (
+              <section className="mt-4 space-y-4">
+                <div className="flex flex-wrap items-end justify-between gap-3 rounded-2xl border border-[#e9e2f1] bg-white p-4">
+                  <div><p className="text-[10px] font-black uppercase tracking-wider text-[#8b5188]">{beautyGender === 'female' ? 'Women’s collection' : 'Men’s collection'}</p><h3 className="mt-1 text-xl font-black text-[#2b2030]">{beautyGender === 'female' ? 'Women’s service categories' : 'Men’s service categories'}</h3><p className="mt-1 text-xs text-[#766879]">Select a section to view that section’s services and related products.</p></div>
+                  <button type="button" onClick={() => {setBeautyGender(null);setBeautyGroupId(null);setQuery('');}} className="rounded-xl border border-[#e6ddea] px-3 py-2 text-xs font-black text-[#655064]">Change audience</button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {currentBeautyGroups.map(group=><button key={group.id} type="button" onClick={() => {setBeautyGroupId(group.id);setQuery('');setActiveTab('services');}} className="group flex min-w-0 overflow-hidden rounded-2xl border border-[#e7dce9] bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                    <img src={group.image} alt="" loading="lazy" className="h-36 w-28 shrink-0 object-cover sm:h-40 sm:w-36"/>
+                    <div className="min-w-0 flex-1 p-4"><span className="rounded-full bg-[#f7eefa] px-2 py-1 text-[9px] font-black uppercase tracking-wider text-[#825582]">{group.tag}</span><h4 className="mt-2 text-base font-black text-[#292133]">{group.name}</h4><p className="mt-1 text-xs leading-5 text-[#766879]">{group.description}</p><p className="mt-3 text-[10px] font-black text-[#86527f]">{group.services.length} services · {group.productGroups.length} product groups <ArrowRight className="ml-1 inline h-3 w-3"/></p></div>
+                  </button>)}
+                </div>
+                <button type="button" onClick={() => setActiveTab('products')} className="rounded-xl border border-[#e3d8ee] bg-white px-4 py-3 text-xs font-black text-[#70518a]"><Package className="mr-2 inline h-4 w-4"/>Browse all {beautyGender === 'female' ? 'women’s' : 'men’s'} products</button>
+              </section>
+            ) : selectedCategoryId === 'beautician' && beautyGender && activeTab === 'products' ? (
+              <section className="mt-4 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#e9e2f1] bg-white p-4">
+                  <div><p className="text-[10px] font-black uppercase tracking-wider text-[#8b5188]">{beautyGender === 'female' ? 'Women’s products' : 'Men’s products'}</p><h3 className="mt-1 text-xl font-black text-[#2b2030]">{selectedBeautyGroup?.name || 'Beauty products & supplies'}</h3></div>
+                  <button type="button" onClick={() => {setBeautyGender(null);setBeautyGroupId(null);setActiveTab('services');setQuery('');}} className="rounded-xl border border-[#e6ddea] px-3 py-2 text-xs font-black text-[#655064]">Change audience</button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setBeautyGroupId(null)} className={`rounded-full border px-3 py-2 text-[10px] font-black ${!beautyGroupId?'border-[#8f5c96] bg-[#f7eefa] text-[#714578]':'border-[#e6ddea] bg-white text-[#756a78]'}`}>All {beautyGender === 'female' ? 'women’s' : 'men’s'} products</button>
+                  {currentBeautyGroups.map(group=><button key={group.id} type="button" onClick={() => setBeautyGroupId(group.id)} className={`rounded-full border px-3 py-2 text-[10px] font-black ${beautyGroupId===group.id?'border-[#8f5c96] bg-[#f7eefa] text-[#714578]':'border-[#e6ddea] bg-white text-[#756a78]'}`}>{group.name}</button>)}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {filteredProducts.map(product=><article key={product.id} className="flex flex-col rounded-2xl border border-[#e6ddea] bg-white p-4 shadow-sm transition hover:shadow-md">
+                    <div className="flex items-start justify-between gap-2"><h4 className="font-black text-[#292133]">{product.name}</h4><span className="rounded-lg bg-[#f7eefa] px-2 py-1 text-[9px] font-black text-[#714578]">{product.confidence} confidence</span></div>
+                    <p className="mt-2 flex-1 text-xs leading-5 text-[#766879]">{product.specification}</p><p className="mt-3 text-lg font-black text-[#292133]">{money(product.minPrice)} – {money(product.maxPrice)} <span className="text-[10px] font-semibold text-[#8a7f8c]">/ {product.unit}</span></p>
+                    {product.quoteRequired && <p className="mt-2 text-[10px] font-bold text-amber-800">Exact brand / specification quote required.</p>}
+                    <button type="button" onClick={() => requestQuote(product)} className="mt-3 rounded-xl border border-[#e3d8ee] bg-[#f8f2fb] px-3 py-2.5 text-xs font-black text-[#714578]">Select product <ArrowRight className="ml-1 inline h-3.5 w-3.5"/></button>
+                  </article>)}
+                  {filteredProducts.length===0 && <div className="col-span-full rounded-xl border border-dashed p-8 text-center text-sm text-[#766879]">No products match the search in this group.</div>}
+                </div>
+              </section>
+            ) : activeTab === 'services' ? (
+              <div className="mt-4 space-y-6">
+                {serviceSections.map(group=><section key={group.id} className="space-y-3">
+                  <div className="flex items-end justify-between gap-3"><div><h3 className="text-lg font-black text-[#222534]">{group.name}</h3><p className="mt-1 text-xs text-[#74798b]">{group.description}</p></div><span className="shrink-0 rounded-full bg-[#f0edff] px-2.5 py-1 text-[10px] font-black text-[#6453c5]">{group.services.length} services</span></div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {group.services.map(service=><article key={service.id} className="flex flex-col rounded-2xl border border-[#e4e6ef] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#c9c0ff] hover:shadow-md">
+                      <div className="flex items-start justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-wider text-[#8a8ea0]">{service.subcategoryName}</div><h3 className="mt-1 font-extrabold text-[#222534]">{service.name}</h3></div><span className="shrink-0 rounded-lg bg-[#f0edff] px-2 py-1 text-[10px] font-extrabold text-[#6453c5]">Service</span></div>
+                      <p className="mt-2 flex-1 text-xs leading-5 text-[#74798b]">{service.description}</p>
+                      {service.material && <p className="mt-2 text-[11px] text-[#656a7c]"><span className="font-bold">Materials:</span> {service.material}</p>}
+                      <div className="mt-4 flex items-end justify-between gap-2 border-t border-[#eef0f5] pt-3"><div><div className="text-[10px] font-bold text-[#8a8ea0]">Indicative service price</div><div className="text-lg font-black text-[#171923]">{money(selectedServicePriceRange(service).min)} – {money(selectedServicePriceRange(service).max)} <span className="text-[10px] font-semibold text-[#8a8ea0]">/ {service.unit}</span></div></div><button onClick={() => {setSelectedService(service);setSelectedProduct(null);}} className="rounded-xl bg-[#171c35] px-3 py-2.5 text-xs font-extrabold text-white hover:bg-[#2a3157]">Select</button></div>
+                    </article>)}
+                  </div>
+                </section>)}
+                {filteredServices.length === 0 && <div className="rounded-2xl border border-dashed border-[#d9dce7] bg-white p-10 text-center"><Search className="mx-auto h-7 w-7 text-[#a5a8b5]" /><p className="mt-3 font-bold">No service matched that search.</p><p className="mt-1 text-xs text-[#85899a]">Try a different keyword or clear the search field.</p></div>}
               </div>
             ) : (
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -284,7 +345,7 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
 
         {(selectedService || selectedProduct) && <div className="fixed inset-x-3 bottom-3 z-[100] mx-auto max-w-3xl rounded-2xl border border-[#dcd7ff] bg-white p-4 shadow-[0_20px_70px_rgba(20,24,50,.25)] sm:inset-x-6 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0"><div className="text-[10px] font-extrabold uppercase tracking-wider text-[#7968d5]">{selectedService ? 'Service selected' : 'Product / material selected'}</div><div className="mt-1 truncate font-black">{selectedService?.name || selectedProduct?.name}</div><div className="mt-1 text-xs text-[#74798b]">{selectedService ? `Indicative service range: ${money(servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).min)}–${money(servicePriceRange(selectedService.price, selectedService.name, selectedService.categoryName).max)} per ${selectedService.unit}` : `Range: ${money(selectedProduct!.minPrice)}–${money(selectedProduct!.maxPrice)} per ${selectedProduct!.unit}`}</div></div>
+            <div className="min-w-0"><div className="text-[10px] font-extrabold uppercase tracking-wider text-[#7968d5]">{selectedService ? 'Service selected' : 'Product / material selected'}</div><div className="mt-1 truncate font-black">{selectedService?.name || selectedProduct?.name}</div><div className="mt-1 text-xs text-[#74798b]">{selectedService ? `Indicative service range: ${money(selectedServicePriceRange(selectedService).min)}–${money(selectedServicePriceRange(selectedService).max)} per ${selectedService.unit}` : `Range: ${money(selectedProduct!.minPrice)}–${money(selectedProduct!.maxPrice)} per ${selectedProduct!.unit}`}</div></div>
             <div className="flex shrink-0 items-center gap-2"><label className="text-xs font-bold text-[#626779]" htmlFor="catalogue-quantity">Qty</label><input id="catalogue-quantity" type="number" min={1} max={99} value={quantity} onChange={event => setQuantity(Math.max(1,Math.min(99,Number(event.target.value)||1)))} className="w-16 rounded-lg border border-[#e2e4ed] px-2 py-2 text-sm font-bold" /><button onClick={addBasketLine} className="inline-flex items-center gap-2 rounded-xl bg-[#6653ce] px-4 py-3 text-xs font-extrabold text-white hover:bg-[#5341b7]"><ShoppingBasket className="h-4 w-4" /> Add to cart <ArrowRight className="h-4 w-4" /></button><button onClick={() => {setSelectedService(null);setSelectedProduct(null);}} aria-label="Clear selected item" className="rounded-lg px-2 py-2 text-[#8a8ea0] hover:bg-[#f4f4fa]">×</button></div>
           </div>
         </div>}
