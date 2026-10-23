@@ -53,6 +53,7 @@ test('llms.txt gives AI systems accurate context and links to public pages', () 
   assert.match(llms, /^# PunchX/m);
   assert.match(llms, /https:\/\/www\.punchxapp\.co\.in\//);
   assert.match(llms, /availability varies by location and service/i);
+  assert.match(llms, /twelve main service categories.*Home Care & Daily Assistance, Physiotherapy at Home, and Catering Services/i);
   assert.match(llms, /Do not invent prices, customer counts, ratings/i);
   assert.match(llms, /sitemap\.xml/);
 });
