@@ -99,14 +99,14 @@ img[alt="PunchX Logo"] {
   width:58px;
   height:58px;
   border-radius:50%;
-  border:1px solid rgba(56,189,248,.65);
-  box-shadow:0 0 0 9px rgba(56,189,248,.08),0 0 28px rgba(56,189,248,.25);
+  border:1px solid rgba(185,154,98,.65);
+  box-shadow:0 0 0 9px rgba(185,154,98,.08),0 0 28px rgba(185,154,98,.25);
   animation:punchx-cool-breeze 2.8s ease-in-out infinite;
   z-index:2;
   pointer-events:none;
 }
 .punchx-service-page.service-category-ac-technician .punchx-category-hero-media::after {
-  background:linear-gradient(90deg,transparent,rgba(56,189,248,.38),transparent);
+  background:linear-gradient(90deg,transparent,rgba(185,154,98,.38),transparent);
   animation-duration:3.2s;
 }
 
