@@ -243,6 +243,17 @@ export interface OrderRecord {
   userBehaviour?: string;
   paymentMethod?: string;
   paymentStatus?: string;
+  /** Collection route used for the booking's final payment reconciliation. */
+  paymentCollectionRoute?: string;
+  /** Set to VERIFIED only by a trusted provider/webhook path. */
+  paymentVerificationStatus?: string;
+  paymentReference?: string | null;
+  paymentCollectedPaise?: number;
+  paymentReportedByWorkerUid?: string;
+  paymentReportedAt?: string;
+  walletDeductionPaise?: number;
+  workerPayoutStatus?: string;
+  finalInvoice?: Record<string, unknown>;
   createdAt?: string;
   completedAt?: string;
   hasWarrantyGuarantee?: boolean;
