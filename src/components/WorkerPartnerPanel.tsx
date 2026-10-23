@@ -232,61 +232,118 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
    }
  };
  const locationWatch=useRef<number|null>(null);
+ const [trackingError,setTrackingError]=useState('');
+ const callTrackingAction=async function(orderId:string,action:'start_journey'|'arrived'|'start_service'|'complete_service',sessionId?:string){
+   const firebaseUser=auth.currentUser;
+   if(!firebaseUser)throw new Error('Your secure PunchX session has expired. Please sign in again.');
+   const token=await firebaseUser.getIdToken();
+   const backendBase=String(import.meta.env.VITE_BACKEND_URL||'').replace(/\/+$/,'');
+   const response=await fetch(`${backendBase}/api/tracking/session`,{
+     method:'POST',
+     headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+     body:JSON.stringify({orderId,action,sessionId})
+   });
+   const result=await response.json().catch(()=>({}));
+   if(!response.ok||result?.success!==true)throw new Error(result?.error||'PunchX could not update the tracking session.');
+   return result;
+ };
  useEffect(function(){
-   const activeOrder=orders.find(function(o){return o.raw && ['TRAVELLING','ARRIVED','SERVICE_STARTED'].includes(o.status)});
-   if(!activeOrder?.raw || !online || !navigator.geolocation){
-     if(locationWatch.current!==null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatch.current);
+   const activeOrder=orders.find(function(o){return o.raw && o.status==='TRAVELLING'});
+   const sessionId=String((activeOrder?.raw as any)?.trackingSessionId||'');
+   if(!activeOrder?.raw || !sessionId || typeof navigator==='undefined' || !navigator.geolocation){
+     if(locationWatch.current!==null && typeof navigator!=='undefined' && navigator.geolocation)navigator.geolocation.clearWatch(locationWatch.current);
      locationWatch.current=null;
+     if(activeOrder?.raw && !sessionId)setTrackingError('Journey started, but the tracking session is still syncing. Keep this page open and refresh if it does not connect.');
      return;
    }
-   locationWatch.current=navigator.geolocation.watchPosition(async function(pos){
+
+   let lastSentAt=0;
+   setTrackingError('');
+   const sendLocation=async function(pos:GeolocationPosition){
+     const now=Date.now();
+     if(now-lastSentAt<8000)return;
+     lastSentAt=now;
      try{
-       await updateDoc(doc(db,'orders',activeOrder.raw!.id),{
-         workerLocation:{lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy||null,heading:pos.coords.heading??null,speed:pos.coords.speed??null,updatedAt:new Date().toISOString()},
-         workerOutForWork:true,updatedAt:new Date().toISOString()
+       const firebaseUser=auth.currentUser;
+       if(!firebaseUser)throw new Error('Sign-in session expired. Sign in again to resume tracking.');
+       const token=await firebaseUser.getIdToken();
+       const backendBase=String(import.meta.env.VITE_BACKEND_URL||'').replace(/\/+$/,'');
+       const response=await fetch(`${backendBase}/api/tracking/location`,{
+         method:'POST',
+         headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+         body:JSON.stringify({
+           orderId:activeOrder.raw!.id,
+           sessionId,
+           lat:pos.coords.latitude,
+           lng:pos.coords.longitude,
+           accuracy:pos.coords.accuracy,
+           heading:pos.coords.heading,
+           speed:pos.coords.speed
+         })
        });
-     }catch{}
-   },function(){}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
-   return function(){if(locationWatch.current!==null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatch.current);locationWatch.current=null;};
- },[orders.map(function(o){return o.id+o.status;}).join('|'),online]);
+       const result=await response.json().catch(()=>({}));
+       if(!response.ok||result?.success!==true)throw new Error(result?.error||'GPS update could not be saved.');
+       setTrackingError('');
+     }catch(error:any){
+       console.warn('PunchX booking-scoped GPS update failed:',error);
+       setTrackingError(error?.message||'Network issue: PunchX could not send the latest GPS update.');
+     }
+   };
+
+   locationWatch.current=navigator.geolocation.watchPosition(
+     function(pos){void sendLocation(pos);},
+     function(error){
+       const message=error.code===1?'Location permission denied. Allow location access to share your journey with this booking.':error.code===2?'Your device GPS is unavailable. Move to an area with a clearer signal.':'GPS timed out. Keep PunchX open and try again.';
+       setTrackingError(message);
+     },
+     {enableHighAccuracy:true,maximumAge:5000,timeout:20000}
+   );
+   return function(){
+     if(locationWatch.current!==null&&navigator.geolocation)navigator.geolocation.clearWatch(locationWatch.current);
+     locationWatch.current=null;
+   };
+ },[orders.map(function(o){return o.id+o.status+String((o.raw as any)?.trackingSessionId||'');}).join('|')]);
 
  const action=function(s:Status){return s==='NEW'?'Accept order':s==='ACCEPTED'?'Start travel':s==='TRAVELLING'?'Arrived':s==='ARRIVED'?'Start service':s==='SERVICE_STARTED'?'Complete order':'Completed'};
  const advance=async function(o:Order){
-   if(!o.raw){return;}
+   if(!o.raw)return;
    const raw=o.raw;
    try{
      if(o.status==='NEW'){
-       if(!uid){return;}
+       if(!uid)return;
        await runTransaction(db,async function(tx){
          const ref=doc(db,'orders',raw.id); const snap=await tx.get(ref);
-         if(!snap.exists()) throw new Error('Booking no longer exists.');
+         if(!snap.exists())throw new Error('Booking no longer exists.');
          const current=snap.data() as any;
-         if(!pending(current.status) || (current.workerId && current.workerId!==uid)) throw new Error('This job was already accepted.');
+         if(!pending(current.status)||(current.workerId&&current.workerId!==uid))throw new Error('This job was already accepted.');
          const changedAt=new Date().toISOString();
-         const history=Array.isArray(current.stateHistory)?current.stateHistory:[];
          tx.update(ref,{
            workerId:uid,
            workerName:userProfile?.name||'Verified Professional',
            workerPhone:userProfile?.phone||'',
            status:'In-Progress',
            acceptedAt:changedAt,
-           updatedAt:changedAt,
-           stateHistory:[...history,{from:current.status||'Pending',to:'In-Progress',timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional accepted booking'}],
+           updatedAt:changedAt
          });
        });
        showNotification?.('✅ Job accepted. The customer assignment is now active.');
-     } else {
-       const backendStatus:any=o.status==='ACCEPTED'?'EN_ROUTE':o.status==='TRAVELLING'?'ARRIVED':o.status==='ARRIVED'?'IN_SERVICE':o.status==='SERVICE_STARTED'?'Done':null;
-       if(!backendStatus) return;
-       const changedAt=new Date().toISOString();
-       const history=Array.isArray((raw as any).stateHistory)?(raw as any).stateHistory:[];
-       await updateDoc(doc(db,'orders',raw.id),{
-         status:backendStatus,
-         updatedAt:changedAt,
-         stateHistory:[...history,{from:raw.status,to:backendStatus,timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional updated booking progress'}],
-         ...(backendStatus==='Done'?{completedAt:changedAt,workerOutForWork:false}:{})
-       });
-       showNotification?.(backendStatus==='Done'?'✅ Service completed and recorded.':'Order '+o.id+' updated to '+(labels[mapStatus(backendStatus)]||backendStatus)+'.');
+     }else{
+       const sessionId=String((raw as any).trackingSessionId||'');
+       const nextAction:'start_journey'|'arrived'|'start_service'|'complete_service'|null=
+         o.status==='ACCEPTED'?'start_journey':
+         o.status==='TRAVELLING'?'arrived':
+         o.status==='ARRIVED'?'start_service':
+         o.status==='SERVICE_STARTED'?'complete_service':null;
+       if(!nextAction)return;
+       if(nextAction==='arrived'&&!sessionId)throw new Error('The tracking session is missing. Refresh this booking before confirming arrival.');
+       await callTrackingAction(raw.id,nextAction,sessionId||undefined);
+       setTrackingError('');
+       showNotification?.(
+         nextAction==='start_journey'?'✅ Journey started. Booking-scoped live GPS sharing is now active.':
+         nextAction==='arrived'?'✅ Arrival confirmed. Live GPS sharing has stopped for privacy.':
+         nextAction==='start_service'?'✅ Service started. Live journey tracking remains off.':
+         '✅ Service completed and recorded.'
+       );
      }
      setSelected(null);
    }catch(e:any){showNotification?.('⚠️ '+(e?.message||'Could not update this booking.'));}
