@@ -290,3 +290,35 @@ button:disabled { cursor: not-allowed; opacity: .62; }
 [class*="rgba(56,189,248"], [class*="rgba(99,102,241"] {
   box-shadow: var(--px-shadow) !important;
 }
+
+
+/* Outrank the legacy #root/ID-scoped purple overrides on booking surfaces. */
+#providers-list-root [class*="text-[#c5a059]"],
+#provider-details-root [class*="text-[#c5a059]"],
+#booking-container [class*="text-[#c5a059]"],
+#payment-screen-container [class*="text-[#c5a059]"],
+#providers-list-root [class*="text-[#e9c176]"],
+#provider-details-root [class*="text-[#e9c176]"],
+#booking-container [class*="text-[#e9c176]"],
+#payment-screen-container [class*="text-[#e9c176]"] {
+  color: var(--px-brand-strong) !important;
+}
+#providers-list-root [class*="border-[#c5a059]"],
+#provider-details-root [class*="border-[#c5a059]"],
+#booking-container [class*="border-[#c5a059]"],
+#payment-screen-container [class*="border-[#c5a059]"] {
+  border-color: rgba(185,154,98,.38) !important;
+}
+#providers-list-root button[class*="bg-[#c5a059]"],
+#provider-details-root button[class*="bg-[#c5a059]"],
+#booking-container button[class*="bg-[#c5a059]"],
+#payment-screen-container button[class*="bg-[#c5a059]"],
+#providers-list-root button[class*="from-[#c5a059]"],
+#provider-details-root button[class*="from-[#c5a059]"],
+#booking-container button[class*="from-[#c5a059]"],
+#payment-screen-container button[class*="from-[#c5a059]"] {
+  background: linear-gradient(135deg, var(--px-brand-strong), var(--px-brand)) !important;
+  background-image: linear-gradient(135deg, var(--px-brand-strong), var(--px-brand)) !important;
+  border-color: rgba(128,102,58,.42) !important;
+  color: #fff !important;
+}
