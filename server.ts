@@ -515,7 +515,18 @@ async function startServer() {
       // First booking welcome offer: waive the customer platform fee once per authenticated account.
       // Check server-side order history; never trust a client-supplied "first booking" flag.
       const existingCustomerOrders = await dbAdapter.listOrders({ customerId: uid });
-      const isFirstCustomerBooking = existingCustomerOrders.length === 0;
+      // Abandoned online checkouts do not consume the welcome offer. COD bookings and
+      // paid/actively dispatched bookings do; cancellations and pending payments do not.
+      const hasCommittedCustomerBooking = existingCustomerOrders.some((existingOrder: any) => {
+        const status = String(existingOrder.status || "").toUpperCase();
+        const paymentStatus = String(existingOrder.paymentStatus || "").toUpperCase();
+        const paymentMethod = String(existingOrder.paymentMethod || "").toUpperCase();
+        if (["CANCELLED", "CANCELED"].includes(status)) return false;
+        return ["COD", "CASH", "PAY_AFTER_SERVICE"].includes(paymentMethod) ||
+          ["PAID", "CAPTURED", "SETTLED"].includes(paymentStatus) ||
+          ["DISPATCHING", "ACCEPTED", "EN_ROUTE", "ARRIVED", "IN_SERVICE", "COMPLETION_PENDING", "COMPLETED", "DONE", "IN-PROGRESS", "IN PROGRESS"].includes(status);
+      });
+      const isFirstCustomerBooking = !hasCommittedCustomerBooking;
 
       // 1. Authoritative Server-Side Pricing Calculation (Never trust client prices)
       const quote = calculateAuthoritativeQuote({
