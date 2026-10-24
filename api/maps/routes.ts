@@ -10,7 +10,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Origin and destination coordinates are required' });
     }
 
-    const valid = (p: any) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lng));
+    const valid = (p: any) => p &&
+      typeof p.lat === 'number' && typeof p.lng === 'number' &&
+      Number.isFinite(p.lat) && Number.isFinite(p.lng) &&
+      Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180;
     if (!valid(origin) || !valid(destination)) {
       return res.status(400).json({ error: 'Valid numeric coordinates are required for origin and destination' });
     }
