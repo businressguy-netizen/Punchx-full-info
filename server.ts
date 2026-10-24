@@ -494,7 +494,7 @@ async function startServer() {
       if (!coordinates || typeof coordinates.lat !== "number" || typeof coordinates.lng !== "number" ||
           !Number.isFinite(coordinates.lat) || !Number.isFinite(coordinates.lng) ||
           Math.abs(coordinates.lat) > 90 || Math.abs(coordinates.lng) > 180) {
-        return res.status(400).json({ success: false, error: "A valid GPS-confirmed service address is required before booking." });
+        return res.status(400).json({ success: false, error: "A verified service-address location is required before booking." });
       }
       const boundaries = loadPolygonServiceBoundaries();
       if (boundaries.length === 0) {
