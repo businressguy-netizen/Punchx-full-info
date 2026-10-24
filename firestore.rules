@@ -121,8 +121,7 @@ service cloud.firestore {
               'categories',
               'skill',
               'isProfileCompleted',
-              'applicationId',
-              'status'
+              'applicationId'
             ])
         );
 
@@ -138,152 +137,78 @@ service cloud.firestore {
     // =====================================================
 
     match /workerApplications/{appId} {
+      // Applications contain identity, contact and address data. Public discovery
+      // must use /api/public/professionals, which returns sanitized approved fields.
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
 
-      // Allow reading worker applications if signed in or for public technician discovery
-      allow read: if signedIn() || true;
-
-      // Allow creating worker applications with status PENDING or APPROVED
-      allow create: if (signedIn() || true)
-        && (
-          !('status' in request.resource.data)
-          || request.resource.data.status in ['PENDING', 'APPROVED']
-        )
+      // Applicants can submit only their own pending application; approval is server/admin-only.
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && (!('status' in request.resource.data) || request.resource.data.status == 'PENDING')
         && request.resource.data.keys().hasOnly([
-          'id',
-          'uid',
-          'userId',
-          'legalName',
-          'dob',
-          'birthdate',
-          'address',
-          'streetAddress',
-          'landmark',
-          'area',
-          'sector',
-          'city',
-          'location',
-          'gpsAccuracy',
-          'lat',
-          'lng',
-          'categories',
-          'skill',
-          'category',
-          'customSkill',
-          'experienceYears',
-          'visitingFee',
-          'price',
-          'phone',
-          'email',
-          'termsAccepted',
-          'status',
-          'appliedAt',
-          'updatedAt',
-          'available',
-          'rating',
-          'reviewsCount',
-          'avatar',
-          'photoURL',
-          'proBadge',
-          'completedJobs',
-          'jobsCompletedCount',
-          'onTimeRate',
-          'identityVerified',
-          'skillVerified',
-          'backgroundChecked',
-          'trainingCertified',
-          'insuranceCovered',
-          'insuranceAmount',
-          'reviewedBy',
-          'approvedAt',
-          'rejectedAt',
-          'rejectionReason',
-          'otpVerified',
-          'otpCode'
+          'id', 'uid', 'userId', 'legalName', 'dob', 'birthdate', 'address', 'streetAddress',
+          'landmark', 'area', 'sector', 'city', 'district', 'state', 'postalCode', 'location',
+          'gpsAccuracy', 'lat', 'lng', 'categories', 'skill', 'category', 'customSkill',
+          'experienceYears', 'visitingFee', 'price', 'phone', 'email', 'termsAccepted',
+          'status', 'appliedAt', 'createdAt', 'updatedAt', 'available', 'avatar', 'photoURL',
+          'isOnline', 'workerAvailability', 'workerStatus', 'availabilityUpdatedAt',
+          'geofenceArea', 'geofenceAreas', 'serviceAreas', 'serviceAreaMode',
+          'serviceAreaUpdatedAt', 'geofenceUpdatedAt'
         ]);
 
-      // Allow updates including all specialist registration and profile fields
-      allow update: if (
-          isAdmin()
-          || signedIn()
-          || true
-        )
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly([
-            'id',
-            'uid',
-            'userId',
-            'legalName',
-            'dob',
-            'birthdate',
-            'address',
-            'streetAddress',
-            'landmark',
-            'area',
-            'sector',
-            'city',
-            'district',
-            'state',
-            'postalCode',
-            'location',
-            'gpsAccuracy',
-            'lat',
-            'lng',
-            'categories',
-            'skill',
-            'category',
-            'customSkill',
-            'experienceYears',
-            'visitingFee',
-            'price',
-            'phone',
-            'email',
-            'termsAccepted',
-            'status',
-            'appliedAt',
-            'updatedAt',
-            'available',
-            'rating',
-            'reviewsCount',
-            'avatar',
-            'photoURL',
-            'proBadge',
-            'completedJobs',
-            'jobsCompletedCount',
-            'onTimeRate',
-            'identityVerified',
-            'skillVerified',
-            'backgroundChecked',
-            'trainingCertified',
-            'insuranceCovered',
-            'insuranceAmount',
-            'reviewedBy',
-            'approvedAt',
-            'rejectedAt',
-            'rejectionReason',
-            'otpVerified',
-            'otpCode',
-            'geofenceArea',
-            'geofenceAreas',
-            'serviceAreas',
-            'serviceAreaMode',
-            'serviceAreaUpdatedAt',
-            'geofenceUpdatedAt',
-            'workerAvailability',
-            'isOnline',
-            'workerStatus',
-            'availabilityUpdatedAt'
-          ]);
-
+      // Owners may update operational/profile details but cannot change status,
+      // verification flags, approval metadata, IDs, or OTP material.
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'legalName', 'dob', 'birthdate', 'address', 'streetAddress', 'landmark',
+          'area', 'sector', 'city', 'district', 'state', 'postalCode', 'location',
+          'gpsAccuracy', 'lat', 'lng', 'categories', 'skill', 'category', 'customSkill',
+          'experienceYears', 'visitingFee', 'price', 'phone', 'email', 'avatar', 'photoURL',
+          'updatedAt', 'available', 'isOnline', 'workerAvailability', 'workerStatus',
+          'availabilityUpdatedAt', 'geofenceArea', 'geofenceAreas', 'serviceAreas',
+          'serviceAreaMode', 'serviceAreaUpdatedAt', 'geofenceUpdatedAt'
+        ])
+      );
       allow delete: if isAdmin();
     }
 
-    // Compatibility alias for snake_case collection
+    // Legacy collection uses the same protection. It is not a public directory.
     match /worker_applications/{appId} {
-      allow read: if signedIn() || true;
-      allow create, update: if (signedIn() || true);
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && (!('status' in request.resource.data) || request.resource.data.status == 'PENDING')
+        && request.resource.data.keys().hasOnly([
+          'id', 'uid', 'userId', 'legalName', 'dob', 'birthdate', 'address', 'streetAddress',
+          'landmark', 'area', 'sector', 'city', 'district', 'state', 'postalCode', 'location',
+          'gpsAccuracy', 'lat', 'lng', 'categories', 'skill', 'category', 'customSkill',
+          'experienceYears', 'visitingFee', 'price', 'phone', 'email', 'termsAccepted',
+          'status', 'appliedAt', 'createdAt', 'updatedAt', 'available', 'avatar', 'photoURL',
+          'isOnline', 'workerAvailability', 'workerStatus', 'availabilityUpdatedAt',
+          'geofenceArea', 'geofenceAreas', 'serviceAreas', 'serviceAreaMode',
+          'serviceAreaUpdatedAt', 'geofenceUpdatedAt'
+        ]);
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'legalName', 'dob', 'birthdate', 'address', 'streetAddress', 'landmark',
+          'area', 'sector', 'city', 'district', 'state', 'postalCode', 'location',
+          'gpsAccuracy', 'lat', 'lng', 'categories', 'skill', 'category', 'customSkill',
+          'experienceYears', 'visitingFee', 'price', 'phone', 'email', 'avatar', 'photoURL',
+          'updatedAt', 'available', 'isOnline', 'workerAvailability', 'workerStatus',
+          'availabilityUpdatedAt', 'geofenceArea', 'geofenceAreas', 'serviceAreas',
+          'serviceAreaMode', 'serviceAreaUpdatedAt', 'geofenceUpdatedAt'
+        ])
+      );
       allow delete: if isAdmin();
     }
-
 
     // =====================================================
     // ORDERS / BOOKINGS
@@ -304,89 +229,29 @@ service cloud.firestore {
         || (
           isApprovedWorker()
           && resource.data.workerId == null
-          && resource.data.status in ['Pending', 'PAID', 'DISPATCHING']
+          && resource.data.status in ['Pending', 'DISPATCHING']
         )
       );
 
       // A customer can create only an order belonging to themselves.
-      allow create: if signedIn()
-        && request.resource.data.customerId == request.auth.uid
-        && request.resource.data.keys().hasAll([
-          'customerId',
-          'category'
-        ]);
+      // Order creation, payment, assignment and status transitions must go through
+      // the authenticated server API, which validates pricing and service coverage.
+      allow create: if false;
 
-      // BE-06 FIX: Field-level restrictions for updates.
-      // Admins can update any field.
-      // Customers can only update limited feedback/status fields.
-      // Approved workers can claim an unassigned job and then update
-      // only operational fields belonging to that job.
+      // Customers may submit only feedback on their own booking. Payment,
+      // cancellation, assignment, GPS and lifecycle changes are server-only.
       allow update: if signedIn() && (
         isAdmin()
         || (
           resource.data.customerId == request.auth.uid
           && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly([
-              'status',
-              'arrivalFeedbackSubmitted',
-              'arrivalQualityRating',
-              'qualityDiscountApplied',
-              'prepaidRefundStatus',
-              'prepaidRefundAmount',
-              'isRated',
-              'userRating',
-              'userBehaviour',
-              'warrantyClaimId',
-              'warrantyClaimStatus'
-            ])
-          && (
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])
-            || request.resource.data.status == 'Cancelled'
-          )
-          && (
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['prepaidRefundAmount', 'qualityDiscountApplied'])
-            || (
-               request.resource.data.prepaidRefundAmount <= 1000
-               && request.resource.data.qualityDiscountApplied <= 1000
-            )
-          )
-        )
-        || (
-          isApprovedWorker()
-          && resource.data.workerId == null
-          && request.resource.data.workerId == request.auth.uid
-          && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly([
-              'workerId',
-              'workerName',
-              'workerPhone',
-              'status',
-              'acceptedAt',
-              'updatedAt',
-              'workerOutForWork'
-            ])
-          && request.resource.data.status in ['ACCEPTED', 'In-Progress', 'In Progress']
-        )
-        || (
-          isApprovedWorker()
-          && resource.data.workerId == request.auth.uid
-          && request.resource.data.workerId == resource.data.workerId
-          && request.resource.data.customerId == resource.data.customerId
-          && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly([
-              'status',
-              'completedAt',
-              'photoProof',
-              'workerLocation',
-              'workerOutForWork',
-              'updatedAt'
-            ])
-          && (
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status'])
-            || request.resource.data.status in ['ACCEPTED', 'In-Progress', 'In Progress', 'EN_ROUTE', 'Enroute', 'ARRIVED', 'Arrived', 'IN_SERVICE', 'SERVICE_STARTED', 'Completed', 'COMPLETED', 'Done']
-          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'arrivalFeedbackSubmitted',
+            'arrivalQualityRating',
+            'isRated',
+            'userRating',
+            'userBehaviour'
+          ])
         )
       );
 
