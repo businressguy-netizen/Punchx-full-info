@@ -61,7 +61,7 @@ const CATEGORY_TO_ID: Record<string, string> = {
   'moving': 'moving',
 };
 
-const PLATFORM_FEE = 29;
+const PLATFORM_FEE = 10;
 const GST_RATE = 0.18; // 18% GST
 const DEFAULT_COMMISSION_RATE = 0.15; // 15% platform commission
 const EMERGENCY_SURCHARGE_AMOUNT = 99;
