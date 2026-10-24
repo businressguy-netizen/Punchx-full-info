@@ -195,22 +195,31 @@ Use your own development credentials and the official provider dashboards. Do no
 
 ## GPS geofencing and service coverage
 
-PunchX service availability uses server-side geofence zones configured through the server environment variable `PUNCHX_GEOFENCE_ZONES`. The chosen rollout is two circular zones, each with an 8 km radius: one for Nabadwip and one for Kolkata.
+PunchX service availability uses verified server-side area polygons configured through `PUNCHX_GEOFENCE_ZONES`. Circular-radius zones are deliberately rejected because they do not represent city/locality boundaries.
 
-**Neither zone is activated by this repository change.** The centre coordinates for both operating zones have not yet been verified and approved by PunchX operations. Do not guess them or copy sample coordinates from documentation. Until verified centres are supplied and the environment variable is configured in the production server, the API must report coverage as unconfigured and must not mark services available.
+**Service coverage stays disabled until approved polygon coordinates are configured.** Do not guess boundary points. Operations must provide authoritative boundary coordinates for Nabadwip, Kolkata, and any other approved operating area. Until then, the booking API fails closed rather than accepting an address merely because client code says it is serviceable.
 
 ### Required server environment variable
 
-- `PUNCHX_GEOFENCE_ZONES` — a JSON array containing both circles. Keep it empty/unset until both centres are verified. Configure it only in the server/deployment environment, never as a `VITE_*` frontend variable.
+- `PUNCHX_GEOFENCE_ZONES` — a JSON array of named polygon zones. Configure it only in the server/deployment environment, never as a `VITE_*` frontend variable.
 
-Required JSON structure after approval (the following is a schema description, not a ready-to-deploy value):
+Required structure (schema only; not deployable placeholder coordinates):
 
-- Zone 1: `name: "Nabadwip"`, `type: "circle"`, `center: { lat: verified latitude, lng: verified longitude }`, `radiusKm: 8`
-- Zone 2: `name: "Kolkata"`, `type: "circle"`, `center: { lat: verified latitude, lng: verified longitude }`, `radiusKm: 8`
+```json
+[
+  {
+    "name": "Nabadwip",
+    "type": "polygon",
+    "coordinates": [
+      { "lat": 0, "lng": 0 },
+      { "lat": 0, "lng": 0 },
+      { "lat": 0, "lng": 0 }
+    ]
+  }
+]
+```
 
-Before activation, operations must provide a specific, verified centre location for each city. The centre is important: an 8 km circle covers only points within 8 km of that centre, not the whole city or municipal boundary.
-
-The client-side GPS flow requires a device fix with reported accuracy of 100 metres or better. If GPS permission is denied or the fix is too imprecise, the user must retry with device location enabled; typed addresses and IP-derived positions are not a substitute for precise GPS verification. Browser location watching may pause in the background.
+Replace all placeholder coordinate pairs with verified boundary vertices before enabling coverage; include a separate polygon for each approved service area. The client should require GPS accuracy of 100 metres or better. Typed addresses and IP-derived positions are not substitutes for a GPS-confirmed service address. Browser location watching may pause in the background.
 
 ## Development commands
 
