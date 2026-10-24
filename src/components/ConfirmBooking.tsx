@@ -74,7 +74,7 @@ export default function ConfirmBooking({ onTransition, selectedWorker, bookingTi
   const pricing=useMemo(()=>calculatePunchXPricing(serviceValue),[serviceValue]);
   const estimatedDuration=cart.map(item=>item.duration).filter(Boolean)[0] || (cart.length>1?`${cart.length} services · duration confirmed after review`:'About 1–2 hours');
   const scheduleDays=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i);return d.toLocaleDateString('en-CA');});
-  const total=(pricing.visitingFee || 59) + pricing.customerPlatformFee;
+  const total=pricing.visitingFee + pricing.customerPlatformFee;
   const addressText=[address.house,address.street,address.landmark,address.villageArea,address.city,address.district,address.state,address.pinCode].filter(Boolean).join(', ');
   const validAddress=Object.values(address).every(v=>String(v).trim().length>0);
   const valid=cart.length>0&&validAddress&&date&&time;
