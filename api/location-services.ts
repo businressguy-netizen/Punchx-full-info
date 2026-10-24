@@ -39,12 +39,14 @@ function loadGeofenceZones(): GeofenceZone[] {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((zone: any) => {
-      if (!zone || typeof zone.name !== 'string') return false;
-      if (zone.type === 'circle') return validPoint(zone.center) && Number.isFinite(zone.radiusKm) && zone.radiusKm > 0 && zone.radiusKm <= 100;
-      if (zone.type === 'polygon') return Array.isArray(zone.coordinates) && zone.coordinates.length >= 3 && zone.coordinates.every(validPoint);
-      return false;
-    });
+    // PunchX uses named service-area boundaries, not circular radius approximations.
+    // Invalid, circular, or unapproved zones fail closed and must not advertise coverage.
+    return parsed.filter((zone: any) =>
+      zone && zone.type === 'polygon' && typeof zone.name === 'string' &&
+      zone.name.trim().length > 0 &&
+      Array.isArray(zone.coordinates) && zone.coordinates.length >= 3 &&
+      zone.coordinates.every(validPoint)
+    );
   } catch {
     console.error('PUNCHX_GEOFENCE_ZONES must be valid JSON with circle or polygon zones.');
     return [];
