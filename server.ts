@@ -461,8 +461,9 @@ async function startServer() {
       }
 
       // IDOR check: caller must be customer, assigned worker, or admin
-      const isWorkerAssigned = order.workerId === uid;
-      const isOpenDispatchForWorker = (order.status === "DISPATCHING" || order.status === "Pending") && user?.role === "worker";
+      const isWorkerAssigned = order.workerId === uid && user?.role === "worker" && String(user?.status || "").toUpperCase() === "APPROVED";
+      const isOpenDispatchForWorker = (order.status === "DISPATCHING" || order.status === "Pending") &&
+        user?.role === "worker" && String(user?.status || "").toUpperCase() === "APPROVED";
 
       if (!isUserAdmin && order.customerId !== uid && !isWorkerAssigned && !isOpenDispatchForWorker) {
         logger.security("IDOR violation: unauthorized order access attempt", { uid, orderId: id });
