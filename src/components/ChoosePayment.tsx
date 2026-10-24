@@ -248,7 +248,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
         return;
       }
       persistConfirmedOrder(saved,String(result.startOtp||''));
-    }catch(error){console.error('PUNCHX booking creation failed:',error);showNotification?.('Booking could not be created. Please try again.');}
+    }catch(error:any){console.error('PUNCHX booking creation failed:',error);showNotification?.(error?.message||'Booking could not be created. Please try again.');}
     finally{setSubmitting(false);}
   };
 
