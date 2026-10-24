@@ -97,6 +97,9 @@ export default function LiveTrackingV2({ onTransition }: LiveTrackingV2Props) {
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const [cancelled, setCancelled] = useState(false);
+  const [completionOtp, setCompletionOtp] = useState('');
+  const [completionOtpLoading, setCompletionOtpLoading] = useState(false);
+  const [completionOtpError, setCompletionOtpError] = useState('');
 
   const handleRouteInfo = useMemo(() => (info: RouteInfo) => setRouteInfo(info), []);
 
@@ -172,6 +175,31 @@ export default function LiveTrackingV2({ onTransition }: LiveTrackingV2Props) {
     } finally { setRefreshing(false); }
   };
 
+  const generateCompletionCode = async () => {
+    setCompletionOtpError('');
+    setCompletionOtpLoading(true);
+    try {
+      const user = auth.currentUser;
+      if (!user || !order?.id) throw new Error('Sign in again to generate the completion code.');
+      const token = await user.getIdToken();
+      const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+      const response = await fetch(`${backendBase}/api/orders/${encodeURIComponent(order.id)}/otp/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: 'COMPLETION' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.success !== true || !result.otp) {
+        throw new Error(result.error || 'PunchX could not generate a completion code.');
+      }
+      setCompletionOtp(String(result.otp));
+    } catch (error: any) {
+      setCompletionOtpError(error?.message || 'Could not generate the completion code.');
+    } finally {
+      setCompletionOtpLoading(false);
+    }
+  };
+
   const cancelBooking = async () => {
     setCancelError('');
     try {
@@ -221,6 +249,11 @@ export default function LiveTrackingV2({ onTransition }: LiveTrackingV2Props) {
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3"><div className="rounded-2xl bg-[#f7f8fa] p-3"><Clock3 className="h-4 w-4 text-[#B99A62]" /><p className="mt-2 text-[10px] text-[#8a8f98]">Booking time</p><p className="text-xs font-black">{order.bookingTime || 'Scheduled'}</p></div><div className="rounded-2xl bg-[#f7f8fa] p-3"><MapPin className="h-4 w-4 text-[#B99A62]" /><p className="mt-2 text-[10px] text-[#8a8f98]">Destination</p><p className="truncate text-xs font-black">{order.customerAddress || 'Saved service address'}</p></div><div className="col-span-2 rounded-2xl bg-[#f7f8fa] p-3 sm:col-span-1"><Navigation2 className="h-4 w-4 text-[#B99A62]" /><p className="mt-2 text-[10px] text-[#8a8f98]">Route status</p><p className="text-xs font-black">{routeActive ? 'Live driving route' : 'Waiting for route'}</p></div></div>
         <div className="mt-3 flex gap-2"><button onClick={() => order.workerPhone ? window.location.assign(`tel:${order.workerPhone}`) : undefined} disabled={!order.workerPhone} className="flex-1 rounded-2xl border border-black/5 bg-white py-3 text-xs font-black disabled:opacity-40"><Phone className="mr-1 inline h-4 w-4" /> Contact</button><button onClick={() => showDirections(order)} className="flex-1 rounded-2xl bg-[#17191d] py-3 text-xs font-black text-white"><Navigation2 className="mr-1 inline h-4 w-4" /> Directions</button></div>
       </section>
+      {['IN_SERVICE','In Progress','In-Progress','SERVICE_STARTED'].includes(String(order.status || '')) && <section className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5">
+        <div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-600"/><div className="flex-1"><h2 className="font-black">Service completion verification</h2><p className="mt-1 text-xs leading-5 text-[#777c85]">Generate a one-time completion code only when the work is finished. Show this code to the professional so the job can be completed securely.</p></div></div>
+        {completionOtp ? <div className="mt-3 rounded-2xl bg-emerald-50 p-4 text-center"><div className="text-[10px] font-black uppercase tracking-wider text-emerald-700">One-time completion code</div><div className="mt-1 select-all text-3xl font-black tracking-[0.25em] text-emerald-800">{completionOtp}</div><p className="mt-2 text-[10px] text-emerald-700">Share only with the assigned professional after the service is finished.</p></div> : <button onClick={generateCompletionCode} disabled={completionOtpLoading} className="mt-3 w-full rounded-xl bg-emerald-600 py-3 text-xs font-black text-white disabled:opacity-50">{completionOtpLoading ? 'Generating secure code…' : 'Generate completion code'}</button>}
+        {completionOtpError && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">{completionOtpError}</p>}
+      </section>}
       {!['Cancelled','CANCELLED','Done','COMPLETED','Completed'].includes(String(order.status || '')) && <section className="rounded-3xl border border-red-100 bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5">
         <div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-red-700">Cancel booking</h2><p className="mt-1 text-xs leading-5 text-[#777c85]">Cancellation is checked by PunchX and may be unavailable after the professional arrives or work begins.</p></div></div>
         {cancelError && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">{cancelError}</p>}
