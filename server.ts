@@ -152,6 +152,43 @@ export const requireWorker = async (req: express.Request, res: express.Response,
   }
 };
 
+type PunchXGeoPoint = { lat: number; lng: number };
+
+function loadPolygonServiceBoundaries(): Array<{ name: string; coordinates: PunchXGeoPoint[] }> {
+  const raw = process.env.PUNCHX_GEOFENCE_ZONES;
+  if (!raw) return [];
+  try {
+    const zones = JSON.parse(raw);
+    if (!Array.isArray(zones)) return [];
+    return zones.filter((zone: any) =>
+      zone && zone.type === "polygon" && typeof zone.name === "string" &&
+      Array.isArray(zone.coordinates) && zone.coordinates.length >= 3 &&
+      zone.coordinates.every((point: any) =>
+        point && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)) &&
+        Math.abs(Number(point.lat)) <= 90 && Math.abs(Number(point.lng)) <= 180
+      )
+    ).map((zone: any) => ({
+      name: String(zone.name).trim(),
+      coordinates: zone.coordinates.map((point: any) => ({ lat: Number(point.lat), lng: Number(point.lng) })),
+    })).filter((zone: any) => zone.name.length > 0);
+  } catch {
+    logger.error("PUNCHX_GEOFENCE_ZONES is invalid; booking coverage must remain disabled.");
+    return [];
+  }
+}
+
+function pointInsideServicePolygon(point: PunchXGeoPoint, polygon: PunchXGeoPoint[]): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const a = polygon[i];
+    const b = polygon[j];
+    const intersects = ((a.lng > point.lng) !== (b.lng > point.lng)) &&
+      (point.lat < ((b.lat - a.lat) * (point.lng - a.lng)) / ((b.lng - a.lng) || Number.EPSILON) + a.lat);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
 // Allowed origins for CORS
 const ALLOWED_ORIGINS = [
   "https://www.punchxapp.co.in",
@@ -449,6 +486,25 @@ async function startServer() {
         return res.status(400).json({ success: false, error: "Booking requires a service name, address, date, and time." });
       }
 
+      // Serviceability is enforced on the server. Client-supplied booleans and locality labels
+      // are display hints only and cannot authorize a booking.
+      const coordinates = orderData.addressCoordinates;
+      if (!coordinates || !Number.isFinite(Number(coordinates.lat)) || !Number.isFinite(Number(coordinates.lng)) ||
+          Math.abs(Number(coordinates.lat)) > 90 || Math.abs(Number(coordinates.lng)) > 180) {
+        return res.status(400).json({ success: false, error: "A valid GPS-confirmed service address is required before booking." });
+      }
+      const boundaries = loadPolygonServiceBoundaries();
+      if (boundaries.length === 0) {
+        return res.status(503).json({ success: false, error: "PunchX area-boundary coverage is not configured yet. No booking was created; please try again later." });
+      }
+      const matchedBoundary = boundaries.find((zone) => pointInsideServicePolygon(
+        { lat: Number(coordinates.lat), lng: Number(coordinates.lng) },
+        zone.coordinates
+      ));
+      if (!matchedBoundary) {
+        return res.status(422).json({ success: false, error: "This service address is outside PunchX's active service areas." });
+      }
+
       // Resolve profile snapshots server-side so orders remain useful if a profile later changes.
       const customerProfile = await dbAdapter.getUser(uid);
       const requestedWorkerId = String(orderData.workerId || "").trim();
@@ -568,7 +624,7 @@ async function startServer() {
         address: String(orderData.address || orderData.customerAddress || "").trim(),
         status: initialStatus,
         paymentMethod: isCashOnDelivery ? "COD" : "ONLINE",
-        paymentStatus: isCashOnDelivery ? "pending" : (orderData.paymentId ? "paid" : "pending"),
+        paymentStatus: "pending", // Online payments become paid only after server signature verification.
         paymentId: orderData.paymentId || null,
         createdAt: nowIso,
         updatedAt: nowIso,
@@ -815,6 +871,9 @@ async function startServer() {
       if (order.customerId !== uid) {
         return res.status(403).json({ success: false, error: "Forbidden: You can only initiate payment for your own orders" });
       }
+      if (order.status !== "PENDING_PAYMENT" || String(order.paymentStatus || "").toUpperCase() === "PAID") {
+        return res.status(409).json({ success: false, error: "This booking is not awaiting online payment." });
+      }
 
       const user = await dbAdapter.getUser(uid);
       const amountInRupees = order.totalAmountToPay || order.price;
@@ -867,6 +926,16 @@ async function startServer() {
 
       if (order.customerId !== uid) {
         return res.status(403).json({ success: false, error: "Forbidden: Unauthorized payment verification" });
+      }
+
+      // Bind the signature to the exact gateway order created for this PunchX booking.
+      // A valid signature from a different gateway order must never settle this booking.
+      const expectedGatewayOrderId = (order as any).paymentDetails?.razorpayOrderId;
+      if (!expectedGatewayOrderId || expectedGatewayOrderId !== razorpayOrderId) {
+        return res.status(400).json({ success: false, error: "Payment does not match the gateway order created for this booking." });
+      }
+      if (order.status !== "PENDING_PAYMENT") {
+        return res.status(409).json({ success: false, error: "This booking is no longer awaiting payment." });
       }
 
       const isSignatureValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
