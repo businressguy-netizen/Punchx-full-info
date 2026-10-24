@@ -63,7 +63,16 @@ const CATEGORY_TO_ID: Record<string, string> = {
 
 const PLATFORM_FEE = 10;
 const GST_RATE = 0.18; // 18% GST
-const DEFAULT_COMMISSION_RATE = 0.15; // 15% platform commission
+const COMMISSION_TIERS = [
+  { maxServiceValue: 49, rate: 0.05 },
+  { maxServiceValue: 300, rate: 0.08 },
+  { maxServiceValue: 800, rate: 0.10 },
+  { maxServiceValue: 1500, rate: 0.12 },
+  { maxServiceValue: 3000, rate: 0.15 },
+  { maxServiceValue: 5000, rate: 0.18 },
+  { maxServiceValue: 10000, rate: 0.20 },
+  { maxServiceValue: Number.POSITIVE_INFINITY, rate: 0.23 },
+] as const;
 const EMERGENCY_SURCHARGE_AMOUNT = 99;
 
 export function calculateAuthoritativeQuote(request: PricingQuoteRequest): PricingQuoteResult {
@@ -154,8 +163,9 @@ export function calculateAuthoritativeQuote(request: PricingQuoteRequest): Prici
   const totalAmountToPay = Math.round(taxableAmount + gstAmount);
 
   // 6. Professional Payout & Platform Commission
-  // Worker earns (1 - commissionRate) of base fee + 100% of emergency surcharge
-  const commissionRate = DEFAULT_COMMISSION_RATE;
+  // Keep backend settlement rates aligned with the tiered rates shown across PunchX.
+  // Worker earns (1 - commissionRate) of base fee + 100% of emergency surcharge.
+  const commissionRate = COMMISSION_TIERS.find((tier) => baseVisitingFee <= tier.maxServiceValue)?.rate ?? 0.23;
   const platformCommission = Math.round(baseVisitingFee * commissionRate);
   const professionalPayout = Math.max(0, (baseVisitingFee - platformCommission) + emergencySurcharge);
 
