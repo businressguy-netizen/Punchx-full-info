@@ -121,7 +121,7 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
  useEffect(function(){
    if(!uid){setOrders([]);return;}
    const assignedQuery=firestoreQuery(collection(db,'orders'),where('workerId','==',uid));
-   const availableQuery=firestoreQuery(collection(db,'orders'),where('workerId','==',null),where('status','in',['Pending','PAID','DISPATCHING']));
+   const availableQuery=firestoreQuery(collection(db,'orders'),where('workerId','==',null),where('status','in',['Pending','DISPATCHING']));
    let assigned:OrderRecord[]=[];
    let available:OrderRecord[]=[];
    let assignedReady=false;
