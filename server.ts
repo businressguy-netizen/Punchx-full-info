@@ -489,8 +489,9 @@ async function startServer() {
       // Serviceability is enforced on the server. Client-supplied booleans and locality labels
       // are display hints only and cannot authorize a booking.
       const coordinates = orderData.addressCoordinates;
-      if (!coordinates || !Number.isFinite(Number(coordinates.lat)) || !Number.isFinite(Number(coordinates.lng)) ||
-          Math.abs(Number(coordinates.lat)) > 90 || Math.abs(Number(coordinates.lng)) > 180) {
+      if (!coordinates || typeof coordinates.lat !== "number" || typeof coordinates.lng !== "number" ||
+          !Number.isFinite(coordinates.lat) || !Number.isFinite(coordinates.lng) ||
+          Math.abs(coordinates.lat) > 90 || Math.abs(coordinates.lng) > 180) {
         return res.status(400).json({ success: false, error: "A valid GPS-confirmed service address is required before booking." });
       }
       const boundaries = loadPolygonServiceBoundaries();
@@ -510,6 +511,13 @@ async function startServer() {
       const requestedWorkerId = String(orderData.workerId || "").trim();
       const workerProfile = requestedWorkerId ? await dbAdapter.getUser(requestedWorkerId) : null;
       const workerApplication = requestedWorkerId ? await dbAdapter.getWorkerApplicationByUid(requestedWorkerId) : null;
+      if (requestedWorkerId && (
+        !workerProfile ||
+        String(workerProfile.role || "").toLowerCase() !== "worker" ||
+        String(workerProfile.status || "").toUpperCase() !== "APPROVED"
+      )) {
+        return res.status(422).json({ success: false, error: "The selected professional is not approved to accept bookings. Please select another professional." });
+      }
       const nowIso = new Date().toISOString();
 
       // First booking welcome offer: waive the customer platform fee once per authenticated account.
@@ -532,7 +540,7 @@ async function startServer() {
       const quote = calculateAuthoritativeQuote({
         serviceId: orderData.serviceId,
         category: orderData.category,
-        isEmergency: Boolean(orderData.emergencySurcharge || orderData.isEmergency),
+        isEmergency: Boolean(orderData.emergencySurcharge || orderData.isEmergency || orderData.isInstantOrder || orderData.bookingTiming === "instant" || orderData.bookingType === "INSTANT"),
         couponCode: orderData.couponUsed || orderData.couponCode,
         customVisitingFee: orderData.visitingFee,
         waivePlatformFee: isFirstCustomerBooking,
@@ -576,11 +584,11 @@ async function startServer() {
         residentialAddress: orderData.residentialAddress && typeof orderData.residentialAddress === "object" ? orderData.residentialAddress : null,
         addressCoordinates: orderData.addressCoordinates && Number.isFinite(Number(orderData.addressCoordinates.lat)) && Number.isFinite(Number(orderData.addressCoordinates.lng))
           ? { lat: Number(orderData.addressCoordinates.lat), lng: Number(orderData.addressCoordinates.lng) } : null,
-        geofenceArea: String(orderData.geofenceArea || ""),
+        geofenceArea: matchedBoundary.name,
         geofenceCity: String(orderData.geofenceCity || ""),
-        serviceAreaMatch: orderData.serviceAreaMatch || null,
-        serviceAvailabilityChecked: Boolean(orderData.serviceAvailabilityChecked),
-        serviceAvailable: Boolean(orderData.serviceAvailable),
+        serviceAreaMatch: matchedBoundary.name,
+        serviceAvailabilityChecked: true,
+        serviceAvailable: true,
         workerId: requestedWorkerId || null,
         workerName: resolvedWorkerName,
         workerPhone: String(workerProfile?.phone || workerApplication?.phone || orderData.workerPhone || ""),
