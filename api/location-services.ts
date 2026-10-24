@@ -11,8 +11,10 @@ type GeofenceZone = {
 };
 
 function validPoint(point: any): point is GeoPoint {
-  return point && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng)) &&
-    Math.abs(Number(point.lat)) <= 90 && Math.abs(Number(point.lng)) <= 180;
+  return point &&
+    typeof point.lat === 'number' && typeof point.lng === 'number' &&
+    Number.isFinite(point.lat) && Number.isFinite(point.lng) &&
+    Math.abs(point.lat) <= 90 && Math.abs(point.lng) <= 180;
 }
 
 function distanceKm(a: GeoPoint, b: GeoPoint): number {
