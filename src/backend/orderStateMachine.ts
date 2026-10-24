@@ -22,8 +22,9 @@ export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 
   // Legacy mappings compatibility
   Pending: ['DISPATCHING', 'ACCEPTED', 'In Progress', 'In-Progress', 'Cancelled', 'CANCELLED'],
-  'In Progress': ['Done', 'COMPLETION_PENDING', 'COMPLETED', 'Cancelled', 'CANCELLED'],
-  'In-Progress': ['Done', 'COMPLETION_PENDING', 'COMPLETED', 'Cancelled', 'CANCELLED'],
+  // Legacy bookings are routed through the same protected travel/arrival/service flow.
+  'In Progress': ['EN_ROUTE', 'ARRIVED', 'IN_SERVICE', 'COMPLETION_PENDING', 'COMPLETED', 'Done', 'Cancelled', 'CANCELLED'],
+  'In-Progress': ['EN_ROUTE', 'ARRIVED', 'IN_SERVICE', 'COMPLETION_PENDING', 'COMPLETED', 'Done', 'Cancelled', 'CANCELLED'],
   Done: [],
   Cancelled: [],
 };
