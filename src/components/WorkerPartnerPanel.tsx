@@ -240,55 +240,69 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
    }
    locationWatch.current=navigator.geolocation.watchPosition(async function(pos){
      try{
-       await updateDoc(doc(db,'orders',activeOrder.raw!.id),{
-         workerLocation:{lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy||null,heading:pos.coords.heading??null,speed:pos.coords.speed??null,updatedAt:new Date().toISOString()},
-         workerOutForWork:true,updatedAt:new Date().toISOString()
+       const user=auth.currentUser;
+       if(!user)throw new Error('Authentication session unavailable.');
+       const token=await user.getIdToken();
+       const backendBase=String(import.meta.env.VITE_BACKEND_URL||'').replace(/\/$/,'');
+       const response=await fetch(`${backendBase}/api/tracking/location`,{
+         method:'POST',
+         headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+         body:JSON.stringify({orderId:activeOrder.raw!.id,lat:pos.coords.latitude,lng:pos.coords.longitude,accuracy:pos.coords.accuracy,heading:pos.coords.heading,speed:pos.coords.speed})
        });
-     }catch{}
-   },function(){}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+       const result=await response.json().catch(()=>({}));
+       if(!response.ok||result.success!==true)throw new Error(result.error||'Server rejected the GPS update.');
+     }catch(error){
+       console.warn('PunchX secure worker GPS update failed:',error);
+     }
+   },function(error){console.warn('PunchX worker GPS permission/update error:',error.message);}, {enableHighAccuracy:true,maximumAge:5000,timeout:15000});
    return function(){if(locationWatch.current!==null && navigator.geolocation) navigator.geolocation.clearWatch(locationWatch.current);locationWatch.current=null;};
  },[orders.map(function(o){return o.id+o.status;}).join('|'),online]);
 
  const action=function(s:Status){return s==='NEW'?'Accept order':s==='ACCEPTED'?'Start travel':s==='TRAVELLING'?'Arrived':s==='ARRIVED'?'Start service':s==='SERVICE_STARTED'?'Complete order':'Completed'};
  const advance=async function(o:Order){
-   if(!o.raw){return;}
+   if(!o.raw)return;
    const raw=o.raw;
+   const request=async(path:string,payload:Record<string,unknown>)=>{
+     const user=auth.currentUser;
+     if(!user)throw new Error('Sign in again before updating this booking.');
+     const token=await user.getIdToken();
+     const backendBase=String(import.meta.env.VITE_BACKEND_URL||'').replace(/\/$/,'');
+     const response=await fetch(`${backendBase}${path}`,{
+       method:'POST',
+       headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
+       body:JSON.stringify(payload)
+     });
+     const result=await response.json().catch(()=>({}));
+     if(!response.ok||result.success!==true)throw new Error(result.error||'PunchX could not update this booking.');
+     return result;
+   };
    try{
+     const orderPath=`/api/orders/${encodeURIComponent(raw.id)}`;
      if(o.status==='NEW'){
-       if(!uid){return;}
-       await runTransaction(db,async function(tx){
-         const ref=doc(db,'orders',raw.id); const snap=await tx.get(ref);
-         if(!snap.exists()) throw new Error('Booking no longer exists.');
-         const current=snap.data() as any;
-         if(!pending(current.status) || (current.workerId && current.workerId!==uid)) throw new Error('This job was already accepted.');
-         const changedAt=new Date().toISOString();
-         const history=Array.isArray(current.stateHistory)?current.stateHistory:[];
-         tx.update(ref,{
-           workerId:uid,
-           workerName:userProfile?.name||'Verified Professional',
-           workerPhone:userProfile?.phone||'',
-           status:'In-Progress',
-           acceptedAt:changedAt,
-           updatedAt:changedAt,
-           stateHistory:[...history,{from:current.status||'Pending',to:'In-Progress',timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional accepted booking'}],
-         });
-       });
-       showNotification?.('✅ Job accepted. The customer assignment is now active.');
-     } else {
-       const backendStatus:any=o.status==='ACCEPTED'?'EN_ROUTE':o.status==='TRAVELLING'?'ARRIVED':o.status==='ARRIVED'?'IN_SERVICE':o.status==='SERVICE_STARTED'?'Done':null;
-       if(!backendStatus) return;
-       const changedAt=new Date().toISOString();
-       const history=Array.isArray((raw as any).stateHistory)?(raw as any).stateHistory:[];
-       await updateDoc(doc(db,'orders',raw.id),{
-         status:backendStatus,
-         updatedAt:changedAt,
-         stateHistory:[...history,{from:raw.status,to:backendStatus,timestamp:changedAt,actorUid:uid,actorRole:'worker',reason:'Professional updated booking progress'}],
-         ...(backendStatus==='Done'?{completedAt:changedAt,workerOutForWork:false}:{})
-       });
-       showNotification?.(backendStatus==='Done'?'✅ Service completed and recorded.':'Order '+o.id+' updated to '+(labels[mapStatus(backendStatus)]||backendStatus)+'.');
+       await request(orderPath+'/transition',{targetStatus:'ACCEPTED',reason:'Professional accepted dispatch'});
+       showNotification?.('✅ Booking accepted by PunchX. The citizen will see the assignment.');
+     }else if(o.status==='ACCEPTED'){
+       await request(orderPath+'/transition',{targetStatus:'EN_ROUTE',reason:'Professional started travel'});
+       showNotification?.('Travel started. Live GPS tracking is now active.');
+     }else if(o.status==='TRAVELLING'){
+       await request(orderPath+'/transition',{targetStatus:'ARRIVED',reason:'Professional arrived at service address'});
+       showNotification?.('Arrival recorded securely.');
+     }else if(o.status==='ARRIVED'){
+       const code=window.prompt('Enter the one-time service start code shown by the customer in PunchX.');
+       if(!code?.trim())return;
+       await request(orderPath+'/otp/verify',{type:'START',otp:code.trim()});
+       showNotification?.('✅ Service start code verified. Work is now marked as started.');
+     }else if(o.status==='SERVICE_STARTED'){
+       const code=window.prompt('Ask the customer for the service completion code shown in PunchX, then enter it here.');
+       if(!code?.trim())return;
+       await request(orderPath+'/otp/verify',{type:'COMPLETION',otp:code.trim()});
+       showNotification?.('✅ Completion code verified. The job has been completed.');
      }
      setSelected(null);
-   }catch(e:any){showNotification?.('⚠️ '+(e?.message||'Could not update this booking.'));}
+   }catch(e:any){
+     console.error('PunchX worker transition failed:',e);
+     showNotification?.('⚠️ '+(e?.message||'Could not update this booking.'));
+   }
  };
  const menu=[['home','Home',Home],['orders','Orders',ClipboardList],['schedule','Schedule',CalendarDays],['earnings','Earnings',Wallet],['performance','Performance',TrendingUp],['training','Training',ShieldCheck],['inventory','Inventory',BriefcaseBusiness],['profile','Profile',UserRound],['notifications','Notifications',Bell],['incentives','Incentives',Gift],['support','Support',LifeBuoy],['settings','Settings',Settings]] as any[];
  const menuGroups=[
