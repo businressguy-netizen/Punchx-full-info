@@ -849,19 +849,49 @@ async function startServer() {
         });
       }
 
-      // OTP is valid! Transition the order authoritatively
-      const targetState: OrderStatus = isCompletion ? "COMPLETED" : "IN_SERVICE";
-      const transitionResult = await executeOrderTransition(
-        id,
-        targetState,
-        {
-          actorUid: uid,
-          actorRole: isUserAdmin ? "admin" : "worker",
-          reason: `Verified valid ${type} security code from customer`,
-        },
-        isCompletion ? { serviceProof: { ...order.serviceProof, completionOtpVerified: true } } : undefined
-      );
+      // OTP is valid! Transition the order authoritatively.
+      // Completion follows the canonical IN_SERVICE -> COMPLETION_PENDING -> COMPLETED lifecycle.
+      let transitionResult;
+      if (isCompletion) {
+        const pendingResult = await executeOrderTransition(
+          id,
+          "COMPLETION_PENDING",
+          {
+            actorUid: uid,
+            actorRole: isUserAdmin ? "admin" : "worker",
+            reason: "Customer's one-time completion code verified",
+          },
+          { serviceProof: { ...order.serviceProof, completionOtpVerified: true } }
+        );
+        if (!pendingResult.success) {
+          return res.status(pendingResult.statusCode).json({ success: false, error: pendingResult.error || "Could not record completion verification" });
+        }
+        transitionResult = await executeOrderTransition(
+          id,
+          "COMPLETED",
+          {
+            actorUid: uid,
+            actorRole: "system",
+            reason: "Completion code verified; service completion recorded",
+          },
+          { serviceProof: { ...order.serviceProof, completionOtpVerified: true } }
+        );
+      } else {
+        transitionResult = await executeOrderTransition(
+          id,
+          "IN_SERVICE",
+          {
+            actorUid: uid,
+            actorRole: isUserAdmin ? "admin" : "worker",
+            reason: "Customer's one-time service start code verified",
+          }
+        );
+      }
 
+      if (!transitionResult.success) {
+        return res.status(transitionResult.statusCode).json({ success: false, error: transitionResult.error || "Could not update service status" });
+      }
+      const targetState: OrderStatus = isCompletion ? "COMPLETED" : "IN_SERVICE";
       const { startOtpHash, startOtpSalt, completionOtpHash, completionOtpSalt, ...sanitized } = (transitionResult.order as any) || {};
       return res.json({
         success: true,
