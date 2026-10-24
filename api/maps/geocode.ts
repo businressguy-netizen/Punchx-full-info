@@ -16,7 +16,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let plusCode = '';
     let locationType = 'APPROXIMATE';
 
-    const hasCoordinates = () => Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
+    const hasCoordinates = () =>
+      typeof lat === 'number' && typeof lng === 'number' &&
+      Number.isFinite(lat) && Number.isFinite(lng) &&
+      Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
 
     // Forward geocode only when the user supplied an address.
     if (!hasCoordinates() && fullAddress.length > 1) {
