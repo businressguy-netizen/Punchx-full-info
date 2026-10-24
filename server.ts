@@ -126,17 +126,19 @@ export const requireWorker = async (req: express.Request, res: express.Response,
 
   try {
     const userProfile = await dbAdapter.getUser(user.uid);
-    // Allow worker if profile role is worker or status is APPROVED or PENDING (review bypassed for testing)
-    if (userProfile && (userProfile.role === "worker" || userProfile.status === "APPROVED" || userProfile.status === "PENDING")) {
+    // Only approved worker profiles may use worker-only APIs.
+    if (userProfile?.role === "worker" && String(userProfile.status || "").toUpperCase() === "APPROVED") {
       (req as any).workerProfile = userProfile;
       return next();
     }
 
-    // Check worker application in database
+    // Applications awaiting review must not be allowed to publish GPS, accept jobs,
+    // or access worker operations. Approved application records are supported only
+    // for legacy approved profiles that have not yet been promoted to role=worker.
     const workerApp = await dbAdapter.getWorkerApplicationByUid(user.uid)
       || (userProfile?.phone ? await dbAdapter.getWorkerApplicationByContact({ phone: userProfile.phone }) : null);
 
-    if (workerApp) {
+    if (workerApp && String(workerApp.status || "").toUpperCase() === "APPROVED") {
       (req as any).workerApp = workerApp;
       return next();
     }
