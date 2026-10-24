@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { auth } from '../lib/firebase';
-import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
+import { APIProvider, AdvancedMarker, Map, useMap } from '@vis.gl/react-google-maps';
 import { ArrowLeft, Clock3, LocateFixed, MapPin, Navigation2, Phone, RefreshCw, ShieldCheck, UserRound } from 'lucide-react';
 import { AppScreen } from '../types';
 import { fetchGoogleMapsConfig, GoogleMapsConfig } from '../lib/location';
@@ -10,11 +10,10 @@ type Coords = { lat: number; lng: number };
 type RouteInfo = { distanceKm: number; etaMinutes: number } | null;
 
 function RouteLine({ from, to, onRouteInfo }: { from: Coords; to: Coords; onRouteInfo: (info: RouteInfo) => void }) {
+  const map = useMap();
   useEffect(() => {
     onRouteInfo(null);
-    if (typeof google === 'undefined') return;
-    const map = (window as any).__punchx_tracking_map as google.maps.Map | undefined;
-    if (!map) return;
+    if (!map || typeof google === 'undefined') return;
 
     const renderer = new google.maps.DirectionsRenderer({
       suppressMarkers: true,
@@ -46,11 +45,11 @@ function RouteLine({ from, to, onRouteInfo }: { from: Coords; to: Coords; onRout
     });
 
     return () => renderer.setMap(null);
-  }, [from.lat, from.lng, to.lat, to.lng, onRouteInfo]);
+  }, [map, from.lat, from.lng, to.lat, to.lng, onRouteInfo]);
   return null;
 }
 
-function TrackingMap({ customer, worker, workerName, apiKey, onRouteInfo }: { customer: Coords; worker: Coords; workerName: string; apiKey: string; onRouteInfo: (info: RouteInfo) => void }) {
+function TrackingMap({ customer, worker, workerName, apiKey, mapId, onRouteInfo }: { customer: Coords; worker: Coords; workerName: string; apiKey: string; mapId?: string; onRouteInfo: (info: RouteInfo) => void }) {
   const center = useMemo(() => ({ lat: (customer.lat + worker.lat) / 2, lng: (customer.lng + worker.lng) / 2 }), [customer, worker]);
 
   if (!apiKey) {
@@ -59,13 +58,12 @@ function TrackingMap({ customer, worker, workerName, apiKey, onRouteInfo }: { cu
 
   return <APIProvider apiKey={apiKey}>
     <Map
-      mapId="PUNCHX_LIVE_TRACKING"
+      mapId={mapId || 'DEMO_MAP_ID'}
       defaultCenter={center}
       center={center}
       defaultZoom={13}
       gestureHandling="greedy"
       style={{ width: '100%', height: '100%' }}
-      onIdle={(event) => { (window as any).__punchx_tracking_map = event.map; }}
     >
       <RouteLine from={worker} to={customer} onRouteInfo={onRouteInfo} />
       <AdvancedMarker position={customer}>
@@ -236,7 +234,7 @@ export default function LiveTrackingV2({ onTransition }: LiveTrackingV2Props) {
     <main className="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:px-6 sm:py-6">
       <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5">
         <div className="relative h-[430px] w-full sm:h-[520px]">
-          {customer && worker ? <TrackingMap customer={customer} worker={worker} workerName={order.workerName || 'PunchX Professional'} apiKey={mapsConfig?.apiKey || ''} onRouteInfo={handleRouteInfo} /> : <div className="flex h-full items-center justify-center bg-[#17191d] p-6 text-center text-white"><div><RefreshCw className="mx-auto h-7 w-7 animate-pulse text-[#b69cff]" /><p className="mt-3 text-sm">{customer ? 'Waiting for the professional’s first GPS update…' : 'Service address coordinates are unavailable. Reconfirm the address before tracking.'}</p></div></div>}
+          {customer && worker ? <TrackingMap customer={customer} worker={worker} workerName={order.workerName || 'PunchX Professional'} apiKey={mapsConfig?.apiKey || ''} mapId={mapsConfig?.mapId && mapsConfig.mapId !== 'PUNCHX_MAP_ID' ? mapsConfig.mapId : undefined} onRouteInfo={handleRouteInfo} /> : <div className="flex h-full items-center justify-center bg-[#17191d] p-6 text-center text-white"><div><RefreshCw className="mx-auto h-7 w-7 animate-pulse text-[#b69cff]" /><p className="mt-3 text-sm">{customer ? 'Waiting for the professional’s first GPS update…' : 'Service address coordinates are unavailable. Reconfirm the address before tracking.'}</p></div></div>}
           <div className="absolute left-3 top-3 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur sm:left-4 sm:top-4"><div className="flex items-center gap-2 text-xs font-black"><span className={`h-2.5 w-2.5 rounded-full ${routeActive ? 'animate-pulse bg-emerald-500' : 'bg-amber-500'}`} /> {routeActive ? 'Live route' : 'Connecting route'}</div><p className="mt-1 text-[10px] text-[#777c85]">Pro GPS update: {lastWorkerUpdate}</p></div>
         </div>
         <div className="grid grid-cols-3 divide-x border-t border-black/5 bg-white">
