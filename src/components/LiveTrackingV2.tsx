@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { auth } from '../lib/firebase';
 import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { ArrowLeft, Clock3, LocateFixed, MapPin, Navigation2, Phone, RefreshCw, ShieldCheck, UserRound } from 'lucide-react';
 import { AppScreen } from '../types';
-import { db } from '../lib/firebase';
-import { getAccurateCurrentPosition } from '../lib/location';
+import { fetchGoogleMapsConfig, GoogleMapsConfig } from '../lib/location';
 
 interface LiveTrackingV2Props { onTransition: (target: AppScreen) => void; bookingTime?: string; }
 type Coords = { lat: number; lng: number };
@@ -51,8 +50,7 @@ function RouteLine({ from, to, onRouteInfo }: { from: Coords; to: Coords; onRout
   return null;
 }
 
-function TrackingMap({ customer, worker, workerName, onRouteInfo }: { customer: Coords; worker: Coords; workerName: string; onRouteInfo: (info: RouteInfo) => void }) {
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+function TrackingMap({ customer, worker, workerName, apiKey, onRouteInfo }: { customer: Coords; worker: Coords; workerName: string; apiKey: string; onRouteInfo: (info: RouteInfo) => void }) {
   const center = useMemo(() => ({ lat: (customer.lat + worker.lat) / 2, lng: (customer.lng + worker.lng) / 2 }), [customer, worker]);
 
   if (!apiKey) {
@@ -82,34 +80,120 @@ function TrackingMap({ customer, worker, workerName, onRouteInfo }: { customer: 
 
 export default function LiveTrackingV2({ onTransition }: LiveTrackingV2Props) {
   const [order, setOrder] = useState<any | null>(() => { try { return JSON.parse(localStorage.getItem('punchx_active_order') || 'null'); } catch { return null; } });
-  const [customer, setCustomer] = useState<Coords | null>(null);
+  const [customer, setCustomer] = useState<Coords | null>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('punchx_active_order') || 'null');
+      const point = stored?.addressCoordinates || stored?.customerLocation;
+      return point && Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng))
+        ? { lat: Number(point.lat), lng: Number(point.lng) } : null;
+    } catch { return null; }
+  });
   const [worker, setWorker] = useState<Coords | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo>(null);
   const [lastWorkerUpdate, setLastWorkerUpdate] = useState('Waiting for professional GPS');
   const [gpsState, setGpsState] = useState<'loading' | 'live' | 'denied' | 'unavailable'>('loading');
   const [refreshing, setRefreshing] = useState(false);
+  const [mapsConfig, setMapsConfig] = useState<GoogleMapsConfig | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+  const [cancelled, setCancelled] = useState(false);
 
   const handleRouteInfo = useMemo(() => (info: RouteInfo) => setRouteInfo(info), []);
 
   useEffect(() => {
+    let active = true;
+    fetchGoogleMapsConfig().then(config => { if (active) setMapsConfig(config); }).catch(error => {
+      console.warn('PunchX Maps configuration unavailable:', error);
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
     if (!order?.id) return;
-    return onSnapshot(doc(db, 'orders', order.id), (snapshot) => {
-      if (!snapshot.exists()) return;
-      const data = snapshot.data() as any;
-      setOrder((current: any) => ({ ...(current || {}), id: snapshot.id, ...data }));
-      if (typeof data.customerLocation?.lat === 'number' && typeof data.customerLocation?.lng === 'number') setCustomer({ lat: data.customerLocation.lat, lng: data.customerLocation.lng });
-      if (typeof data.workerLocation?.lat === 'number' && typeof data.workerLocation?.lng === 'number') {
-        setWorker({ lat: data.workerLocation.lat, lng: data.workerLocation.lng });
-        setLastWorkerUpdate(data.workerLocation.timestamp ? new Date(data.workerLocation.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Live');
+    let active = true;
+    const refreshOrder = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          if (active) setGpsState('denied');
+          return;
+        }
+        const token = await user.getIdToken();
+        const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+        const response = await fetch(`${backendBase}/api/orders/${encodeURIComponent(order.id)}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || result.success !== true || !result.order) {
+          if (active && (response.status === 403 || response.status === 404)) setGpsState('unavailable');
+          return;
+        }
+        if (!active) return;
+        const data = result.order;
+        const nextOrder = { ...(data || {}), id: data.id || order.id };
+        setOrder((current: any) => ({ ...(current || {}), ...nextOrder }));
+        try { localStorage.setItem('punchx_active_order', JSON.stringify(nextOrder)); } catch {}
+        const destination = data.addressCoordinates || data.customerLocation;
+        if (destination && Number.isFinite(Number(destination.lat)) && Number.isFinite(Number(destination.lng))) {
+          setCustomer({ lat: Number(destination.lat), lng: Number(destination.lng) });
+          setGpsState('live');
+        } else {
+          setGpsState('unavailable');
+        }
+        const location = data.workerLocation;
+        if (location && Number.isFinite(Number(location.lat)) && Number.isFinite(Number(location.lng))) {
+          setWorker({ lat: Number(location.lat), lng: Number(location.lng) });
+          const timestamp = location.updatedAt || location.timestamp;
+          setLastWorkerUpdate(timestamp ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Timestamp unavailable');
+        }
+      } catch (error) {
+        if (active) console.warn('PunchX authorized tracking refresh failed:', error);
       }
-    }, (error) => console.warn('PunchX tracking listener:', error));
+    };
+    refreshOrder();
+    const timer = window.setInterval(refreshOrder, 4000);
+    return () => { active = false; window.clearInterval(timer); };
   }, [order?.id]);
 
   const syncCustomerGps = async () => {
     setRefreshing(true);
-    try { const pos = await getAccurateCurrentPosition(true); setCustomer(pos); setGpsState('live'); }
-    catch { setGpsState('denied'); }
-    finally { setRefreshing(false); }
+    try {
+      const stored = JSON.parse(localStorage.getItem('punchx_active_order') || 'null');
+      const point = stored?.addressCoordinates || stored?.customerLocation;
+      if (!point || !Number.isFinite(Number(point.lat)) || !Number.isFinite(Number(point.lng))) {
+        setGpsState('unavailable');
+        setCustomer(null);
+      } else {
+        setCustomer({ lat: Number(point.lat), lng: Number(point.lng) });
+        setGpsState('live');
+      }
+    } catch {
+      setGpsState('unavailable');
+    } finally { setRefreshing(false); }
+  };
+
+  const cancelBooking = async () => {
+    setCancelError('');
+    try {
+      const user = auth.currentUser;
+      if (!user || !order?.id) throw new Error('Sign in again to cancel this booking.');
+      const token = await user.getIdToken();
+      const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+      const response = await fetch(`${backendBase}/api/orders/${encodeURIComponent(order.id)}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ targetStatus: 'CANCELLED', reason: 'Cancelled by customer' })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result.success !== true) throw new Error(result.error || 'Cancellation was not accepted.');
+      const next = { ...(result.order || order), status: result.order?.status || 'CANCELLED' };
+      setOrder(next);
+      setCancelled(true);
+      setCancelOpen(false);
+      try { localStorage.setItem('punchx_active_order', JSON.stringify(next)); } catch {}
+    } catch (error: any) {
+      setCancelError(error?.message || 'Could not cancel this booking right now.');
+    }
   };
 
   useEffect(() => { syncCustomerGps(); }, []);
@@ -124,7 +208,7 @@ export default function LiveTrackingV2({ onTransition }: LiveTrackingV2Props) {
     <main className="mx-auto max-w-6xl space-y-4 px-3 py-4 sm:px-6 sm:py-6">
       <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5">
         <div className="relative h-[430px] w-full sm:h-[520px]">
-          {customer && worker ? <TrackingMap customer={customer} worker={worker} workerName={order.workerName || 'PunchX Professional'} onRouteInfo={handleRouteInfo} /> : <div className="flex h-full items-center justify-center bg-[#17191d] text-white"><RefreshCw className="h-7 w-7 animate-spin text-[#b69cff]" /></div>}
+          {customer && worker ? <TrackingMap customer={customer} worker={worker} workerName={order.workerName || 'PunchX Professional'} apiKey={mapsConfig?.apiKey || ''} onRouteInfo={handleRouteInfo} /> : <div className="flex h-full items-center justify-center bg-[#17191d] p-6 text-center text-white"><div><RefreshCw className="mx-auto h-7 w-7 animate-pulse text-[#b69cff]" /><p className="mt-3 text-sm">{customer ? 'Waiting for the professional’s first GPS update…' : 'Service address coordinates are unavailable. Reconfirm the address before tracking.'}</p></div></div>}
           <div className="absolute left-3 top-3 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur sm:left-4 sm:top-4"><div className="flex items-center gap-2 text-xs font-black"><span className={`h-2.5 w-2.5 rounded-full ${routeActive ? 'animate-pulse bg-emerald-500' : 'bg-amber-500'}`} /> {routeActive ? 'Live route' : 'Connecting route'}</div><p className="mt-1 text-[10px] text-[#777c85]">Pro GPS update: {lastWorkerUpdate}</p></div>
         </div>
         <div className="grid grid-cols-3 divide-x border-t border-black/5 bg-white">
@@ -135,8 +219,14 @@ export default function LiveTrackingV2({ onTransition }: LiveTrackingV2Props) {
       </div>
       <section className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5"><div className="flex items-center gap-3"><div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-[#eee9ff]"><UserRound className="h-6 w-6 text-[#B99A62]" /></div><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><h2 className="truncate text-base font-black">{order.workerName || 'PunchX Professional'}</h2><ShieldCheck className="h-4 w-4 text-emerald-500" /></div><p className="mt-0.5 text-xs text-[#777c85]">{order.category || 'Professional service'}</p></div></div>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3"><div className="rounded-2xl bg-[#f7f8fa] p-3"><Clock3 className="h-4 w-4 text-[#B99A62]" /><p className="mt-2 text-[10px] text-[#8a8f98]">Booking time</p><p className="text-xs font-black">{order.bookingTime || 'Scheduled'}</p></div><div className="rounded-2xl bg-[#f7f8fa] p-3"><MapPin className="h-4 w-4 text-[#B99A62]" /><p className="mt-2 text-[10px] text-[#8a8f98]">Destination</p><p className="truncate text-xs font-black">{order.customerAddress || 'Saved service address'}</p></div><div className="col-span-2 rounded-2xl bg-[#f7f8fa] p-3 sm:col-span-1"><Navigation2 className="h-4 w-4 text-[#B99A62]" /><p className="mt-2 text-[10px] text-[#8a8f98]">Route status</p><p className="text-xs font-black">{routeActive ? 'Live driving route' : 'Waiting for route'}</p></div></div>
-        <div className="mt-3 flex gap-2"><button className="flex-1 rounded-2xl border border-black/5 bg-white py-3 text-xs font-black"><Phone className="mr-1 inline h-4 w-4" /> Contact</button><button onClick={() => showDirections(order)} className="flex-1 rounded-2xl bg-[#17191d] py-3 text-xs font-black text-white"><Navigation2 className="mr-1 inline h-4 w-4" /> Directions</button></div>
+        <div className="mt-3 flex gap-2"><button onClick={() => order.workerPhone ? window.location.assign(`tel:${order.workerPhone}`) : undefined} disabled={!order.workerPhone} className="flex-1 rounded-2xl border border-black/5 bg-white py-3 text-xs font-black disabled:opacity-40"><Phone className="mr-1 inline h-4 w-4" /> Contact</button><button onClick={() => showDirections(order)} className="flex-1 rounded-2xl bg-[#17191d] py-3 text-xs font-black text-white"><Navigation2 className="mr-1 inline h-4 w-4" /> Directions</button></div>
       </section>
+      {!['Cancelled','CANCELLED','Done','COMPLETED','Completed'].includes(String(order.status || '')) && <section className="rounded-3xl border border-red-100 bg-white p-4 shadow-sm ring-1 ring-black/5 sm:p-5">
+        <div className="flex items-start justify-between gap-3"><div><h2 className="font-black text-red-700">Cancel booking</h2><p className="mt-1 text-xs leading-5 text-[#777c85]">Cancellation is checked by PunchX and may be unavailable after the professional arrives or work begins.</p></div></div>
+        {cancelError && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">{cancelError}</p>}
+        {cancelOpen ? <div className="mt-3 flex gap-2"><button onClick={() => setCancelOpen(false)} className="flex-1 rounded-xl border border-black/10 py-3 text-xs font-black">Keep booking</button><button onClick={cancelBooking} className="flex-1 rounded-xl bg-red-600 py-3 text-xs font-black text-white">Confirm cancellation</button></div> : <button onClick={() => setCancelOpen(true)} className="mt-3 w-full rounded-xl border border-red-200 py-3 text-xs font-black text-red-700">Request cancellation</button>}
+        {cancelled && <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700">Cancellation was accepted by PunchX.</p>}
+      </section>}
     </main>
   </div>;
 }
