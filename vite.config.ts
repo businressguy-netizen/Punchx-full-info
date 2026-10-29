@@ -30,6 +30,8 @@ export default defineConfig(() => {
       }
     },
     build: {
+      // Emit the module graph so CI can measure eager-loaded assets separately from lazy routes.
+      manifest: true,
       // Strip console.log and console.warn in production (keep console.error for critical errors)
       target: 'es2020',
       rollupOptions: {
