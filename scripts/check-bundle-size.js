@@ -89,9 +89,9 @@ function main() {
   }
 
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  const entryKey = Object.keys(manifest).find((key) => manifest[key].isEntry && key.endsWith('/main.tsx'));
+  const entryKey = Object.keys(manifest).find((key) => manifest[key].isEntry && (key === 'index.html' || key.endsWith('/main.tsx') || manifest[key].src?.endsWith('/main.tsx')));
   if (!entryKey) {
-    console.error('❌ Could not find the src/main.tsx entry in the Vite manifest.');
+    console.error('❌ Could not find the HTML/main.tsx entry in the Vite manifest.');
     process.exit(1);
   }
 
