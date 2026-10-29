@@ -107,14 +107,14 @@ function main() {
 
     const html = readFileSync(htmlPath, 'utf8');
     const resources = new Set();
-    const tags = html.match(/<(?:script|link)\\b[^>]*>/gi) || [];
+    const tags = html.match(/<(?:script|link)\b[^>]*>/gi) || [];
     for (const tag of tags) {
-      const isInitialScript = /<script\\b[^>]*type=["']module["']/i.test(tag);
-      const isInitialStyle = /<link\\b[^>]*rel=["'](?:modulepreload|stylesheet)["']/i.test(tag);
+      const isInitialScript = /<script\b[^>]*type=["']module["']/i.test(tag);
+      const isInitialStyle = /<link\b[^>]*rel=["'](?:modulepreload|stylesheet)["']/i.test(tag);
       if (!isInitialScript && !isInitialStyle) continue;
 
-      const assetMatch = tag.match(/\\b(?:src|href)=["']\\/?([^"']+)["']/i);
-      if (assetMatch && /\\.(?:m?js|css)$/i.test(assetMatch[1])) {
+      const assetMatch = tag.match(/\b(?:src|href)=["']\/?([^"']+)["']/i);
+      if (assetMatch && /\.(?:m?js|css)$/i.test(assetMatch[1])) {
         resources.add(assetMatch[1]);
       }
     }
