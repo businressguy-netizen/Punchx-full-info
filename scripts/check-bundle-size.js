@@ -17,7 +17,7 @@ import { join, extname } from 'path';
 
 const DIST_DIR = join(process.cwd(), 'dist');
 const ASSETS_DIR = join(DIST_DIR, 'assets');
-const MANIFEST_PATH = join(DIST_DIR, '.vite', 'manifest.json');
+const MANIFEST_PATHS = [join(DIST_DIR, '.vite', 'manifest.json'), join(DIST_DIR, 'manifest.json')];
 
 const SINGLE_CHUNK_WARN_KB = 500;
 const INITIAL_FAIL_KB = 2048;
@@ -81,12 +81,14 @@ function main() {
     process.exit(1);
   }
 
-  if (!existsSync(MANIFEST_PATH)) {
-    console.error('❌ Vite manifest not found at dist/.vite/manifest.json. Enable build.manifest in vite.config.ts.');
+  // Vite versions differ in whether the manifest is emitted at dist/.vite/manifest.json or dist/manifest.json.
+  const manifestPath = MANIFEST_PATHS.find((candidate) => existsSync(candidate));
+  if (!manifestPath) {
+    console.error('❌ Vite build manifest not found in dist/.vite/manifest.json or dist/manifest.json. Enable build.manifest in vite.config.ts.');
     process.exit(1);
   }
 
-  const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
   const entryKey = Object.keys(manifest).find((key) => manifest[key].isEntry && key.endsWith('/main.tsx'));
   if (!entryKey) {
     console.error('❌ Could not find the src/main.tsx entry in the Vite manifest.');
