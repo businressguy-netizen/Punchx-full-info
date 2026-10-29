@@ -12,7 +12,6 @@ import WebsiteFooter from './components/WebsiteFooter';
 import CitizenProfileDrawer from './components/CitizenProfileDrawer';
 import { AppScreen, Worker, WorkerApplication } from './types';
 import { AuthProvider, useAuth } from './lib/authContext';
-import { auth } from './lib/firebase';
 import OtpVerify from './components/OtpVerify';
 import NamoIDAuthShell from './components/NamoIDAuthShell';
 
