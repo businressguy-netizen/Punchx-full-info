@@ -89,13 +89,42 @@ function main() {
   }
 
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  const entryKey = Object.keys(manifest).find((key) => (key === 'index.html' || key.endsWith('/main.tsx') || manifest[key].src?.endsWith('/main.tsx')));
-  if (!entryKey) {
-    console.error('❌ Could not find the HTML/main.tsx entry in the Vite manifest.');
-    process.exit(1);
-  }
+  const entryKey = Object.keys(manifest).find((key) =>
+    key === 'index.html' || key.endsWith('/main.tsx') || manifest[key].src?.endsWith('/main.tsx')
+  );
 
-  const initialPaths = collectInitialFiles(manifest, entryKey);
+  let initialPaths;
+  if (entryKey) {
+    initialPaths = collectInitialFiles(manifest, entryKey);
+  } else {
+    // Fallback for Vite manifest variants without an entry marker: use the resources
+    // the browser is instructed to fetch immediately from the generated HTML.
+    const htmlPath = join(DIST_DIR, 'index.html');
+    if (!existsSync(htmlPath)) {
+      console.error('❌ No Vite entry found in the manifest and dist/index.html is missing.');
+      process.exit(1);
+    }
+
+    const html = readFileSync(htmlPath, 'utf8');
+    const resources = new Set();
+    const tags = html.match(/<(?:script|link)\\b[^>]*>/gi) || [];
+    for (const tag of tags) {
+      const isInitialScript = /<script\\b[^>]*type=["']module["']/i.test(tag);
+      const isInitialStyle = /<link\\b[^>]*rel=["'](?:modulepreload|stylesheet)["']/i.test(tag);
+      if (!isInitialScript && !isInitialStyle) continue;
+
+      const assetMatch = tag.match(/\\b(?:src|href)=["']\\/?([^"']+)["']/i);
+      if (assetMatch && /\\.(?:m?js|css)$/i.test(assetMatch[1])) {
+        resources.add(assetMatch[1]);
+      }
+    }
+
+    initialPaths = [...resources];
+    if (initialPaths.length === 0) {
+      console.error('❌ Could not determine initial JS/CSS assets from the Vite manifest or dist/index.html.');
+      process.exit(1);
+    }
+  }
   const initialFiles = initialPaths.map((relativePath) => {
     const filePath = join(DIST_DIR, relativePath);
     if (!existsSync(filePath)) {
