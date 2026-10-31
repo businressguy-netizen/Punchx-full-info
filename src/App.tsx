@@ -93,16 +93,20 @@ function AppMain() {
 
   const [currentScreen, setCurrentScreen] = useState<AppScreen>(() => {
     const requestedScreen = resolveScreenFromLocation();
-    // Show the branded splash once to first-time visitors, including deep links.
-    // Authentication callbacks must never be interrupted.
+    // Direct deep links and auth callbacks must always be respected so crawlers,
+    // legal reviewers, and shared URLs directly open the intended document.
     if (requestedScreen === 'auth-callback') return 'auth-callback';
     if (dedicatedAppRole) return 'auth';
+    if (requestedScreen && requestedScreen !== 'splash') {
+      try { localStorage.setItem('punchx_splash_seen', 'true'); } catch {}
+      return requestedScreen;
+    }
     try {
       if (localStorage.getItem('punchx_splash_seen') !== 'true') return 'splash';
     } catch {
-      if (!requestedScreen || requestedScreen === 'splash') return 'splash';
+      return 'splash';
     }
-    return requestedScreen || 'splash';
+    return 'panel-select';
   });
 
   useEffect(() => {

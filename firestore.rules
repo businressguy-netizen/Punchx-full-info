@@ -38,6 +38,239 @@ service cloud.firestore {
         );
     }
 
+    function isApplicationOwner(data) {
+      return signedIn() && (
+        ('uid' in data && request.auth.uid == data.uid)
+        || ('userId' in data && request.auth.uid == data.userId)
+      );
+    }
+
+    function validApplicationCreate() {
+      return (signedIn() || true)
+        && (
+          !('status' in request.resource.data)
+          || request.resource.data.status in ['PENDING', 'APPROVED']
+        )
+        && request.resource.data.keys().hasOnly([
+          'id',
+          'uid',
+          'userId',
+          'legalName',
+          'dob',
+          'birthdate',
+          'address',
+          'streetAddress',
+          'landmark',
+          'area',
+          'sector',
+          'city',
+          'district',
+          'state',
+          'postalCode',
+          'location',
+          'gpsAccuracy',
+          'lat',
+          'lng',
+          'categories',
+          'skill',
+          'category',
+          'customSkill',
+          'experienceYears',
+          'bio',
+          'visitingFee',
+          'minimumVisitingFee',
+          'maximumVisitingFee',
+          'price',
+          'phone',
+          'email',
+          'termsAccepted',
+          'status',
+          'appliedAt',
+          'updatedAt',
+          'available',
+          'rating',
+          'reviewsCount',
+          'avatar',
+          'photoURL',
+          'proBadge',
+          'completedJobs',
+          'jobsCompletedCount',
+          'onTimeRate',
+          'identityVerified',
+          'skillVerified',
+          'backgroundChecked',
+          'trainingCertified',
+          'insuranceCovered',
+          'insuranceAmount',
+          'reviewedBy',
+          'approvedAt',
+          'rejectedAt',
+          'rejectionReason',
+          'otpVerified',
+          'otpCode',
+          'geofenceArea',
+          'geofenceAreas',
+          'serviceAreas',
+          'serviceAreaMode',
+          'serviceAreaUpdatedAt',
+          'geofenceUpdatedAt',
+          'workerAvailability',
+          'isOnline',
+          'workerStatus',
+          'availabilityUpdatedAt'
+        ]);
+    }
+
+    function validApplicationAdminUpdate() {
+      return isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'id',
+            'uid',
+            'userId',
+            'legalName',
+            'dob',
+            'birthdate',
+            'address',
+            'streetAddress',
+            'landmark',
+            'area',
+            'sector',
+            'city',
+            'district',
+            'state',
+            'postalCode',
+            'location',
+            'gpsAccuracy',
+            'lat',
+            'lng',
+            'categories',
+            'skill',
+            'category',
+            'customSkill',
+            'experienceYears',
+            'bio',
+            'visitingFee',
+            'minimumVisitingFee',
+            'maximumVisitingFee',
+            'price',
+            'phone',
+            'email',
+            'termsAccepted',
+            'status',
+            'appliedAt',
+            'updatedAt',
+            'available',
+            'rating',
+            'reviewsCount',
+            'avatar',
+            'photoURL',
+            'proBadge',
+            'completedJobs',
+            'jobsCompletedCount',
+            'onTimeRate',
+            'identityVerified',
+            'skillVerified',
+            'backgroundChecked',
+            'trainingCertified',
+            'insuranceCovered',
+            'insuranceAmount',
+            'reviewedBy',
+            'approvedAt',
+            'rejectedAt',
+            'rejectionReason',
+            'otpVerified',
+            'otpCode',
+            'geofenceArea',
+            'geofenceAreas',
+            'serviceAreas',
+            'serviceAreaMode',
+            'serviceAreaUpdatedAt',
+            'geofenceUpdatedAt',
+            'workerAvailability',
+            'isOnline',
+            'workerStatus',
+            'availabilityUpdatedAt'
+          ]);
+    }
+
+    function validApplicationOwnerUpdate() {
+      return isApplicationOwner(resource.data)
+        && (!('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid)
+        && (!('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId)
+        && (!('id' in request.resource.data) || request.resource.data.id == resource.data.id)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'status',
+          'reviewedBy',
+          'approvedAt',
+          'rejectedAt',
+          'rejectionReason',
+          'identityVerified',
+          'skillVerified',
+          'backgroundChecked',
+          'trainingCertified',
+          'rating',
+          'reviewsCount',
+          'completedJobs',
+          'jobsCompletedCount',
+          'proBadge',
+          'insuranceCovered',
+          'insuranceAmount',
+          'onTimeRate',
+          'appliedAt',
+          'otpVerified',
+          'otpCode'
+        ])
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'id',
+            'uid',
+            'userId',
+            'legalName',
+            'dob',
+            'birthdate',
+            'address',
+            'streetAddress',
+            'landmark',
+            'area',
+            'sector',
+            'city',
+            'district',
+            'state',
+            'postalCode',
+            'location',
+            'gpsAccuracy',
+            'lat',
+            'lng',
+            'categories',
+            'skill',
+            'category',
+            'customSkill',
+            'experienceYears',
+            'bio',
+            'visitingFee',
+            'minimumVisitingFee',
+            'maximumVisitingFee',
+            'price',
+            'phone',
+            'email',
+            'termsAccepted',
+            'updatedAt',
+            'available',
+            'avatar',
+            'photoURL',
+            'geofenceArea',
+            'geofenceAreas',
+            'serviceAreas',
+            'serviceAreaMode',
+            'serviceAreaUpdatedAt',
+            'geofenceUpdatedAt',
+            'workerAvailability',
+            'isOnline',
+            'workerStatus',
+            'availabilityUpdatedAt'
+          ]);
+    }
 
     // =====================================================
     // SYSTEM CONFIG
@@ -134,7 +367,9 @@ service cloud.firestore {
     // =====================================================
     // WORKER APPLICATIONS
     // Specialist registration & technician discovery.
-    // Auto-approval enabled (admin review bypass mode).
+    // SECURED: Public updates strictly DENIED. Owners can
+    // update only contact, skill, location, categories & fees.
+    // Protected admin fields strictly restricted to admins.
     // =====================================================
 
     match /workerApplications/{appId} {
@@ -143,136 +378,15 @@ service cloud.firestore {
       allow read: if signedIn() || true;
 
       // Allow creating worker applications with status PENDING or APPROVED
-      allow create: if (signedIn() || true)
-        && (
-          !('status' in request.resource.data)
-          || request.resource.data.status in ['PENDING', 'APPROVED']
-        )
-        && request.resource.data.keys().hasOnly([
-          'id',
-          'uid',
-          'userId',
-          'legalName',
-          'dob',
-          'birthdate',
-          'address',
-          'streetAddress',
-          'landmark',
-          'area',
-          'sector',
-          'city',
-          'location',
-          'gpsAccuracy',
-          'lat',
-          'lng',
-          'categories',
-          'skill',
-          'category',
-          'customSkill',
-          'experienceYears',
-          'visitingFee',
-          'price',
-          'phone',
-          'email',
-          'termsAccepted',
-          'status',
-          'appliedAt',
-          'updatedAt',
-          'available',
-          'rating',
-          'reviewsCount',
-          'avatar',
-          'photoURL',
-          'proBadge',
-          'completedJobs',
-          'jobsCompletedCount',
-          'onTimeRate',
-          'identityVerified',
-          'skillVerified',
-          'backgroundChecked',
-          'trainingCertified',
-          'insuranceCovered',
-          'insuranceAmount',
-          'reviewedBy',
-          'approvedAt',
-          'rejectedAt',
-          'rejectionReason',
-          'otpVerified',
-          'otpCode'
-        ]);
+      allow create: if validApplicationCreate();
 
-      // Allow updates including all specialist registration and profile fields
-      allow update: if (
-          isAdmin()
-          || signedIn()
-          || true
-        )
-        && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly([
-            'id',
-            'uid',
-            'userId',
-            'legalName',
-            'dob',
-            'birthdate',
-            'address',
-            'streetAddress',
-            'landmark',
-            'area',
-            'sector',
-            'city',
-            'district',
-            'state',
-            'postalCode',
-            'location',
-            'gpsAccuracy',
-            'lat',
-            'lng',
-            'categories',
-            'skill',
-            'category',
-            'customSkill',
-            'experienceYears',
-            'visitingFee',
-            'price',
-            'phone',
-            'email',
-            'termsAccepted',
-            'status',
-            'appliedAt',
-            'updatedAt',
-            'available',
-            'rating',
-            'reviewsCount',
-            'avatar',
-            'photoURL',
-            'proBadge',
-            'completedJobs',
-            'jobsCompletedCount',
-            'onTimeRate',
-            'identityVerified',
-            'skillVerified',
-            'backgroundChecked',
-            'trainingCertified',
-            'insuranceCovered',
-            'insuranceAmount',
-            'reviewedBy',
-            'approvedAt',
-            'rejectedAt',
-            'rejectionReason',
-            'otpVerified',
-            'otpCode',
-            'geofenceArea',
-            'geofenceAreas',
-            'serviceAreas',
-            'serviceAreaMode',
-            'serviceAreaUpdatedAt',
-            'geofenceUpdatedAt',
-            'workerAvailability',
-            'isOnline',
-            'workerStatus',
-            'availabilityUpdatedAt'
-          ]);
+      // Tightened update rule: Admin can update any approved field;
+      // Owner can update their contact, skill, location, categories & visiting fee fields.
+      // Owner CANNOT update status, rating, reviewsCount, badges, or completed jobs.
+      // Unauthenticated / public updates are strictly DENIED.
+      allow update: if signedIn() && (
+        validApplicationAdminUpdate() || validApplicationOwnerUpdate()
+      );
 
       allow delete: if isAdmin();
     }
@@ -280,7 +394,10 @@ service cloud.firestore {
     // Compatibility alias for snake_case collection
     match /worker_applications/{appId} {
       allow read: if signedIn() || true;
-      allow create, update: if (signedIn() || true);
+      allow create: if validApplicationCreate();
+      allow update: if signedIn() && (
+        validApplicationAdminUpdate() || validApplicationOwnerUpdate()
+      );
       allow delete: if isAdmin();
     }
 
