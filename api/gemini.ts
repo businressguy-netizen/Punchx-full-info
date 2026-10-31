@@ -5,7 +5,7 @@ import { getAuth } from 'firebase-admin/auth';
 
 const MAX_PROMPT_LENGTH = 8000;
 const MAX_CONTEXT_LENGTH = 24000;
-const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
 const MAX_REQUESTS_PER_MINUTE = 20;
 const requestWindows = new Map<string, { startedAt: number; count: number }>();
 
@@ -161,7 +161,7 @@ async function generateWithGemini(prompt: string, context: string): Promise<stri
 
   const ai = new GoogleGenAI({ apiKey });
   const configuredModel = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
-  const models = [...new Set([configuredModel, DEFAULT_GEMINI_MODEL, 'gemini-3.7-flash', 'gemini-3.6-flash'])];
+  const models = [...new Set([configuredModel, DEFAULT_GEMINI_MODEL, 'gemini-2.0-flash', 'gemini-1.5-flash'])];
 
   const contextBlock = context
     ? `PRIVATE PUNCHX CONVERSATION AND APPLICATION CONTEXT FOR THIS USER:\n${context}\n\n`
@@ -202,7 +202,7 @@ async function streamWithGemini(prompt: string, context: string, res: VercelResp
 
   const ai = new GoogleGenAI({ apiKey });
   const configuredModel = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
-  const models = [...new Set([configuredModel, DEFAULT_GEMINI_MODEL, 'gemini-3.7-flash', 'gemini-3.6-flash'])];
+  const models = [...new Set([configuredModel, DEFAULT_GEMINI_MODEL, 'gemini-2.0-flash', 'gemini-1.5-flash'])];
 
   const contextBlock = context
     ? `PRIVATE PUNCHX CONVERSATION AND APPLICATION CONTEXT FOR THIS USER:\n${context}\n\n`

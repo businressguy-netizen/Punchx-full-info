@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Home, Wallet, ClipboardList, UserRound, Bell, Settings, LogOut, Menu, X, MapPin, Phone, Navigation, CheckCircle2, Clock3, CircleAlert, TrendingUp, CalendarDays, Star, ShieldCheck, Gift, LifeBuoy, ChevronRight, Search, Banknote, BriefcaseBusiness, Zap, MoreHorizontal, SlidersHorizontal, Route, MessageCircle, GraduationCap, Plus, Timer, Package, Camera, Pencil, Save, Loader2, BarChart3, LineChart, Power } from 'lucide-react';
 import { useAuth } from '../lib/authContext';
 import { auth, db } from '../lib/firebase';
@@ -323,7 +324,17 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
       setAvailabilitySaving(false);
     }
   };
-  const nav=function(t:Tab){setTab(t);setSelected(null);setMobile(false);window.scrollTo({top:0,behavior:'smooth'});};
+  const nav=function(t:Tab){setTab(t);setSelected(null);setMobile(false);window.scrollTo(0,0);};
+  useEffect(()=>{
+    window.scrollTo(0,0);
+  },[tab]);
+  useEffect(()=>{
+    if(mobile){
+      const prev=document.body.style.overflow;
+      document.body.style.overflow='hidden';
+      return ()=>{document.body.style.overflow=prev;};
+    }
+  },[mobile]);
  const handleLogout=async function(){
    if(loggingOut)return;
    setLoggingOut(true);
@@ -406,7 +417,8 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
  ].map(function(group:any){return {label:group.label,items:group.keys.map(function(key:string){return menu.find(function(m:any){return m[0]===key;});}).filter(Boolean)};});
 
  return <div className="wx-app">
-  <aside className={'wx-sidebar '+(mobile?'open':'')}>
+  <div className={'wx-sidebar-backdrop '+(mobile?'open':'')} onClick={()=>setMobile(false)} aria-hidden="true" />
+  <aside className={'wx-sidebar '+(mobile?'open':'')} aria-label="Partner sidebar">
    <div className="wx-brand"><div className="wx-logo"><img src={PUNCHX_LOGO} alt="PunchX" /></div><div><b>PunchX</b><span>PARTNER PANEL</span></div><button className="wx-close" onClick={()=>setMobile(false)}><X/></button></div>
    <div className="wx-worker-mini"><div className="wx-avatar">{String(name||"P").slice(0,2).toUpperCase()}</div><div><b>{name}</b><span className="wx-worker-id-pill" title="Official PunchX Partner ID">{workerId}</span></div><i className={online?'online':''}></i></div>
    
@@ -425,7 +437,7 @@ export default function WorkerPartnerPanel({ onTransition, showNotification }: W
     {tab==='orders'&&<OrdersView filtered={filtered} filter={filter} setFilter={setFilter} query={query} setQuery={setQuery} onOpen={setSelected}/>}
     {tab==='schedule'&&<ScheduleView/>}{tab==='earnings'&&<EarningsView orders={orders} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>} {tab==='performance'&&<PerformanceView orders={orders} userProfile={userProfile} reportPeriod={reportPeriod} setReportPeriod={setReportPeriod}/>}{tab==='training'&&<TrainingView userProfile={userProfile}/>}{tab==='inventory'&&<InventoryView userProfile={userProfile}/>}
     {tab==='profile'&&<ProfileView userProfile={userProfile} uid={uid} refreshProfile={refreshProfile} showNotification={showNotification} onTransition={onTransition}/>}
-    {tab==='notifications'&&<NotificationsView orders={orders}/>}
+    {tab==='notifications'&&<NotificationsView orders={orders} open={setSelected}/>}
     {tab==='incentives'&&<IncentivesView/>}
     {tab==='support'&&<SupportView nav={nav}/>}
     {tab==='settings'&&<SettingsView online={online} persistAvailability={persistAvailability} availabilitySaving={availabilitySaving} nav={nav} onTransition={onTransition}/>}
@@ -943,12 +955,16 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification,onTransiti
 
    <section className="wx-card wx-profile-note"><ShieldCheck size={18}/><div><b>Protected professional fields</b><span>Verification status, ratings, completed jobs and payout records are controlled by PunchX. They cannot be fabricated or edited from this panel.</span></div></section>
 
-   {editing&&<div className="wx-overlay">
-     <div className="wx-modal wx-profile-modal">
+   {editing&&typeof document!=='undefined'&&createPortal(
+     <div className="wx-overlay" role="dialog" aria-modal="true" aria-labelledby="wx-edit-profile-title" onClick={(e)=>{if(e.target===e.currentTarget&&!saving)setEditing(false);}}>
+     <div className="wx-modal wx-profile-modal" onClick={e=>e.stopPropagation()}>
+       <div className="wx-profile-modal-header">
        <button className="wx-modal-x" onClick={()=>!saving&&setEditing(false)}><X/></button>
        <div className="wx-modal-icon"><UserRound/></div>
-       <h2>Edit your profile</h2>
+       <h2 id="wx-edit-profile-title">Edit your profile</h2>
        <p>Update your personal and contact information. Verification and earnings data remain protected.</p>
+       </div>
+       <div className="wx-profile-modal-body">
        <div className="wx-profile-edit-photo">
          {photoPreview?<img src={photoPreview} alt="Profile preview"/>:<div className="wx-avatar xl">{initials}</div>}
          <div><label className="wx-upload-btn">{photoBusy?<Loader2 className="wx-spin"/>:<Camera size={16}/>} {photoBusy?'Processing…':photoPreview?'Change genuine photo':'Add genuine photo'}<input type="file" accept="image/*" onChange={choosePhoto} disabled={saving||photoBusy}/></label><small>Use a clear photo of yourself. PunchX stores the image with your account.</small></div>
@@ -985,17 +1001,18 @@ function ProfileView({userProfile,uid,refreshProfile,showNotification,onTransiti
          <ShieldCheck size={17}/>
          <div><b>PunchX-controlled information</b><span>Application ID, partner status, verification records, ratings, completed jobs, payout records, terms acceptance, application timestamps and other system records cannot be edited from this profile.</span></div>
        </div>
+       </div>
        <div className="wx-modal-actions"><button className="wx-secondary" onClick={()=>setEditing(false)} disabled={saving}>Cancel</button><button className="wx-primary" onClick={save} disabled={saving||photoBusy}>{saving?<Loader2 className="wx-spin"/>:<Save size={16}/>} {saving?'Saving…':'Save changes'}</button></div>
      </div>
-   </div>}
+   </div>, document.body)}
  </div>
 }
-function NotificationsView({orders}:{orders:Order[]}){const recent=orders.slice(0,20);return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">UPDATES</span><h2>Notifications</h2><p>Only live booking events are shown here.</p></div></div><section className="wx-card wx-notes">{recent.map(o=><div key={o.id}><div className="wx-note-icon"><ClipboardList/></div><div><b>Booking #{o.id}</b><p>{o.service} · {statusLabel[o.status]||o.status} · {o.customer}</p><small>{o.date}{o.time?' · '+o.time:''}</small></div><ChevronRight/></div>)}{!recent.length&&<div className="wx-empty"><Bell/><b>No notifications</b><span>New PunchX booking events will appear here.</span></div>}</section></div>}
+function NotificationsView({orders,open}:{orders:Order[];open?:(o:Order)=>void}){const recent=orders.slice(0,20);return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">UPDATES</span><h2>Notifications</h2><p>Only live booking events are shown here.</p></div></div><section className="wx-card wx-notes">{recent.map(o=><div key={o.id} onClick={()=>open?.(o)} style={{cursor:open?'pointer':'default'}} role={open?'button':undefined} tabIndex={open?0:undefined} onKeyDown={e=>{if(open&&(e.key==='Enter'||e.key===' ')){e.preventDefault();open(o);}}}><div className="wx-note-icon"><ClipboardList/></div><div><b>Booking #{o.id}</b><p>{o.service} · {statusLabel[o.status]||o.status} · {o.customer}</p><small>{o.date}{o.time?' · '+o.time:''}</small></div><ChevronRight/></div>)}{!recent.length&&<div className="wx-empty"><Bell/><b>No notifications</b><span>New PunchX booking events will appear here.</span></div>}</section></div>}
 function IncentivesView(){return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">EARN MORE</span><h2>Incentives & bonuses</h2><p>Only verified PunchX campaigns are displayed.</p></div></div><section className="wx-card"><div className="wx-empty"><Gift/><b>No active incentives available</b><span>No verified incentive campaign is available for this account.</span></div></section></div>}
-function SupportView({nav}:{nav:(t:Tab)=>void}){const cards=[['Order issue','Open Orders and inspect a live booking',ClipboardList,'orders'],['Payment issue','Open Earnings for verified payout records',Banknote,'earnings'],['Customer report','Use a live order to review customer details',CircleAlert,'orders'],['Technical issue','Open Settings and location controls',Settings,'settings'],['Email support','punchxservice@gmail.com',MessageCircle,'mail'],['Emergency assistance','Use verified PunchX support channels',LifeBuoy,'support']];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">PARTNER CARE</span><h2>Help & support</h2><p>Order, payment, customer and technical support.</p></div><a className="wx-primary" href="mailto:punchxservice@gmail.com"><LifeBuoy size={16}/> Contact support</a></div><div className="wx-support-grid">{cards.map(function(x:any){var I=x[2];return <button className="wx-card wx-support-card" key={x[0]} onClick={()=>x[3]==='mail'?window.location.href='mailto:punchxservice@gmail.com':nav(x[3])}><I/><div><b>{x[0]}</b><span>{x[1]}</span></div><ChevronRight/></button>})}</div></div>}
+function SupportView({nav}:{nav:(t:Tab)=>void}){const cards=[['Order issue','Open Orders and inspect a live booking',ClipboardList,'orders'],['Payment issue','Open Earnings for verified payout records',Banknote,'earnings'],['Customer report','Use a live order to review customer details',CircleAlert,'orders'],['Technical issue','Open Settings and location controls',Settings,'settings'],['Email support','punchxservice@gmail.com',MessageCircle,'mail'],['Emergency assistance','Use verified PunchX support channels',LifeBuoy,'emergency']];return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">PARTNER CARE</span><h2>Help & support</h2><p>Order, payment, customer and technical support.</p></div><a className="wx-primary" href="mailto:punchxservice@gmail.com"><LifeBuoy size={16}/> Contact support</a></div><div className="wx-support-grid">{cards.map(function(x:any){var I=x[2];return <button className="wx-card wx-support-card" key={x[0]} onClick={()=>{if(x[3]==='mail'){window.location.href='mailto:punchxservice@gmail.com';}else if(x[3]==='emergency'){window.location.href='mailto:punchxservice@gmail.com?subject=Emergency%20Partner%20Assistance';}else{nav(x[3]);}}}><I/><div><b>{x[0]}</b><span>{x[1]}</span></div><ChevronRight/></button>})}</div></div>}
 function SettingsView(p:any){const nav=p.nav as (t:Tab)=>void;return <div className="wx-stack"><div className="wx-page-intro"><div><span className="wx-section-label">CONTROL CENTER</span><h2>Settings</h2><p>Account, notifications, privacy and availability.</p></div></div>{[['Account','Edit your personal profile and account details','profile'],['Notifications','Review live PunchX booking events','notifications'],['Privacy & location','Review location permissions and live service-zone status','home'],['App preferences','Language, theme and privacy documents','privacy'],['Account status','Deactivation is handled through verified PunchX support','support']].map(function(x:any){return <section className="wx-card wx-setting" key={x[0]}><div><b>{x[0]}</b><span>{x[1]}</span></div><button className={x[0]==='Account status'?'wx-secondary':'wx-secondary'} onClick={()=>x[2]==='privacy'?p.onTransition?.('privacy-policy'):nav(x[2])}>Open</button></section>})}<section className="wx-card wx-setting"><div><b>Availability</b><span>{p.online?'Online — eligible for new orders':'Offline — no new orders'}</span></div><WorkerAvailabilitySlider online={p.online} onToggle={()=>p.persistAvailability(!p.online)} saving={p.availabilitySaving} size="settings" /></section></div>}
 
-function OrderModal(p:any){var o=p.order;return <div className="wx-overlay"><div className="wx-modal wx-order-modal"><button className="wx-modal-x" onClick={p.close}><X/></button><div className="wx-modal-top"><span className={'wx-badge '+o.status.toLowerCase()}>{labels[o.status]}</span><span>ORDER #{o.id}</span></div><div className="wx-customer"><div className="wx-avatar large">{o.avatar}</div><div><h2>{o.customer}</h2><p>{o.service}</p></div></div><div className="wx-modal-grid"><div><MapPin/><span>Address</span><b>{o.address}</b><small>{o.distance!==null?o.distance+" km away":"Distance unavailable"}</small></div><div><CalendarDays/><span>Booking</span><b>{o.date} · {o.time}</b><small>{o.duration}</small></div><div><Banknote/><span>Customer total</span><b>{o.price!==null?money(o.price):'Unavailable'}</b><small>Payment: {o.payment}</small></div><div><Wallet/><span>Your earning</span><b>{o.earning!==null?money(o.earning):'Payout unavailable'}</b><small>Verified professional payout only</small></div></div><div className="wx-status-line">{['ACCEPTED','TRAVELLING','ARRIVED','SERVICE_STARTED','COMPLETED'].map(function(s,i){return <React.Fragment key={s}><span className={['ACCEPTED','TRAVELLING','ARRIVED','SERVICE_STARTED','COMPLETED'].indexOf(o.status)>=i?'done':''}>{i+1}</span>{i<4&&<i/>}</React.Fragment>})}</div><div className="wx-status-labels"><span>Accepted</span><span>Travel</span><span>Arrived</span><span>Service</span><span>Done</span></div>
+function OrderModal(p:any){var o=p.order;if(typeof document==='undefined')return null;return createPortal(<div className="wx-overlay" role="dialog" aria-modal="true" onClick={(e)=>{if(e.target===e.currentTarget)p.close();}}><div className="wx-modal wx-order-modal" onClick={e=>e.stopPropagation()}><button className="wx-modal-x" onClick={p.close} aria-label="Close booking details dialog"><X/></button><div className="wx-modal-top"><span className={'wx-badge '+o.status.toLowerCase()}>{labels[o.status]}</span><span>ORDER #{o.id}</span></div><div className="wx-customer"><div className="wx-avatar large">{o.avatar}</div><div><h2>{o.customer}</h2><p>{o.service}</p></div></div><div className="wx-modal-grid"><div><MapPin/><span>Address</span><b>{o.address}</b><small>{o.distance!==null?o.distance+" km away":"Distance unavailable"}</small></div><div><CalendarDays/><span>Booking</span><b>{o.date} · {o.time}</b><small>{o.duration}</small></div><div><Banknote/><span>Customer total</span><b>{o.price!==null?money(o.price):'Unavailable'}</b><small>Payment: {o.payment}</small></div><div><Wallet/><span>Your earning</span><b>{o.earning!==null?money(o.earning):'Payout unavailable'}</b><small>Verified professional payout only</small></div></div><div className="wx-status-line">{['ACCEPTED','TRAVELLING','ARRIVED','SERVICE_STARTED','COMPLETED'].map(function(s,i){return <React.Fragment key={s}><span className={['ACCEPTED','TRAVELLING','ARRIVED','SERVICE_STARTED','COMPLETED'].indexOf(o.status)>=i?'done':''}>{i+1}</span>{i<4&&<i/>}</React.Fragment>})}</div><div className="wx-status-labels"><span>Accepted</span><span>Travel</span><span>Arrived</span><span>Service</span><span>Done</span></div>
 {(o.raw?.issueDescription||o.raw?.serviceProof||o.raw?.additionalWorkRequests?.length||o.raw?.warrantyClaimStatus)&&<section className="wx-job-detail-card">
   {o.raw?.issueDescription&&<div><span>Customer requirement</span><b>{o.raw.issueDescription}</b></div>}
   {o.raw?.serviceProof?.completionNotes&&<div><span>Completion notes</span><b>{o.raw.serviceProof.completionNotes}</b></div>}
@@ -1004,4 +1021,4 @@ function OrderModal(p:any){var o=p.order;return <div className="wx-overlay"><div
   {o.raw?.arrivalQuality?.comment&&<div><span>Arrival feedback</span><b>{o.raw.arrivalQuality.comment}</b></div>}
   {(o.raw?.serviceProof?.beforePhoto||o.raw?.serviceProof?.afterPhoto||o.raw?.photoProof)&&<div><span>Service proof</span><b>Verified proof record available</b></div>}
 </section>}
-<div className="wx-modal-actions"><button className="wx-secondary" onClick={()=>{const phone=o.raw?.customerPhone;if(phone)window.location.href="tel:"+phone;else alert("Customer phone number is not available in this booking.");}}><Phone size={16}/> Contact</button><button className="wx-secondary" onClick={()=>{const loc=o.raw?.customerLocation;if(loc)window.open("https://www.google.com/maps/dir/?api=1&destination="+loc.lat+","+loc.lng,"_blank","noopener,noreferrer");else if(o.address&&o.address!=="Address unavailable")window.open("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(o.address),"_blank","noopener,noreferrer");else alert("Customer location is not available in this booking.");}}><Navigation size={16}/> Navigate</button>{o.status!=='COMPLETED'&&<button className="wx-primary" onClick={p.advance}>{p.action}<ChevronRight size={16}/></button>}</div></div></div>}
+<div className="wx-modal-actions"><button className="wx-secondary" onClick={()=>{const phone=o.raw?.customerPhone;if(phone)window.location.href="tel:"+phone;else alert("Customer phone number is not available in this booking.");}}><Phone size={16}/> Contact</button><button className="wx-secondary" onClick={()=>{const loc=o.raw?.customerLocation;if(loc)window.open("https://www.google.com/maps/dir/?api=1&destination="+loc.lat+","+loc.lng,"_blank","noopener,noreferrer");else if(o.address&&o.address!=="Address unavailable")window.open("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(o.address),"_blank","noopener,noreferrer");else alert("Customer location is not available in this booking.");}}><Navigation size={16}/> Navigate</button>{o.status!=='COMPLETED'&&<button className="wx-primary" onClick={p.advance}>{p.action}<ChevronRight size={16}/></button>}</div></div></div>,document.body);}

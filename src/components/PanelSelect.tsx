@@ -72,7 +72,7 @@ export default function PanelSelect({ onSelectPanel, showNotification }: PanelSe
 
           {/* Specialist Partner Card */}
           <motion.section initial={{ opacity: 0, y: 38, scale:.975 }} whileInView={{ opacity: 1, y: 0, scale:1 }} viewport={{once:true,amount:.2}} transition={{ delay: 0.24, duration: 0.68, ease:[.22,1,.36,1] }} whileHover={{y:-7,scale:1.008}} whileTap={{scale:.99}} className="px-workspace-card group relative flex flex-col justify-between overflow-hidden rounded-[28px] border border-[#fef3c7] bg-white/95 p-6 shadow-[0_22px_70px_rgba(62,50,57,.08)] backdrop-blur-xl sm:p-8 hover:border-[#D9C28F] hover:shadow-[0_30px_85px_rgba(62,50,57,.13)]">
-            <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#F7EFE7]0/10 blur-3xl transition-all duration-500 group-hover:bg-[#F7EFE7]0/20" />
+            <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#D9C28F]/10 blur-3xl transition-all duration-500 group-hover:bg-[#D9C28F]/20" />
             <div className="relative flex flex-col items-center text-center flex-1">
               <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#D9C28F] bg-[#F7EFE7] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#64745D]">
                 <ShieldCheck className="h-3 w-3" /> Specialist Workspace
