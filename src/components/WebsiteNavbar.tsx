@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Bell, CalendarDays, ChevronDown, Grid2X2, MapPin, Menu, Navigation2,
@@ -8,7 +8,7 @@ import { AppScreen } from '../types';
 import PUNCHX_LOGO from '../assets/logo';
 import { useAuth } from '../lib/authContext';
 import { getStoredPushNotifications } from '../lib/pushNotifications';
-import ServiceCategoryModal from './ServiceCategoryModal';
+const ServiceCategoryModal = lazy(() => import('./ServiceCategoryModal'));
 import CitizenCartButton from './CitizenCartButton';
 import { PUNCHX_50_CATEGORIES } from '../data/categories';
 
@@ -238,13 +238,17 @@ export default function WebsiteNavbar({
         </AnimatePresence>
       </header>
 
-      <ServiceCategoryModal
-        isOpen={categoryModalOpen}
-        onClose={() => setCategoryModalOpen(false)}
-        mode="citizen"
-        selectedCategory=""
-        onSelectCategory={chooseCategory}
-      />
+      {categoryModalOpen && (
+        <Suspense fallback={null}>
+          <ServiceCategoryModal
+            isOpen={categoryModalOpen}
+            onClose={() => setCategoryModalOpen(false)}
+            mode="citizen"
+            selectedCategory=""
+            onSelectCategory={chooseCategory}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

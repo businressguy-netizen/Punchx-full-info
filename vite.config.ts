@@ -1,9 +1,10 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const isProd = mode === 'production' || process.env.NODE_ENV === 'production';
   return {
     base: '/',
     plugins: [react(), tailwindcss()],
@@ -30,22 +31,39 @@ export default defineConfig(() => {
       }
     },
     build: {
-      // Strip console.log and console.warn in production (keep console.error for critical errors)
       target: 'es2020',
+      cssMinify: true,
+      minify: 'esbuild',
       rollupOptions: {
         output: {
-          // Code-split large vendor libraries into separate chunks
-          manualChunks: {
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
-            'vendor-motion': ['motion'],
+          // Code-split large vendor libraries into separate chunks to optimize loading & caching
+          manualChunks(id) {
+            if (id.includes('node_modules/firebase/firestore')) {
+              return 'vendor-firestore';
+            }
+            if (id.includes('node_modules/firebase/')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+              return 'vendor-react';
+            }
+            if (id.includes('node_modules/motion')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
+            }
+            if (id.includes('node_modules/@namoidhq')) {
+              return 'vendor-namoid';
+            }
           }
         }
       }
     },
     esbuild: {
-      // Remove console.log and console.warn in production builds
-      drop: process.env.NODE_ENV === 'production' ? (['console'] as any) : [],
+      // Remove console.log and debugger in production builds
+      drop: isProd ? (['console', 'debugger'] as any) : [],
+      legalComments: 'none',
     },
   };
 });

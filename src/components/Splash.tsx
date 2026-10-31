@@ -10,7 +10,7 @@ interface SplashProps {
 
 export default function Splash({ onTransition }: SplashProps) {
   useEffect(() => {
-    const timer = window.setTimeout(() => onTransition('panel-select'), 3200);
+    const timer = window.setTimeout(() => onTransition('panel-select'), 1800);
     return () => window.clearTimeout(timer);
   }, [onTransition]);
 
@@ -27,7 +27,20 @@ export default function Splash({ onTransition }: SplashProps) {
   );
 
   return (
-    <main className="punchx-splash relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-[#10110F] px-6 text-[#F5F0E6]">
+    <main
+      onClick={() => onTransition('panel-select')}
+      className="punchx-splash relative flex min-h-[100svh] items-center justify-center overflow-hidden bg-[#10110F] px-6 text-[#F5F0E6] cursor-pointer select-none"
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onTransition('panel-select');
+        }}
+        className="absolute top-5 right-5 z-20 flex items-center gap-1.5 rounded-full border border-[#B99A62]/30 bg-[#1B1A16]/80 px-3.5 py-1.5 text-[11px] font-semibold text-[#D9C28F] backdrop-blur transition-all hover:bg-[#B99A62]/20 active:scale-95"
+      >
+        Skip <ArrowUpRight className="h-3 w-3" />
+      </button>
       <style>{`
         .punchx-splash { isolation:isolate; }
         @keyframes px-ambient { 0%,100% { transform:translate3d(-4%,0,0) scale(1); opacity:.35; } 50% { transform:translate3d(5%,4%,0) scale(1.13); opacity:.7; } }

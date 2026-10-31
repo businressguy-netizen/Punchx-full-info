@@ -31,6 +31,8 @@
     <link rel="icon" type="image/jpeg" href="/favicon.jpg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.jpg" />
     <link rel="manifest" href="/manifest.json" />
+    <link rel="preconnect" href="https://images.unsplash.com" />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -74,7 +76,7 @@
         .static-card{padding:10px;border-radius:12px}
         .static-card img{height:105px;margin-bottom:8px}
         .static-card h3{font-size:13px;line-height:1.25}
-        .static-card p{font-size:11px;line-height:1.35;color:#606775}
+        .static-card p{font-size:12px;line-height:1.35;color:#606775}
         .static-header{padding:4px 0 16px}
         .static-nav{gap:10px 14px;font-size:13px}
       }
@@ -84,7 +86,7 @@
       html.app-mounted #static-seo-fallback{display:none}
       @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
     </style>
-    <script>(function(l){if(l.hostname==='punchxapp.co.in'){window.location.replace('https://www.punchxapp.co.in'+l.pathname+l.search+l.hash);return}if(l.search[1]==='/'){var decoded=l.search.slice(1).split('&').map(function(s){return s.replace(/~and~/g,'&')}).join('?');window.history.replaceState(null,null,l.pathname.slice(0,-1)+decoded+l.hash)}}(window));</script>
+    <script>(function(l){if(!l)return;if(l.hostname==='punchxapp.co.in'){window.location.replace('https://www.punchxapp.co.in'+l.pathname+l.search+l.hash);return}if(l.search&&l.search[1]==='/'){var decoded=l.search.slice(1).split('&').map(function(s){return s.replace(/~and~/g,'&')}).join('?');window.history.replaceState(null,null,l.pathname.slice(0,-1)+decoded+l.hash)}}(window.location));</script>
     <script type="application/ld+json">{
       "@context":"https://schema.org",
       "@graph":[
@@ -146,7 +148,7 @@
           <article class="static-card"><img src="https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?auto=format&amp;fit=crop&amp;w=900&amp;q=85" alt="Plumber repairing home pipework" loading="lazy" /><h3>Plumbing Services</h3><p>Leaks, taps, drains, sinks, toilets and bathroom fittings.</p></article>
           <article class="static-card"><img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&amp;fit=crop&amp;w=900&amp;q=85" alt="Home cleaner working in a room" loading="lazy" /><h3>Home Cleaning</h3><p>Regular cleaning, deep cleaning, kitchens, bathrooms and sofas.</p></article>
           <article class="static-card"><img src="https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&amp;fit=crop&amp;w=900&amp;q=85" alt="Technician servicing household equipment" loading="lazy" /><h3>AC &amp; Appliance Repair</h3><p>AC servicing, refrigerator, washing machine and appliance repair.</p></article>
-          <article class="static-card"><img src="https://willixai.com/assets/pest-control-3PLWX0ZE.jpg" alt="Pest-control service for a home" loading="lazy" /><h3>Pest Control</h3><p>Treatment options for cockroaches, ants, mosquitoes and rodents.</p></article>
+          <article class="static-card"><img src="https://images.unsplash.com/photo-1584467735871-8e85353a8413?auto=format&amp;fit=crop&amp;w=900&amp;q=85" alt="Pest-control service for a home" loading="lazy" /><h3>Pest Control</h3><p>Treatment options for cockroaches, ants, mosquitoes and rodents.</p></article>
           <article class="static-card"><img src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&amp;fit=crop&amp;w=900&amp;q=85" alt="Beauty professional providing salon care" loading="lazy" /><h3>Beauty &amp; Salon at Home</h3><p>Facials, waxing, threading, manicure, pedicure and grooming.</p></article>
           <article class="static-card"><img src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&amp;fit=crop&amp;w=900&amp;q=85" alt="Carpenter working on furniture" loading="lazy" /><h3>Carpenter &amp; Handyman</h3><p>Furniture fixes, shelves, doors, cabinet fittings and small repairs.</p></article>
           <article class="static-card"><img src="https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&amp;fit=crop&amp;w=900&amp;q=85" alt="Painter finishing an interior wall" loading="lazy" /><h3>Painting &amp; Home Improvement</h3><p>Wall painting, touch-ups, waterproofing and small renovations.</p></article>

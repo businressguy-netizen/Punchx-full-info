@@ -1,20 +1,21 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import Splash from './components/Splash';
-import Auth from './components/Auth';
-import DragoAssistant from './components/DragoAssistant';
-import MobileQRModal from './components/MobileQRModal';
-import PanelSelect from './components/PanelSelect';
 import PushNotificationBanner from './components/PushNotificationBanner';
-import NotificationCenterModal from './components/NotificationCenterModal';
 import WebsiteNavbar from './components/WebsiteNavbar';
 import WebsiteFooter from './components/WebsiteFooter';
-import CitizenProfileDrawer from './components/CitizenProfileDrawer';
 import { AppScreen, Worker, WorkerApplication } from './types';
 import { AuthProvider, useAuth } from './lib/authContext';
 import { auth } from './lib/firebase';
-import OtpVerify from './components/OtpVerify';
-import NamoIDAuthShell from './components/NamoIDAuthShell';
+
+const Splash = lazy(() => import('./components/Splash'));
+const Auth = lazy(() => import('./components/Auth'));
+const OtpVerify = lazy(() => import('./components/OtpVerify'));
+const NamoIDAuthShell = lazy(() => import('./components/NamoIDAuthShell'));
+const PanelSelect = lazy(() => import('./components/PanelSelect'));
+const DragoAssistant = lazy(() => import('./components/DragoAssistant'));
+const MobileQRModal = lazy(() => import('./components/MobileQRModal'));
+const NotificationCenterModal = lazy(() => import('./components/NotificationCenterModal'));
+const CitizenProfileDrawer = lazy(() => import('./components/CitizenProfileDrawer'));
 
 const HomeDashboard = lazy(() => import('./components/Home'));
 const InteractivePriceCatalogue = lazy(() => import('./components/InteractivePriceCatalogue'));
@@ -37,7 +38,22 @@ const AuthCallback = lazy(() => import('./components/AuthCallback'));
 
 function AppMain() {
   // Keep the static, crawlable landing visible until React has committed its first screen.
-  useEffect(() => { document.documentElement.classList.add('app-mounted'); }, []);
+  useEffect(() => {
+    document.documentElement.classList.add('app-mounted');
+    // Idle prefetching for critical next screens to make transitions instant
+    const prefetchKeyRoutes = () => {
+      import('./components/Home');
+      import('./components/PanelSelect');
+      import('./components/ProvidersList');
+    };
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(prefetchKeyRoutes, { timeout: 2000 });
+      } else {
+        setTimeout(prefetchKeyRoutes, 1500);
+      }
+    }
+  }, []);
   const { currentUser, userProfile, isLoadingProfile } = useAuth();
   // Native app wrappers pass a role-specific query parameter so each APK opens its own login.
   const urlPunchxAppMode = new URLSearchParams(window.location.search).get('punchxApp')?.toLowerCase();
@@ -504,14 +520,20 @@ function AppMain() {
 
       {showWebsiteShell && <WebsiteFooter onTransition={handleTransition} onSelectCategory={setSelectedCategory} showNotification={showToast} />}
 
-      {showAssistant && <DragoAssistant currentScreen={currentScreen} onAutoFillOtp={code => setOtpCode(code)} onApplyPromo={() => setPromoApplied(true)} onAutoFillBooking={() => setIssueDescription('AC unit short-circuited with smoke coming from compressor board. Needs priority circuit diagnostics.')} />}
+      {showAssistant && (
+        <Suspense fallback={null}>
+          <DragoAssistant currentScreen={currentScreen} onAutoFillOtp={code => setOtpCode(code)} onApplyPromo={() => setPromoApplied(true)} onAutoFillBooking={() => setIssueDescription('AC unit short-circuited with smoke coming from compressor board. Needs priority circuit diagnostics.')} />
+        </Suspense>
+      )}
 
-      {isCitizenExperience && <>
-        <CitizenProfileDrawer isOpen={isGlobalProfileOpen} onClose={() => setIsGlobalProfileOpen(false)} onTransition={handleTransition} citizenName={citizenName} citizenAddress={citizenAddress} showNotification={showToast} />
-        <MobileQRModal isOpen={isMobileQrOpen} onClose={() => setIsMobileQrOpen(false)} />
-        <PushNotificationBanner onOpenCenter={() => setIsNotificationCenterOpen(true)} />
-        <NotificationCenterModal isOpen={isNotificationCenterOpen} onClose={() => setIsNotificationCenterOpen(false)} />
-      </>}
+      {isCitizenExperience && (
+        <Suspense fallback={null}>
+          {isGlobalProfileOpen && <CitizenProfileDrawer isOpen={isGlobalProfileOpen} onClose={() => setIsGlobalProfileOpen(false)} onTransition={handleTransition} citizenName={citizenName} citizenAddress={citizenAddress} showNotification={showToast} />}
+          {isMobileQrOpen && <MobileQRModal isOpen={isMobileQrOpen} onClose={() => setIsMobileQrOpen(false)} />}
+          <PushNotificationBanner onOpenCenter={() => setIsNotificationCenterOpen(true)} />
+          {isNotificationCenterOpen && <NotificationCenterModal isOpen={isNotificationCenterOpen} onClose={() => setIsNotificationCenterOpen(false)} />}
+        </Suspense>
+      )}
     </div>
   );
 }
