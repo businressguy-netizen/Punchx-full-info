@@ -505,7 +505,8 @@ input, textarea, select { min-width:0; max-width:100%; }
     padding:12px!important;
     transform:translateX(-50%)!important;
   }
-  #root .wx-overlay{
+  #root .wx-overlay,
+  .wx-overlay{
     position:fixed!important;
     inset:0!important;
     box-sizing:border-box!important;
@@ -517,7 +518,8 @@ input, textarea, select { min-width:0; max-width:100%; }
     overflow-y:auto!important;
     z-index:2147483000!important;
   }
-  #root .wx-overlay .wx-modal{
+  #root .wx-overlay .wx-modal:not(.wx-profile-modal),
+  .wx-overlay .wx-modal:not(.wx-profile-modal){
     flex:0 1 auto!important;
     width:min(680px,100%)!important;
     max-width:100%!important;
