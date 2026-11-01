@@ -114,6 +114,22 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
                 <span className="font-bold text-white tracking-wide">NamoID</span>
               </div>
             </a>
+            <a
+              href="https://www.producthunt.com/products/punch-x?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-punch-x"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="PUNCH X on Product Hunt"
+              className="inline-flex max-w-full items-center transition-opacity hover:opacity-80"
+            >
+              <img
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1300136&theme=light&t=1793509895126"
+                alt="PUNCH X - Connecting Customers with Trusted Local Professionals on Product Hunt"
+                width="250"
+                height="54"
+                loading="lazy"
+                className="h-auto max-w-full"
+              />
+            </a>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <button onClick={() => onTransition('founder')} className="hover:text-white">Founding team</button>
