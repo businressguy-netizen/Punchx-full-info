@@ -70,7 +70,7 @@ export default function Auth({ onTransition, showNotification, setAuthMethodDeta
         </button>}
 
         <motion.div initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} className="mb-7 flex flex-col items-center text-center">
-          <div className="mb-4 h-20 w-20 rounded-full border border-[#D9C28F] bg-white p-1.5 shadow-[0_16px_45px_rgba(185,154,98,.18)]">
+          <div className="mb-4 h-24 w-24 rounded-2xl border border-[#D9C28F] bg-white p-1.5 shadow-[0_16px_45px_rgba(185,154,98,.18)]">
             <img src={PUNCHX_LOGO} alt="PUNCHX" className="h-full w-full object-contain" />
           </div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#D9C28F] bg-white/75 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#B99A62] shadow-sm backdrop-blur"><Sparkles className="h-3.5 w-3.5" /> Secure PUNCHX Gateway</div>
