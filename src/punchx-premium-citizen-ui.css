@@ -1,0 +1,103 @@
+/* PUNCHX premium citizen experience — black, champagne gold and clean service blue.
+   Scoped to the existing citizen catalogue so auth, worker/admin panels and booking logic stay untouched. */
+.punchx-citizen-shell {
+  --px-ink: #111216;
+  --px-gold: #c5a059;
+  --px-gold-light: #f0d79b;
+  --px-blue: #1769d2;
+  --px-paper: #f7f8fb;
+  background: var(--px-paper) !important;
+  color: var(--px-ink) !important;
+  background-image:
+    radial-gradient(ellipse at 8% 0%, rgba(197,160,89,.13), transparent 31%),
+    radial-gradient(ellipse at 95% 24%, rgba(23,105,210,.07), transparent 27%) !important;
+}
+.punchx-citizen-shell > main { max-width: 1120px !important; }
+.punchx-citizen-shell .px-premium-hero {
+  min-height: 250px;
+  border: 1px solid rgba(240,215,155,.34) !important;
+  border-radius: 28px !important;
+  background-image: linear-gradient(118deg,#101115 0%,#20232b 58%,#3a3020 100%) !important;
+  box-shadow: 0 24px 60px rgba(17,18,22,.18), inset 0 1px rgba(255,255,255,.08) !important;
+}
+.punchx-citizen-shell .px-premium-hero:before {
+  content: "PUNCHX";
+  position: absolute; right: 22px; top: 18px;
+  color: rgba(240,215,155,.15); font-size: clamp(28px,5vw,54px);
+  font-weight: 950; letter-spacing: .14em; pointer-events: none;
+}
+.punchx-citizen-shell .px-premium-hero h1 { letter-spacing: -.045em; }
+.punchx-citizen-shell .px-premium-hero button:not([aria-label]) {
+  background: linear-gradient(135deg,#f0d79b,#c5a059) !important;
+  color: #171717 !important;
+  border: 1px solid rgba(255,255,255,.35);
+  box-shadow: 0 9px 24px rgba(197,160,89,.24);
+}
+.punchx-citizen-shell .px-premium-hero button:hover { filter: brightness(1.06); }
+.punchx-citizen-shell .px-service-card {
+  background: #fff !important;
+  border: 1px solid #e6e8ee !important;
+  border-radius: 20px !important;
+  box-shadow: 0 7px 22px rgba(17,24,39,.055) !important;
+  padding: 10px !important;
+}
+.punchx-citizen-shell .px-service-card > div:first-child {
+  border-radius: 15px !important;
+  background: #eaf1fb !important;
+}
+.punchx-citizen-shell .px-service-card > span:first-of-type { color: #20242d !important; }
+.punchx-citizen-shell .px-service-card > span:last-of-type { color: #9a773b !important; }
+.punchx-citizen-shell .px-photo-card {
+  width: 172px !important;
+  background: #fff !important;
+  border: 1px solid #e8eaf0 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 8px 22px rgba(17,24,39,.06) !important;
+}
+.punchx-citizen-shell .px-photo-card:hover,
+.punchx-citizen-shell .px-service-card:hover {
+  border-color: rgba(197,160,89,.55) !important;
+  box-shadow: 0 16px 34px rgba(17,24,39,.10) !important;
+}
+.punchx-citizen-shell h2 { color: #17191f !important; letter-spacing: -.025em; }
+.punchx-citizen-shell .px-citizen-dock-safe-area {
+  position: fixed; z-index: 90; left: 0; right: 0; bottom: 0;
+  padding: 10px 14px max(10px, env(safe-area-inset-bottom));
+  background: linear-gradient(180deg,rgba(247,248,251,0),rgba(247,248,251,.92) 28%);
+  pointer-events: none;
+}
+.punchx-citizen-shell .px-citizen-dock {
+  pointer-events: auto; max-width: 560px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px;
+  padding: 8px; border: 1px solid rgba(20,23,30,.08); border-radius: 23px;
+  background: rgba(255,255,255,.94); backdrop-filter: blur(22px);
+  box-shadow: 0 14px 40px rgba(18,24,35,.15);
+}
+.punchx-citizen-shell .px-citizen-dock-item {
+  position: relative; display: flex; min-width: 0; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; min-height: 52px;
+  border-radius: 15px; color: #777d88;
+}
+.punchx-citizen-shell .px-citizen-dock-item.is-active { color: #17191f; }
+.punchx-citizen-shell .px-citizen-dock-active {
+  position: absolute; inset: 0; border-radius: 15px;
+  background: linear-gradient(135deg,rgba(197,160,89,.22),rgba(240,215,155,.12));
+  border: 1px solid rgba(197,160,89,.28);
+}
+.punchx-citizen-shell .px-citizen-dock-icon,
+.punchx-citizen-shell .px-citizen-dock-label { position: relative; z-index: 1; }
+.punchx-citizen-shell .px-citizen-dock-icon { width: 19px; height: 19px; }
+.punchx-citizen-shell .px-citizen-dock-label { font-size: 10px; font-weight: 750; }
+.punchx-citizen-shell input:focus { border-color: rgba(23,105,210,.5) !important; box-shadow: 0 0 0 3px rgba(23,105,210,.09) !important; }
+@media (min-width: 768px) {
+  .punchx-citizen-shell .px-citizen-dock-safe-area { display:none; }
+}
+@media (max-width: 640px) {
+  .punchx-citizen-shell > main { padding-left: 16px !important; padding-right: 16px !important; }
+  .punchx-citizen-shell .px-premium-hero { min-height: 230px; border-radius: 24px !important; }
+  .punchx-citizen-shell .px-service-card { border-radius: 17px !important; }
+  .punchx-citizen-shell .px-photo-card { width: 158px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .punchx-citizen-shell .px-premium-hero { animation: none !important; }
+}
