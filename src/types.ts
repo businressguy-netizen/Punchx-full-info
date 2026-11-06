@@ -158,6 +158,7 @@ export type ServiceCategory = {
 export type OrderStatus =
   | 'DRAFT'
   | 'PENDING_PAYMENT'
+  | 'PENDING_ADMIN_REVIEW'
   | 'PAID'
   | 'DISPATCHING'
   | 'ACCEPTED'
