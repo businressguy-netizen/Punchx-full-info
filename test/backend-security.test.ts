@@ -78,6 +78,10 @@ async function runTests() {
 
   await test('Allows legal forward state transitions', () => {
     assert.strictEqual(isLegalTransition('DRAFT', 'PENDING_PAYMENT'), true);
+    assert.strictEqual(isLegalTransition('DRAFT', 'PENDING_ADMIN_REVIEW'), true);
+    assert.strictEqual(isLegalTransition('PENDING_ADMIN_REVIEW', 'PENDING_PAYMENT'), true);
+    assert.strictEqual(isLegalTransition('PENDING_ADMIN_REVIEW', 'CANCELLED'), true);
+    assert.strictEqual(isLegalTransition('PENDING_ADMIN_REVIEW', 'DISPATCHING'), false);
     assert.strictEqual(isLegalTransition('PENDING_PAYMENT', 'PAID'), true);
     assert.strictEqual(isLegalTransition('PAID', 'DISPATCHING'), true);
     assert.strictEqual(isLegalTransition('DISPATCHING', 'ACCEPTED'), true);
