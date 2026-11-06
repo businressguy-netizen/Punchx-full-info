@@ -63,8 +63,8 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
     setSubmitting(true);
     try{
       const customerReferenceId=getCustomerReferenceId(uid);
-      const workerId=selectedWorker?.uid||pending.workerId||selectedWorker?.id||null;
-      const workerName=pending.workerName||selectedWorker?.name||null;
+      const workerId=null;
+      const workerName=null;
       const paymentMethod='REQUEST';
       const firebaseUser=auth.currentUser;
       if(!firebaseUser) throw new Error('Your sign-in session expired. Please sign in again.');
