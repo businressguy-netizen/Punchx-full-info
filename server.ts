@@ -612,7 +612,7 @@ async function startServer() {
       return res.status(201).json({
         success: true,
         order: sanitized,
-        startOtp: startOtpChallenge.code, // Citizen receives their secret start code to give to the worker upon arrival
+        startOtp: isAdminReviewRequest ? null : startOtpChallenge.code, // Issue the service-start secret only after the legacy immediate-dispatch flow.
       });
     } catch (err: any) {
       logger.error("Create order error:", err);
