@@ -482,7 +482,8 @@ async function startServer() {
 
       // 2. Initial state determination
       const isCashOnDelivery = orderData.paymentMethod === "COD" || orderData.paymentMethod === "CASH" || orderData.paymentMethod === "PAY_AFTER_SERVICE";
-      const initialStatus: OrderStatus = isCashOnDelivery ? "DISPATCHING" : "PENDING_PAYMENT";
+      const isAdminReviewRequest = orderData.requestOnly === true;
+      const initialStatus: OrderStatus = isAdminReviewRequest ? "PENDING_ADMIN_REVIEW" : (isCashOnDelivery ? "DISPATCHING" : "PENDING_PAYMENT");
 
       // 3. Cryptographic Start OTP Generation for Customer Verification Gate
       const startOtpChallenge = generateSecureOtp();
