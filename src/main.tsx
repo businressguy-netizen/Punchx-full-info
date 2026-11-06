@@ -7,6 +7,7 @@ import './punchx-marketplace.css';
 import './punchx-motion-fixes.css';
 import './punchx-pro-max.css';
 import './punchx-glassmorphism.css';
+import './punchx-premium-citizen-ui.css';
 
 // Production-safe recovery for Vite deployment/version skew.
 // Keep this marker unique for every recovery implementation so a browser that
