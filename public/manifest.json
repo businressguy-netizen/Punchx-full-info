@@ -10,12 +10,6 @@
   "icons": [
     {
       "src": "/favicon.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any"
-    },
-    {
-      "src": "/favicon.jpg",
       "sizes": "any",
       "type": "image/jpeg",
       "purpose": "any"
