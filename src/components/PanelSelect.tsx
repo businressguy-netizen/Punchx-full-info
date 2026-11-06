@@ -36,9 +36,9 @@ export default function PanelSelect({ onSelectPanel, showNotification }: PanelSe
 
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-4xl flex-col items-center justify-center">
         <motion.div initial={{ y: -22, opacity: 0, filter:"blur(7px)" }} animate={{ y: 0, opacity: 1, filter:"blur(0px)" }} transition={{duration:.65,ease:[.22,1,.36,1]}} className="mb-8 flex flex-col items-center text-center">
-          <motion.div initial={{scale:.82,opacity:0}} animate={{scale:1,opacity:1}} transition={{type:"spring",stiffness:180,damping:16,delay:.08}} className="relative mb-5 rounded-full border border-[#D9C28F] bg-white/85 p-2 shadow-[0_16px_45px_rgba(185,154,98,.16)] backdrop-blur">
+          <motion.div initial={{scale:.82,opacity:0}} animate={{scale:1,opacity:1}} transition={{type:"spring",stiffness:180,damping:16,delay:.08}} className="relative mb-5 rounded-2xl border border-[#D9C28F] bg-white/85 p-2 shadow-[0_16px_45px_rgba(185,154,98,.16)] backdrop-blur">
             <div className="px-workspace-orbit" aria-hidden="true" />
-            <motion.div animate={{y:[0,-3,0]}} transition={{duration:4,ease:"easeInOut",repeat:Infinity}} className="h-16 w-16 rounded-full bg-white p-1.5"><img src={PUNCHX_LOGO} alt="PUNCHX" className="h-full w-full object-contain" /></motion.div>
+            <motion.div animate={{y:[0,-3,0]}} transition={{duration:4,ease:"easeInOut",repeat:Infinity}} className="h-20 w-20 rounded-xl bg-white p-1.5"><img src={PUNCHX_LOGO} alt="PUNCHX" className="h-full w-full object-contain" /></motion.div>
           </motion.div>
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#D9C28F] bg-white/75 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#64745D] shadow-sm backdrop-blur">
             <Sparkles className="h-3.5 w-3.5" /> PUNCHX UNIFIED PLATFORM
