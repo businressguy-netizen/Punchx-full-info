@@ -87,7 +87,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     return (
       <main id="punchx-error-fallback" className="min-h-screen w-full bg-[#f7faff] text-[#0f172a] flex items-center justify-center p-5 font-sans">
         <div className="w-full max-w-md rounded-3xl border border-[#bfdbfe] bg-white p-6 shadow-[0_24px_80px_rgba(30,70,130,.12)] sm:p-8">
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-[#bfdbfe] bg-white p-2 shadow-sm">
+          <div className="mx-auto mb-5 flex h-24 w-24 items-center justify-center rounded-2xl border-2 border-[#bfdbfe] bg-white p-2 shadow-sm">
             <img src={PUNCHX_LOGO} alt="PunchX" className="h-full w-full object-contain" />
           </div>
           <div className="mb-4 flex justify-center"><span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700"><AlertTriangle className="h-3.5 w-3.5" />{isChunkError ? 'Refreshing PunchX' : 'Temporary application error'}</span></div>
