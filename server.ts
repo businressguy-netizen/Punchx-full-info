@@ -482,7 +482,8 @@ async function startServer() {
 
       // 2. Initial state determination
       const isCashOnDelivery = orderData.paymentMethod === "COD" || orderData.paymentMethod === "CASH" || orderData.paymentMethod === "PAY_AFTER_SERVICE";
-      const initialStatus: OrderStatus = isCashOnDelivery ? "DISPATCHING" : "PENDING_PAYMENT";
+      const isAdminReviewRequest = orderData.requestOnly === true;
+      const initialStatus: OrderStatus = isAdminReviewRequest ? "PENDING_ADMIN_REVIEW" : (isCashOnDelivery ? "DISPATCHING" : "PENDING_PAYMENT");
 
       // 3. Cryptographic Start OTP Generation for Customer Verification Gate
       const startOtpChallenge = generateSecureOtp();
@@ -576,8 +577,8 @@ async function startServer() {
         time: orderData.time || "",
         address: String(orderData.address || orderData.customerAddress || "").trim(),
         status: initialStatus,
-        paymentMethod: isCashOnDelivery ? "COD" : "ONLINE",
-        paymentStatus: isCashOnDelivery ? "pending" : (orderData.paymentId ? "paid" : "pending"),
+        paymentMethod: isAdminReviewRequest ? "PENDING_ACCEPTANCE" : (isCashOnDelivery ? "COD" : "ONLINE"),
+        paymentStatus: isAdminReviewRequest ? "unpaid" : (isCashOnDelivery ? "pending" : (orderData.paymentId ? "paid" : "pending")),
         paymentId: orderData.paymentId || null,
         createdAt: nowIso,
         updatedAt: nowIso,
@@ -611,7 +612,7 @@ async function startServer() {
       return res.status(201).json({
         success: true,
         order: sanitized,
-        startOtp: startOtpChallenge.code, // Citizen receives their secret start code to give to the worker upon arrival
+        startOtp: isAdminReviewRequest ? null : startOtpChallenge.code, // Issue the service-start secret only after the legacy immediate-dispatch flow.
       });
     } catch (err: any) {
       logger.error("Create order error:", err);

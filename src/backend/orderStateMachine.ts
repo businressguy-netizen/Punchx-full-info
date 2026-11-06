@@ -8,7 +8,8 @@ import { dbAdapter } from './db/index.js';
 // Concurrency mutex on ACCEPT to prevent duplicate dispatch collisions.
 
 export const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  DRAFT: ['PENDING_PAYMENT', 'CANCELLED'],
+  DRAFT: ['PENDING_PAYMENT', 'PENDING_ADMIN_REVIEW', 'CANCELLED'],
+  PENDING_ADMIN_REVIEW: ['PENDING_PAYMENT', 'CANCELLED'],
   PENDING_PAYMENT: ['PAID', 'CANCELLED'],
   PAID: ['DISPATCHING', 'CANCELLED'],
   DISPATCHING: ['ACCEPTED', 'CANCELLED'],
