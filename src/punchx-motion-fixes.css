@@ -28,12 +28,13 @@
   100% { transform:scale(1); opacity:1; }
 }
 
-/* Prevent the square JPG logo corners seen on small-screen splash/error states. */
-.punchx-splash img[alt="PUNCHX"],
-#punchx-error-fallback img[alt="PunchX"],
+/* Keep the official PUNCHX wordmark intact: never crop it into a circle. */
+.punchx-splash img[alt*="PunchX"],
+#punchx-error-fallback img[alt*="PunchX"],
 img[alt="PunchX Logo"] {
-  border-radius:50% !important;
-  clip-path:circle(50% at 50% 50%);
+  border-radius:0 !important;
+  clip-path:none !important;
+  object-fit:contain !important;
 }
 
 /* Popular service cards: subtle motion, never an aggressive carousel. */
