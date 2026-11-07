@@ -195,3 +195,169 @@
     padding-bottom: calc(9px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+
+/* ── Final PUNCHX brand pass: consistent black / champagne gold / white / restrained blue ── */
+:root {
+  --punchx-ink: #111216;
+  --punchx-black: #17181c;
+  --punchx-gold: #c5a059;
+  --punchx-gold-light: #f0d79b;
+  --punchx-blue: #2769bd;
+  --punchx-paper: #f7f8fa;
+}
+#root .punchx-citizen-shell {
+  background: var(--punchx-paper) !important;
+  color: var(--punchx-ink) !important;
+}
+#root .punchx-citizen-shell .px-premium-hero {
+  background-color: #151619 !important;
+  background-image:
+    linear-gradient(112deg,rgba(15,16,19,.97) 0%,rgba(28,29,33,.94) 62%,rgba(74,58,31,.91) 100%) !important;
+  border: 1px solid rgba(197,160,89,.55) !important;
+  box-shadow: 0 22px 56px rgba(17,18,22,.19), inset 0 1px rgba(255,255,255,.08) !important;
+}
+#root .punchx-citizen-shell .px-premium-hero:before {
+  content: "PUNCHX";
+  position: absolute;
+  right: 20px;
+  bottom: 12px;
+  color: rgba(240,215,155,.12);
+  font-size: clamp(30px,7vw,68px);
+  font-weight: 950;
+  letter-spacing: .14em;
+  line-height: 1;
+  pointer-events: none;
+}
+#root .punchx-citizen-shell .px-premium-hero > div:first-child {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#root .punchx-citizen-shell .px-premium-hero h1,
+#root .punchx-citizen-shell .px-premium-hero p,
+#root .punchx-citizen-shell .px-premium-hero .text-xs {
+  color: #fff !important;
+}
+#root .punchx-citizen-shell .px-premium-hero button:not([aria-label]) {
+  background: linear-gradient(135deg,var(--punchx-gold-light),var(--punchx-gold)) !important;
+  color: #171717 !important;
+  border: 1px solid rgba(255,255,255,.34) !important;
+}
+#root .punchx-citizen-shell .px-service-card,
+#root .punchx-citizen-shell .px-photo-card,
+#root .punchx-citizen-shell .px-order-card,
+#root .punchx-citizen-shell main > section > div.rounded-2xl {
+  background: #fff !important;
+  background-image: none !important;
+  border: 1px solid #e7e8ec !important;
+  color: #202127 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 7px 22px rgba(17,18,22,.055) !important;
+}
+#root .punchx-citizen-shell .px-service-card span,
+#root .punchx-citizen-shell .px-photo-card span,
+#root .punchx-citizen-shell .px-order-card span,
+#root .punchx-citizen-shell main > section h2,
+#root .punchx-citizen-shell main > section h3 {
+  color: #24252a;
+}
+#root .punchx-citizen-shell .px-service-card > div:first-child,
+#root .punchx-citizen-shell .px-photo-card > div:first-child {
+  background-color: #eef2f8 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#root .punchx-citizen-shell .px-citizen-dock-safe-area {
+  background: linear-gradient(180deg,rgba(247,248,250,0),rgba(247,248,250,.96) 28%) !important;
+}
+#root .punchx-citizen-shell .px-citizen-dock {
+  background: rgba(20,21,24,.98) !important;
+  border: 1px solid rgba(197,160,89,.5) !important;
+  box-shadow: 0 14px 40px rgba(18,20,24,.2) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  backdrop-filter: blur(18px) !important;
+}
+#root .punchx-citizen-shell .px-citizen-dock-item { color: #d8d9dc !important; }
+#root .punchx-citizen-shell .px-citizen-dock-item.is-active { color: #fff !important; }
+#root .punchx-citizen-shell .px-citizen-dock-active {
+  background: linear-gradient(135deg,rgba(197,160,89,.34),rgba(240,215,155,.12)) !important;
+  border: 1px solid rgba(240,215,155,.46) !important;
+}
+#root .punchx-citizen-shell input,
+#root .punchx-citizen-shell textarea,
+#root .punchx-citizen-shell select {
+  background: #fff !important;
+  color: #202127 !important;
+  border-color: #d9dce3 !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#root .punchx-citizen-shell input:focus,
+#root .punchx-citizen-shell textarea:focus,
+#root .punchx-citizen-shell select:focus {
+  border-color: rgba(39,105,189,.7) !important;
+  box-shadow: 0 0 0 3px rgba(39,105,189,.11) !important;
+}
+#punchx-website-navbar {
+  background: rgba(255,255,255,.97) !important;
+  border-bottom-color: rgba(197,160,89,.24) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  backdrop-filter: blur(18px) !important;
+}
+#punchx-website-navbar img[alt="PunchX"] {
+  border-radius: 0 !important;
+  object-fit: contain !important;
+}
+#punchx-website-navbar .text-\[17px\] { color: #17181c !important; }
+#punchx-website-footer {
+  background: linear-gradient(135deg,#111216,#202127 72%,#342a1b) !important;
+  color: #f7f4ed !important;
+  border-top: 1px solid rgba(197,160,89,.42) !important;
+}
+#punchx-website-footer img { object-fit: contain !important; }
+#root #providers-list-root,
+#root #provider-details-root,
+#root #booking-container,
+#root #payment-screen-container {
+  background: #f7f8fa !important;
+  color: #202127 !important;
+}
+#root #providers-list-root header,
+#root #provider-details-root header,
+#root #booking-topbar,
+#root #payment-topbar {
+  background: rgba(255,255,255,.97) !important;
+  border-color: #e5e7eb !important;
+}
+#root #providers-list-root button[class*="bg-[#c5a059]"],
+#root #provider-details-root button[class*="bg-[#c5a059]"],
+#root #booking-container button[class*="bg-[#c5a059]"],
+#root #payment-screen-container button[class*="bg-[#c5a059]"] {
+  background: linear-gradient(135deg,#f0d79b,#c5a059) !important;
+  color: #171717 !important;
+}
+@media (max-width: 767px) {
+  #root .punchx-citizen-shell main {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    padding-bottom: calc(116px + env(safe-area-inset-bottom)) !important;
+  }
+  #root .punchx-citizen-shell .px-premium-hero {
+    min-height: 220px;
+    border-radius: 22px !important;
+  }
+  #root .punchx-citizen-shell .px-citizen-dock-safe-area {
+    z-index: 120 !important;
+    padding-bottom: calc(9px + env(safe-area-inset-bottom)) !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #root .punchx-citizen-shell *,
+  #root .punchx-citizen-shell *::before,
+  #root .punchx-citizen-shell *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
