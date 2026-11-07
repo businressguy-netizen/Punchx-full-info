@@ -26,7 +26,7 @@ test('SEO metadata is present and avoids obsolete keywords metadata', () => {
   assert.match(html, /<link rel="canonical" href="https:\/\/www\.punchxapp\.co\.in\/"\s*\/>/);
   assert.match(html, /property="og:title"/);
   assert.match(html, /property="og:description"/);
-  assert.match(html, /og-image\.png/);
+  assert.match(html, /property="og:image" content="https:\/\/www\.punchxapp\.co\.in\/favicon\.jpg"/);
   assert.match(html, /name="twitter:card"/);
   assert.match(html, /"serviceType":\["Electrician Services","Plumbing Services","Home Cleaning","AC & Appliance Repair","Pest Control","Beauty & Salon at Home","Carpenter & Handyman","Painting & Home Improvement","Cook & Home Assistance","Home Care & Physiotherapy"\]/);
   assert.doesNotMatch(html, /<meta\s+name="keywords"/i);
