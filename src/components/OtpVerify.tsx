@@ -175,7 +175,7 @@ export default function OtpVerify({
       <div id="otp-header-zone" className="w-full max-w-sm flex flex-col items-center text-center mt-4">
         <motion.div
           id="otp-logo-ring"
-          className="w-20 h-20 rounded-full bg-white p-1 flex items-center justify-center mb-6 shadow-xl overflow-hidden border-2 border-[#c5a059]/40"
+          className="w-24 h-24 rounded-2xl bg-white p-2 flex items-center justify-center mb-6 shadow-xl border-2 border-[#c5a059]/40"
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}
