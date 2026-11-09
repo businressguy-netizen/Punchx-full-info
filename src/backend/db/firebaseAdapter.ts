@@ -427,6 +427,48 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     return list;
   }
 
+  async acceptOrder(id: string, workerId: string, additionalDetails: Partial<OrderRecord>): Promise<OrderRecord | null> {
+    const firestore = this.db;
+    if (!firestore) {
+      const existing = this.inMemoryFallback.orders.get(id);
+      if (!existing || !['DISPATCHING', 'Pending'].includes(String(existing.status))) return null;
+      if (existing.workerId && existing.workerId !== workerId) return null;
+      const updated = { ...existing, ...additionalDetails, id, workerId, status: 'ACCEPTED' as const };
+      this.inMemoryFallback.orders.set(id, updated);
+      return updated;
+    }
+
+    const ref = firestore.collection('orders').doc(id);
+    try {
+      return await firestore.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists) return null;
+        const existing = { id: snapshot.id, ...(snapshot.data() as any) } as OrderRecord;
+        if (!['DISPATCHING', 'Pending'].includes(String(existing.status))) return null;
+        if (existing.workerId && existing.workerId !== workerId) return null;
+
+        const updated = {
+          ...existing,
+          ...additionalDetails,
+          id,
+          workerId,
+          status: 'ACCEPTED' as const,
+          updatedAt: new Date().toISOString(),
+        };
+        transaction.update(ref, {
+          ...additionalDetails,
+          workerId,
+          status: 'ACCEPTED',
+          updatedAt: updated.updatedAt,
+        });
+        return updated;
+      });
+    } catch (error) {
+      logger.error('Firebase atomic booking acceptance failed:', error);
+      throw new Error('Booking acceptance could not be committed');
+    }
+  }
+
   async updateOrderStatus(id: string, status: string, additionalDetails?: Partial<OrderRecord>): Promise<OrderRecord | null> {
     const existing = this.inMemoryFallback.orders.get(id);
     if (existing) {
