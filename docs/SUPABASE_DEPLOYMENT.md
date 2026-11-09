@@ -31,7 +31,7 @@ After those checks, set the same two database variables for **Production**, rede
 
 ## Data and migration notes
 
-- The applied Supabase migrations are tracked under `supabase/migrations/`.
+- The additive PUNCHX compatibility migrations applied during this integration are tracked under `supabase/migrations/`. The two pre-existing core schema migrations were already recorded in Supabase before this PR and are not reconstructed here; do not run a fresh-project `supabase db push` until those baseline migrations are brought into source control.
 - The compatibility tables preserve the current Express adapter contract while the canonical Supabase booking schema remains intact.
 - Operational tables have RLS enabled and explicit deny policies for `anon` and `authenticated`; only the server-side database connection is intended to access them.
 - Active service categories and service items have public read-only policies.
