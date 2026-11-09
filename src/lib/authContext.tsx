@@ -308,7 +308,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
       }
 
       // 2. If the provider supplies a Firebase-compatible OIDC ID token, try that route as a fallback.
-      if (!auth.currentUser && idToken) {
+      if (!firebaseUid && idToken) {
         try {
           const provider = new OAuthProvider('oidc.namoid');
           const credential = provider.credential({ idToken });
@@ -324,9 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
 
       // Fail closed: never silently replace a verified NamoID identity with
       // an unrelated anonymous Firebase account.
-      if (auth.currentUser) {
-        firebaseUid = auth.currentUser.uid;
-      } else {
+      if (!firebaseUid) {
         throw new Error(tokenExchangeError || 'Secure sign-in could not be completed. Please retry.');
       }
     }
