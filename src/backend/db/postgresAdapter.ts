@@ -56,7 +56,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async isHealthy(): Promise<boolean> {
     if (!this.pool) return false;
-    let client: pg.PoolClient | null = null;
+    let client: any = null;
     try {
       client = await this.pool.connect();
       await client.query('SELECT 1');
@@ -548,7 +548,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
     try {
       const conditions: string[] = [];
-      const values: unknown[] = [];
+      const values: string[] = [];
       if (filters?.customerId) { values.push(filters.customerId); conditions.push(`customer_id = $${values.length}`); }
       if (filters?.workerId) { values.push(filters.workerId); conditions.push(`worker_id = $${values.length}`); }
       if (filters?.status) { values.push(filters.status); conditions.push(`status = $${values.length}`); }
