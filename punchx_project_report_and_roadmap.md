@@ -110,7 +110,7 @@ export const adminRouter = Router();
 
 export const requireAdminApiKey = (req: Request, res: Response, next: NextFunction) => {
   const adminKey = (req.headers['x-admin-key'] as string) || req.headers['authorization']?.replace('Bearer ', '');
-  const expectedKey = process.env.ADMIN_API_KEY || 'punchx_admin_secure_live_key_2026_9941a8';
+  const expectedKey = process.env.ADMIN_API_KEY || 'REPLACE_WITH_A_NEW_RANDOM_ADMIN_API_KEY';
   if (!adminKey || adminKey !== expectedKey) {
     return res.status(401).json({ success: false, error: 'Unauthorized: Invalid admin key' });
   }
@@ -143,7 +143,7 @@ app.use('/api/admin', adminRouter);
 #### 3. Update `Punchx-full-info/.env`
 Ensure your admin secret key matches:
 ```env
-ADMIN_API_KEY=punchx_admin_secure_live_key_2026_9941a8
+ADMIN_API_KEY=REPLACE_WITH_A_NEW_RANDOM_ADMIN_API_KEY
 PORT=3000
 ```
 
