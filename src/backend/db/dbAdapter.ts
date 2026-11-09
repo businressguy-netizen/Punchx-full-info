@@ -38,7 +38,7 @@ export interface IDatabaseAdapter {
   listReviews(workerId?: string): Promise<CustomerReview[]>;
 
   // Persistent idempotency for payment gateway webhooks.
-  claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<boolean>;
+  claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'>;
   completePaymentWebhookEvent(eventId: string): Promise<void>;
 
   // Health check
