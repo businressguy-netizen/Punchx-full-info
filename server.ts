@@ -296,6 +296,29 @@ export async function createApp() {
         });
       });
 
+      // Mirror the verified identity/profile into the selected operational database.
+      // Role is derived from the persisted server-side profile, never from the request.
+      const persistedProfile = (await userRef.get()).data() || {};
+      await dbAdapter.upsertUser({
+        uid,
+        name: String(persistedProfile.name || displayName),
+        email: String(persistedProfile.email || email || ''),
+        phone: String(persistedProfile.phone || phone || ''),
+        photoURL: persistedProfile.photoURL || undefined,
+        role: persistedProfile.role === 'admin' ? 'admin'
+          : persistedProfile.role === 'worker' && persistedProfile.status === 'APPROVED' ? 'worker' : 'citizen',
+        status: persistedProfile.status,
+        address: persistedProfile.address,
+        landmark: persistedProfile.landmark,
+        area: persistedProfile.area,
+        sector: persistedProfile.sector,
+        workerSkill: persistedProfile.workerSkill,
+        workerCategories: persistedProfile.workerCategories,
+        workerExperience: persistedProfile.workerExperience,
+        visitingFee: persistedProfile.visitingFee,
+        applicationId: persistedProfile.applicationId,
+      } as any);
+
       return res.json({ success: true, uid, recordedAt: nowIso });
     } catch (err: any) {
       logger.error("Auth session audit failed; login metadata was not saved:", err);
@@ -452,7 +475,17 @@ export async function createApp() {
       }
 
       // Resolve profile snapshots server-side so orders remain useful if a profile later changes.
-      const customerProfile = await dbAdapter.getUser(uid);
+      const existingCustomerProfile = await dbAdapter.getUser(uid);
+      const customerProfile = await dbAdapter.upsertUser({
+        ...(existingCustomerProfile || { uid, role: "citizen" }),
+        uid,
+        name: String(existingCustomerProfile?.name || authUser.name || orderData.customerName || authUser.email?.split("@")[0] || "PunchX Member").trim(),
+        email: String(existingCustomerProfile?.email || authUser.email || orderData.customerEmail || "").trim(),
+        phone: String(existingCustomerProfile?.phone || authUser.phone_number || orderData.customerPhone || "").trim(),
+        role: existingCustomerProfile?.role === "admin" ? "admin"
+          : existingCustomerProfile?.role === "worker" && existingCustomerProfile?.status === "APPROVED" ? "worker" : "citizen",
+        status: existingCustomerProfile?.status,
+      } as any);
       const requestedWorkerId = String(orderData.workerId || "").trim();
       const workerProfile = requestedWorkerId ? await dbAdapter.getUser(requestedWorkerId) : null;
       const workerApplication = requestedWorkerId ? await dbAdapter.getWorkerApplicationByUid(requestedWorkerId) : null;
@@ -1202,13 +1235,26 @@ export async function createApp() {
         return res.status(409).json({ success: false, error: "A professional application already exists for this account.", application: existing });
       }
 
+      const current = await dbAdapter.getUser(uid);
+      // The user row must exist before the application because the database
+      // enforces its applicant foreign key.
+      await dbAdapter.upsertUser({
+        ...(current || { uid, role: "citizen" }),
+        uid,
+        role: current?.role === "admin" ? "admin" : "citizen",
+        status: "PENDING",
+        name: String(appData.legalName).slice(0, 160),
+        email: String(appData.email).slice(0, 320),
+        phone: String(appData.phone).slice(0, 40),
+        updatedAt: new Date().toISOString()
+      } as any);
+
       const created = await dbAdapter.createWorkerApplication({
         ...appData,
         uid,
         status: "PENDING"
       });
 
-      const current = await dbAdapter.getUser(uid);
       await dbAdapter.upsertUser({
         ...(current || { uid, role: "citizen" }),
         uid,
