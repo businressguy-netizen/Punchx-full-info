@@ -11,8 +11,6 @@ import { generateSecureOtp, verifyOtpChallenge } from '../src/backend/otpService
 import {
   verifyPaymentSignature,
   verifyWebhookSignature,
-  isEventProcessed,
-  recordProcessedEvent,
 } from '../src/backend/paymentService.js';
 import { updateWorkerLocationTelemetry, getOrderTrackingStatus } from '../src/backend/trackingService.js';
 import { dbAdapter } from '../src/backend/db/index.js';
@@ -252,11 +250,12 @@ async function runTests() {
     assert.strictEqual(isValid, false);
   });
 
-  await test('Enforces idempotency to reject duplicate webhook replay', () => {
+  await test('Persists webhook idempotency and rejects duplicate event claims', async () => {
     const eventId = `evt_test_${Date.now()}`;
-    assert.strictEqual(isEventProcessed(eventId), false);
-    recordProcessedEvent(eventId, 'payment.captured');
-    assert.strictEqual(isEventProcessed(eventId), true);
+    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), true);
+    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), false);
+    await dbAdapter.completePaymentWebhookEvent(eventId);
+    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), false);
   });
 
   // ─── 5. LIVE TRACKING & GEOFENCING TESTS ───
