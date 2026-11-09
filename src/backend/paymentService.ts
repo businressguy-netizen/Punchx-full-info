@@ -2,28 +2,8 @@ import crypto from 'crypto';
 import { logger } from './logger.js';
 
 // ─── Payment Gateway & Webhook Signature Engine ───
-// Enforces Section 7: Payments & Webhooks [P0] from Backend Task Sheet.
-// Includes HMAC-SHA256 signature validation and idempotency cache.
-
-const processedEvents = new Map<string, { processedAt: number; eventType: string }>();
-
-// Clean up expired idempotency keys older than 24 hours
-setInterval(() => {
-  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  for (const [id, record] of processedEvents.entries()) {
-    if (record.processedAt < oneDayAgo) {
-      processedEvents.delete(id);
-    }
-  }
-}, 60 * 60 * 1000).unref();
-
-export function isEventProcessed(eventId: string): boolean {
-  return processedEvents.has(eventId);
-}
-
-export function recordProcessedEvent(eventId: string, eventType: string): void {
-  processedEvents.set(eventId, { processedAt: Date.now(), eventType });
-}
+// HMAC-SHA256 verification is stateless. Webhook idempotency is persisted
+// through IDatabaseAdapter so it works across serverless instances.
 
 export interface PaymentOrderParams {
   orderId: string;

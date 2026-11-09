@@ -8,6 +8,7 @@ import { logger } from '../logger.js';
 
 export class FirebaseAdapter implements IDatabaseAdapter {
   providerName: 'firebase' = 'firebase';
+  private localWebhookEvents = new Map<string, 'PROCESSING' | 'PROCESSED'>();
 
   private inMemoryFallback: {
     users: Map<string, UserProfile>;
@@ -30,6 +31,62 @@ export class FirebaseAdapter implements IDatabaseAdapter {
       return getFirestore(undefined, FIRESTORE_DATABASE_ID);
     } catch {
       return null;
+    }
+  }
+
+  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'> {
+    const firestore = this.db;
+    if (!firestore) {
+      const localStatus = this.localWebhookEvents.get(eventId);
+      if (localStatus === 'PROCESSED') return 'PROCESSED';
+      if (localStatus === 'PROCESSING') return 'BUSY';
+      this.localWebhookEvents.set(eventId, 'PROCESSING');
+      return 'CLAIMED';
+    }
+
+    const docId = Buffer.from(eventId).toString('base64url');
+    const eventRef = firestore.collection('payment_webhook_events').doc(docId);
+    const now = Date.now();
+    try {
+      return await firestore.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(eventRef);
+        const existing = snapshot.exists ? snapshot.data() || {} : {};
+        if (existing.status === 'PROCESSED') return 'PROCESSED';
+        if (Number(existing.lockedUntilMs || 0) > now) return 'BUSY';
+        transaction.set(eventRef, {
+          eventId,
+          eventType,
+          status: 'PROCESSING',
+          lockedUntilMs: now + 5 * 60 * 1000,
+          createdAt: existing.createdAt || FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return 'CLAIMED';
+      });
+    } catch (error) {
+      logger.error('Firebase webhook idempotency claim failed:', error);
+      throw new Error('Payment webhook idempotency could not be verified');
+    }
+  }
+
+  async completePaymentWebhookEvent(eventId: string): Promise<void> {
+    const firestore = this.db;
+    if (!firestore) {
+      this.localWebhookEvents.set(eventId, 'PROCESSED');
+      return;
+    }
+    const docId = Buffer.from(eventId).toString('base64url');
+    try {
+      await firestore.collection('payment_webhook_events').doc(docId).set({
+        eventId,
+        status: 'PROCESSED',
+        lockedUntilMs: null,
+        processedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } catch (error) {
+      logger.error('Firebase webhook completion update failed:', error);
+      throw new Error('Payment webhook completion could not be recorded');
     }
   }
 
@@ -369,6 +426,48 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     if (filters?.customerId) list = list.filter((o) => o.customerId === filters.customerId);
     if (filters?.workerId) list = list.filter((o) => o.workerId === filters.workerId);
     return list;
+  }
+
+  async acceptOrder(id: string, workerId: string, additionalDetails: Partial<OrderRecord>): Promise<OrderRecord | null> {
+    const firestore = this.db;
+    if (!firestore) {
+      const existing = this.inMemoryFallback.orders.get(id);
+      if (!existing || !['DISPATCHING', 'Pending'].includes(String(existing.status))) return null;
+      if (existing.workerId && existing.workerId !== workerId) return null;
+      const updated = { ...existing, ...additionalDetails, id, workerId, status: 'ACCEPTED' as const };
+      this.inMemoryFallback.orders.set(id, updated);
+      return updated;
+    }
+
+    const ref = firestore.collection('orders').doc(id);
+    try {
+      return await firestore.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists) return null;
+        const existing = { id: snapshot.id, ...(snapshot.data() as any) } as OrderRecord;
+        if (!['DISPATCHING', 'Pending'].includes(String(existing.status))) return null;
+        if (existing.workerId && existing.workerId !== workerId) return null;
+
+        const updated = {
+          ...existing,
+          ...additionalDetails,
+          id,
+          workerId,
+          status: 'ACCEPTED' as const,
+          updatedAt: new Date().toISOString(),
+        };
+        transaction.update(ref, {
+          ...additionalDetails,
+          workerId,
+          status: 'ACCEPTED',
+          updatedAt: updated.updatedAt,
+        });
+        return updated;
+      });
+    } catch (error) {
+      logger.error('Firebase atomic booking acceptance failed:', error);
+      throw new Error('Booking acceptance could not be committed');
+    }
   }
 
   async updateOrderStatus(id: string, status: string, additionalDetails?: Partial<OrderRecord>): Promise<OrderRecord | null> {

@@ -46,10 +46,14 @@ service cloud.firestore {
     }
 
     function validApplicationCreate() {
-      return (signedIn() || true)
+      return signedIn()
+        && (
+          ('uid' in request.resource.data && request.resource.data.uid == request.auth.uid)
+          || ('userId' in request.resource.data && request.resource.data.userId == request.auth.uid)
+        )
         && (
           !('status' in request.resource.data)
-          || request.resource.data.status in ['PENDING', 'APPROVED']
+          || request.resource.data.status == 'PENDING'
         )
         && request.resource.data.keys().hasOnly([
           'id',
@@ -299,7 +303,7 @@ service cloud.firestore {
       // New client-created profiles cannot make themselves admin.
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId
-        && request.resource.data.role in ['citizen', 'worker'];
+        && request.resource.data.role == 'citizen';
 
       // Users can update their own profile.
       // Admins can update profiles.
@@ -354,8 +358,7 @@ service cloud.firestore {
               'categories',
               'skill',
               'isProfileCompleted',
-              'applicationId',
-              'status'
+              'applicationId'
             ])
         );
 
@@ -375,7 +378,7 @@ service cloud.firestore {
     match /workerApplications/{appId} {
 
       // Allow reading worker applications if signed in or for public technician discovery
-      allow read: if signedIn() || true;
+      allow read: if isApplicationOwner(resource.data) || isAdmin();
 
       // Allow creating worker applications with status PENDING or APPROVED
       allow create: if validApplicationCreate();

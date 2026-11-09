@@ -43,8 +43,6 @@ import {
   createGatewayPaymentOrder,
   verifyPaymentSignature,
   verifyWebhookSignature,
-  isEventProcessed,
-  recordProcessedEvent,
 } from "./src/backend/paymentService.js";
 import {
   updateWorkerLocationTelemetry,
@@ -125,35 +123,29 @@ export const requireAdmin = async (req: express.Request, res: express.Response, 
 // ─── Worker Verification Middleware ───
 export const requireWorker = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const user = (req as any).user;
-  if (!user || !user.uid) {
-    return res.status(401).json({ success: false, error: "Unauthorized: Authentication required" });
+  if (!user?.uid) {
+    return res.status(401).json({ success: false, error: "Authentication required" });
   }
 
   try {
-    const userProfile = await dbAdapter.getUser(user.uid);
-    // Allow worker if profile role is worker or status is APPROVED or PENDING (review bypassed for testing)
-    if (userProfile && (userProfile.role === "worker" || userProfile.status === "APPROVED" || userProfile.status === "PENDING")) {
-      (req as any).workerProfile = userProfile;
-      return next();
+    const profile = await dbAdapter.getUser(user.uid);
+    const application = await dbAdapter.getWorkerApplicationByUid(user.uid);
+    const isApproved = profile?.role === "worker" && profile?.status === "APPROVED"
+      || application?.status === "APPROVED";
+
+    if (!isApproved) {
+      return res.status(403).json({
+        success: false,
+        error: "Professional access is available only after admin approval."
+      });
     }
 
-    // Check worker application in database
-    const workerApp = await dbAdapter.getWorkerApplicationByUid(user.uid)
-      || (userProfile?.phone ? await dbAdapter.getWorkerApplicationByContact({ phone: userProfile.phone }) : null);
-
-    if (workerApp) {
-      (req as any).workerApp = workerApp;
-      return next();
-    }
-
-    logger.security("Unauthorized worker endpoint access attempt", { uid: user.uid, status: workerApp?.status });
-    return res.status(403).json({
-      success: false,
-      error: "Forbidden: Verified and approved specialist authorization required"
-    });
-  } catch (err) {
-    logger.error("Worker verification error:", err);
-    return res.status(500).json({ success: false, error: "Internal worker authorization check failed" });
+    (req as any).workerProfile = profile;
+    (req as any).workerApp = application;
+    return next();
+  } catch (error) {
+    logger.error("Worker verification error:", error);
+    return res.status(500).json({ success: false, error: "Unable to verify professional approval" });
   }
 };
 
@@ -165,9 +157,8 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
-async function startServer() {
+export async function createApp() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   // ─── Security Middleware ───
 
@@ -218,8 +209,8 @@ async function startServer() {
   // Health check
   app.get("/api/health", async (req, res) => {
     const isDbHealthy = await dbAdapter.isHealthy();
-    res.json({
-      status: "ok",
+    res.status(isDbHealthy ? 200 : 503).json({
+      status: isDbHealthy ? "ok" : "degraded",
       dbProvider: dbAdapter.providerName,
       dbHealthy: isDbHealthy,
       timestamp: new Date().toISOString(),
@@ -302,6 +293,29 @@ async function startServer() {
           // Deliberately no password, OTP, Firebase token, or NamoID token is stored.
         });
       });
+
+      // Mirror the verified identity/profile into the selected operational database.
+      // Role is derived from the persisted server-side profile, never from the request.
+      const persistedProfile = (await userRef.get()).data() || {};
+      await dbAdapter.upsertUser({
+        uid,
+        name: String(persistedProfile.name || displayName),
+        email: String(persistedProfile.email || email || ''),
+        phone: String(persistedProfile.phone || phone || ''),
+        photoURL: persistedProfile.photoURL || undefined,
+        role: persistedProfile.role === 'admin' ? 'admin'
+          : persistedProfile.role === 'worker' && persistedProfile.status === 'APPROVED' ? 'worker' : 'citizen',
+        status: persistedProfile.status,
+        address: persistedProfile.address,
+        landmark: persistedProfile.landmark,
+        area: persistedProfile.area,
+        sector: persistedProfile.sector,
+        workerSkill: persistedProfile.workerSkill,
+        workerCategories: persistedProfile.workerCategories,
+        workerExperience: persistedProfile.workerExperience,
+        visitingFee: persistedProfile.visitingFee,
+        applicationId: persistedProfile.applicationId,
+      } as any);
 
       return res.json({ success: true, uid, recordedAt: nowIso });
     } catch (err: any) {
@@ -459,10 +473,27 @@ async function startServer() {
       }
 
       // Resolve profile snapshots server-side so orders remain useful if a profile later changes.
-      const customerProfile = await dbAdapter.getUser(uid);
+      const existingCustomerProfile = await dbAdapter.getUser(uid);
+      const customerProfile = await dbAdapter.upsertUser({
+        ...(existingCustomerProfile || { uid, role: "citizen" }),
+        uid,
+        name: String(existingCustomerProfile?.name || authUser.name || orderData.customerName || authUser.email?.split("@")[0] || "PunchX Member").trim(),
+        email: String(existingCustomerProfile?.email || authUser.email || orderData.customerEmail || "").trim(),
+        phone: String(existingCustomerProfile?.phone || authUser.phone_number || orderData.customerPhone || "").trim(),
+        role: existingCustomerProfile?.role === "admin" ? "admin"
+          : existingCustomerProfile?.role === "worker" && existingCustomerProfile?.status === "APPROVED" ? "worker" : "citizen",
+        status: existingCustomerProfile?.status,
+      } as any);
       const requestedWorkerId = String(orderData.workerId || "").trim();
-      const workerProfile = requestedWorkerId ? await dbAdapter.getUser(requestedWorkerId) : null;
-      const workerApplication = requestedWorkerId ? await dbAdapter.getWorkerApplicationByUid(requestedWorkerId) : null;
+      const workerApplication = requestedWorkerId
+        ? (await dbAdapter.getWorkerApplicationByUid(requestedWorkerId)) || await dbAdapter.getWorkerApplication(requestedWorkerId)
+        : null;
+      const resolvedWorkerId = workerApplication?.uid || requestedWorkerId;
+      const workerProfile = resolvedWorkerId ? await dbAdapter.getUser(resolvedWorkerId) : null;
+      if (requestedWorkerId && workerApplication?.status !== "APPROVED"
+        && !(workerProfile?.role === "worker" && workerProfile?.status === "APPROVED")) {
+        return res.status(400).json({ success: false, error: "The selected professional is not approved or is unavailable." });
+      }
       const nowIso = new Date().toISOString();
 
       // First booking welcome offer: waive the customer platform fee once per authenticated account.
@@ -523,7 +554,7 @@ async function startServer() {
         serviceAreaMatch: orderData.serviceAreaMatch || null,
         serviceAvailabilityChecked: Boolean(orderData.serviceAvailabilityChecked),
         serviceAvailable: Boolean(orderData.serviceAvailable),
-        workerId: requestedWorkerId || null,
+        workerId: resolvedWorkerId || null,
         workerName: resolvedWorkerName,
         workerPhone: String(workerProfile?.phone || workerApplication?.phone || orderData.workerPhone || ""),
         workerEmail: String(workerProfile?.email || workerApplication?.email || orderData.workerEmail || ""),
@@ -540,7 +571,7 @@ async function startServer() {
           area: workerProfile?.area || workerApplication?.area || "",
           city: workerProfile?.city || workerApplication?.city || "",
         } : (workerApplication ? {
-          uid: requestedWorkerId,
+          uid: resolvedWorkerId,
           name: workerApplication.legalName || "",
           phone: workerApplication.phone || "",
           email: workerApplication.email || "",
@@ -949,15 +980,20 @@ async function startServer() {
       }
 
       const event = req.body;
-      const eventId = event?.id || `${event?.event}_${event?.created_at}`;
+      const eventId = String(event?.id || (event?.event && event?.created_at ? `${event.event}_${event.created_at}` : "")).slice(0, 200);
+      if (!eventId) return res.status(400).json({ error: "Webhook event ID is missing" });
 
-      // Idempotency check: prevent duplicate replay of the same webhook event
-      if (isEventProcessed(eventId)) {
-        logger.info(`Webhook event ${eventId} already processed, acknowledging idempotently`);
+      // Claim the event in persistent storage before processing. The lease
+      // prevents parallel Vercel instances from processing the same event.
+      const claimStatus = await dbAdapter.claimPaymentWebhookEvent(eventId, String(event?.event || "unknown"));
+      if (claimStatus === 'PROCESSED') {
+        logger.info(`Webhook event ${eventId} was already processed`);
         return res.json({ status: "already_processed" });
       }
-
-      recordProcessedEvent(eventId, event?.event || "unknown");
+      if (claimStatus === 'BUSY') {
+        logger.info(`Webhook event ${eventId} is currently being processed by another instance`);
+        return res.status(409).json({ status: "processing", retry: true });
+      }
 
       // Handle payment capture / order paid events
       if (event?.event === "payment.captured" || event?.event === "order.paid") {
@@ -984,20 +1020,22 @@ async function startServer() {
               },
             }
           );
-          if (paidResult.success) {
-            await executeOrderTransition(
-              appOrderId,
-              "DISPATCHING",
-              {
-                actorUid: "gateway_webhook",
-                actorRole: "system",
-                reason: "Webhook payment confirmed; specialist dispatch initiated",
-              }
-            );
+          if (!paidResult.success) {
+            throw new Error(paidResult.error || "Payment capture transition could not be committed");
           }
+          await executeOrderTransition(
+            appOrderId,
+            "DISPATCHING",
+            {
+              actorUid: "gateway_webhook",
+              actorRole: "system",
+              reason: "Webhook payment confirmed; specialist dispatch initiated",
+            }
+          );
         }
       }
 
+      await dbAdapter.completePaymentWebhookEvent(eventId);
       return res.json({ status: "ok" });
     } catch (err: any) {
       logger.error("Webhook processing error:", err);
@@ -1053,88 +1091,35 @@ async function startServer() {
   // ─── WORKER SIGNUP DYNAMIC DUAL OTP API (TASK SHEET SECTION 8 [P0]) ───
   // Replaces hardcoded 8842/9921 with dynamic server-generated challenge
   app.post("/api/auth/worker-signup-otp", async (_req, res) => {
-    // OTP system removed - phone and email verification bypassed
-    return res.json({
-      success: true,
-      challengeId: `CHAL-${Date.now()}`,
-      message: "Phone and email verification bypassed (OTP system removed)",
-      debugCodes: {
-        phoneCode: "123456",
-        emailCode: "123456"
-      }
+    // Never return static OTPs or claim an unverified phone/email is verified.
+    return res.status(503).json({
+      success: false,
+      error: "OTP verification is temporarily unavailable. Please use the verified NamoID sign-in flow."
     });
   });
 
+
   // ─── WORKER APPLICATIONS APIS ───
   // Query worker registration & verification status for authenticated user
-  app.get("/api/workers/status", async (req, res) => {
+  app.get("/api/workers/status", requireFirebaseUser, async (req, res) => {
     try {
-      let uid = (req as any).user?.uid;
-      let email = (req as any).user?.email;
-      let phone = (req as any).user?.phone_number;
+      const uid = String((req as any).user.uid);
+      const profile = await dbAdapter.getUser(uid);
+      const application = await dbAdapter.getWorkerApplicationByUid(uid);
+      const status = application?.status || (profile?.role === "worker" ? profile.status : "NOT_REGISTERED");
+      const registered = Boolean(application || profile?.role === "worker" || profile?.applicationId);
 
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split("Bearer ")[1];
-        if (token) {
-          try {
-            if (getApps().length > 0) {
-              const decoded = await getAuth().verifyIdToken(token);
-              uid = decoded.uid;
-              email = decoded.email || email;
-              phone = decoded.phone_number || phone;
-            } else {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
-                uid = payload.uid || payload.sub || uid;
-                email = payload.email || email;
-                phone = payload.phone_number || phone;
-              }
-            }
-          } catch {}
-        }
-      }
-
-      if (!uid) {
-        return res.json({
-          success: true,
-          registered: false,
-          status: "NOT_REGISTERED",
-          message: "No user authenticated"
-        });
-      }
-
-      const userProfile = await dbAdapter.getUser(uid);
-      const workerApp = await dbAdapter.getWorkerApplicationByUid(uid)
-        || ((userProfile?.phone || phone)
-            ? await dbAdapter.getWorkerApplicationByContact({ 
-                phone: userProfile?.phone || phone,
-                email: userProfile?.email || email
-              })
-            : null);
-
-      if (!workerApp && (!userProfile || (userProfile.role !== "worker" && !userProfile.workerSkill))) {
-        return res.json({
-          success: true,
-          registered: false,
-          status: "NOT_REGISTERED",
-          message: "No specialist registration found for this account"
-        });
-      }
-
-      const status = "APPROVED";
       return res.json({
         success: true,
-        registered: true,
-        status: "APPROVED",
-        applicationId: workerApp?.id || "APP-AUTO-APPROVED",
-        appliedAt: workerApp?.appliedAt || new Date().toISOString(),
-        role: "worker",
-        categories: workerApp?.categories || userProfile?.workerCategories || ["Electrician"],
-        skill: workerApp?.skill || userProfile?.workerSkill || "Electrician"
+        registered,
+        status: status || "PENDING",
+        applicationId: application?.id || profile?.applicationId || null,
+        appliedAt: application?.appliedAt || null,
+        role: status === "APPROVED" ? "worker" : "citizen",
+        categories: application?.categories || profile?.workerCategories || [],
+        skill: application?.skill || profile?.workerSkill || null
       });
-    } catch (err: any) {
+    } catch (err) {
       logger.error("Worker status query error:", err);
       return res.status(500).json({ success: false, error: "Failed to determine worker registration status" });
     }
@@ -1247,82 +1232,58 @@ async function startServer() {
     }
   });
 
-  app.post("/api/worker-applications", async (req, res) => {
+  app.post("/api/worker-applications", requireFirebaseUser, async (req, res) => {
     try {
-      let uid = (req as any).user?.uid;
-      const authHeader = req.headers.authorization;
-      if (!uid && authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split("Bearer ")[1];
-        if (token) {
-          try {
-            if (getApps().length > 0) {
-              const decoded = await getAuth().verifyIdToken(token);
-              uid = decoded.uid;
-            } else {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
-                uid = payload.uid || payload.sub;
-              }
-            }
-          } catch {}
-        }
+      const uid = String((req as any).user.uid);
+      const appData = req.body && typeof req.body === "object" ? req.body : {};
+      if (!appData.legalName || !appData.phone || !appData.email || !appData.termsAccepted) {
+        return res.status(400).json({ success: false, error: "Legal name, phone, email and accepted terms are required." });
       }
 
-      const appData = req.body;
-      uid = uid || appData.uid || `applicant_${Date.now()}`;
-
-      if (!appData.legalName || !appData.phone || !appData.email) {
-        return res.status(400).json({ success: false, error: "Missing required registration details: legalName, phone, and email are required" });
+      // Identity comes only from the verified Firebase token. Approval is an
+      // admin action; registration never grants professional permissions.
+      const existing = await dbAdapter.getWorkerApplicationByUid(uid);
+      if (existing && existing.status !== "REJECTED") {
+        return res.status(409).json({ success: false, error: "A professional application already exists for this account.", application: existing });
       }
 
-      // Auto-approve worker application in Firebase
+      const current = await dbAdapter.getUser(uid);
+      // The user row must exist before the application because the database
+      // enforces its applicant foreign key.
+      await dbAdapter.upsertUser({
+        ...(current || { uid, role: "citizen" }),
+        uid,
+        role: current?.role === "admin" ? "admin" : "citizen",
+        status: "PENDING",
+        name: String(appData.legalName).slice(0, 160),
+        email: String(appData.email).slice(0, 320),
+        phone: String(appData.phone).slice(0, 40),
+        updatedAt: new Date().toISOString()
+      } as any);
+
       const created = await dbAdapter.createWorkerApplication({
         ...appData,
         uid,
-        status: "APPROVED"
+        status: "PENDING"
       });
 
-      // Update user profile in Firebase to worker role and APPROVED status directly with all fields
       await dbAdapter.upsertUser({
+        ...(current || { uid, role: "citizen" }),
         uid,
-        name: appData.legalName,
-        dob: appData.dob,
-        birthdate: appData.dob || appData.birthdate,
-        address: appData.address,
-        streetAddress: appData.streetAddress || appData.address,
-        landmark: appData.landmark || "",
-        area: appData.area || "",
-        city: appData.city || "",
-        sector: appData.sector || "",
-        email: appData.email,
-        phone: appData.phone,
-        photoURL: appData.photoURL || "",
-        role: "worker",
-        status: "APPROVED",
+        role: current?.role === "admin" ? "admin" : "citizen",
+        status: "PENDING",
         applicationId: created.id,
-        workerSkill: created.skill,
-        skill: created.skill,
-        workerCategories: created.categories,
-        categories: created.categories,
-        customSkill: appData.customSkill || "",
-        workerExperience: appData.experienceYears || "",
-        experienceYears: appData.experienceYears || "",
-        visitingFee: created.visitingFee,
-        minimumVisitingFee: appData.minimumVisitingFee,
-        maximumVisitingFee: appData.maximumVisitingFee,
-        termsAccepted: true,
-        appliedAt: appData.appliedAt || new Date().toISOString(),
-        isProfileCompleted: true,
-        createdAt: (await dbAdapter.getUser(uid))?.createdAt || new Date().toISOString(),
+        name: String(appData.legalName).slice(0, 160),
+        email: String(appData.email).slice(0, 320),
+        phone: String(appData.phone).slice(0, 40),
         updatedAt: new Date().toISOString()
-      });
+      } as any);
 
-      logger.info(`Worker application submitted and saved to Firebase: ${created.id} by uid ${uid}`);
-      return res.status(201).json({ success: true, application: created });
-    } catch (err: any) {
+      logger.info(`Professional application submitted for admin review: ${created.id}`);
+      return res.status(201).json({ success: true, application: created, message: "Application submitted for admin approval." });
+    } catch (err) {
       logger.error("Worker application error:", err);
-      return res.status(500).json({ success: false, error: "Failed to submit worker application" });
+      return res.status(500).json({ success: false, error: "Failed to submit professional application" });
     }
   });
 
@@ -1429,42 +1390,44 @@ async function startServer() {
   // NamoID -> Firebase Custom Token Exchange Endpoint
   app.post("/api/auth/namoid-token", async (req, res) => {
     try {
-      const { idToken, identity } = req.body;
-      const uid = identity?.sub || identity?.id || (identity?.email ? `namoid_${crypto.createHash('sha256').update(identity.email).digest('hex').substring(0, 20)}` : null);
-      if (!uid) {
-        return res.status(400).json({ success: false, error: "Missing user identity" });
+      const accessToken = typeof req.body?.accessToken === "string" ? req.body.accessToken.trim() : "";
+      if (!accessToken || accessToken.length > 16384) {
+        return res.status(401).json({ success: false, error: "A valid NamoID access token is required." });
       }
 
-      // Authoritative role lookup from server-side database (NEVER trust client-provided role)
-      let authoritativeRole = "citizen";
-      const existingUser = await dbAdapter.getUser(uid);
-      if (existingUser && existingUser.role) {
-        authoritativeRole = existingUser.role;
-      } else {
-        // Check if there is an approved worker application for this user
-        const workerApp = await dbAdapter.getWorkerApplicationByUid(uid)
-          || (identity?.email ? await dbAdapter.getWorkerApplicationByContact({ email: identity.email }) : null);
-        if (workerApp && workerApp.status === "APPROVED") {
-          authoritativeRole = "worker";
-        }
+      const upstream = await fetch("https://punch-x-747dd7.id.namoid.in/v1/oauth/userinfo", {
+        headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+        cache: "no-store",
+        signal: AbortSignal.timeout(10000)
+      });
+      if (!upstream.ok) {
+        return res.status(401).json({ success: false, error: "NamoID could not verify this session." });
       }
 
-      if (getApps().length > 0) {
-        try {
-          const customToken = await getAuth().createCustomToken(uid, {
-            email: identity?.email || "",
-            name: identity?.name || "",
-            role: authoritativeRole,
-          });
-          return res.json({ success: true, customToken, uid, role: authoritativeRole });
-        } catch (adminErr: any) {
-          logger.warn("Firebase Admin custom token generation notice:", adminErr?.message || adminErr);
-        }
+      const identity = await upstream.json() as Record<string, unknown>;
+      const email = typeof identity.email === "string" ? identity.email.trim().toLowerCase() : "";
+      const subject = typeof identity.sub === "string" ? identity.sub.trim()
+        : typeof identity.id === "string" ? identity.id.trim()
+        : typeof identity.user_id === "string" ? identity.user_id.trim() : "";
+      if (!subject && !email) {
+        return res.status(401).json({ success: false, error: "NamoID did not return a stable identity." });
       }
 
-      return res.json({ success: false, uid, role: authoritativeRole, message: "Firebase Admin custom token generation fallback" });
-    } catch (err: any) {
-      return res.status(500).json({ success: false, error: err?.message || "Token exchange failed" });
+      const uid = subject || `namoid_${crypto.createHash("sha256").update(email).digest("hex").slice(0, 20)}`;
+      const existing = await dbAdapter.getUser(uid);
+      const application = await dbAdapter.getWorkerApplicationByUid(uid);
+      const role = existing?.role === "admin" ? "admin"
+        : existing?.role === "worker" && existing?.status === "APPROVED" || application?.status === "APPROVED" ? "worker"
+        : "citizen";
+
+      if (getApps().length === 0) {
+        return res.status(503).json({ success: false, error: "Firebase Admin is not configured for secure token exchange." });
+      }
+      const customToken = await getAuth().createCustomToken(uid, { role });
+      return res.json({ success: true, customToken, uid, role });
+    } catch (err) {
+      logger.error("Verified NamoID token exchange failed:", err);
+      return res.status(503).json({ success: false, error: "Secure NamoID authentication is temporarily unavailable." });
     }
   });
 
@@ -2921,9 +2884,27 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`PunchX Full-Stack Server running on http://0.0.0.0:${PORT}`);
-  });
+  return app;
 }
 
-startServer();
+let appPromise: Promise<express.Express> | null = null;
+
+export function getApp(): Promise<express.Express> {
+  if (!appPromise) appPromise = createApp();
+  return appPromise;
+}
+
+// Local Node hosting keeps the existing Express startup. On Vercel, the
+// catch-all API function imports getApp() and lets the platform own the
+// request lifecycle (app.listen() must not run inside a serverless function).
+if (process.env.VERCEL !== "1") {
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  void getApp().then((app) => {
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`PunchX Full-Stack Server running on http://0.0.0.0:${port}`);
+    });
+  }).catch((error) => {
+    console.error("PunchX server failed to initialize:", error);
+    process.exitCode = 1;
+  });
+}

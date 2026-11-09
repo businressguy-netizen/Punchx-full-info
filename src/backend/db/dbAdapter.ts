@@ -21,6 +21,7 @@ export interface IDatabaseAdapter {
   getOrder(id: string): Promise<OrderRecord | null>;
   listOrders(filters?: { customerId?: string; workerId?: string; status?: string }): Promise<OrderRecord[]>;
   updateOrderStatus(id: string, status: string, additionalDetails?: Partial<OrderRecord>): Promise<OrderRecord | null>;
+  acceptOrder(id: string, workerId: string, additionalDetails: Partial<OrderRecord>): Promise<OrderRecord | null>;
 
   // Warranty Claims Operations
   createWarrantyClaim(claim: WarrantyClaim): Promise<WarrantyClaim>;
@@ -35,6 +36,10 @@ export interface IDatabaseAdapter {
   // Reviews Operations
   createReview(review: CustomerReview): Promise<CustomerReview>;
   listReviews(workerId?: string): Promise<CustomerReview[]>;
+
+  // Persistent idempotency for payment gateway webhooks.
+  claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'>;
+  completePaymentWebhookEvent(eventId: string): Promise<void>;
 
   // Health check
   isHealthy(): Promise<boolean>;
