@@ -197,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
             
             setUserProfile(updatedProfile);
             localStorage.setItem('punchx_namoid_profile', JSON.stringify(updatedProfile));
-            if (resolvedRole === 'worker' && hasWorkerDetails) {
+            if (resolvedRole === 'worker') {
               localStorage.setItem('punchx_auth_role', 'worker');
               localStorage.setItem('punchx_worker_approved', 'true');
               localStorage.setItem('punchx_worker_online_status', 'true');
