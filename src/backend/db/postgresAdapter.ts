@@ -631,6 +631,52 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
   }
 
+  async acceptOrder(id: string, workerId: string, additionalDetails: Partial<OrderRecord>): Promise<OrderRecord | null> {
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const existing = this.inMemoryFallback.orders.get(id);
+      if (!existing || !['DISPATCHING', 'Pending'].includes(String(existing.status))) return null;
+      if (existing.workerId && existing.workerId !== workerId) return null;
+      const updated = {
+        ...existing,
+        ...additionalDetails,
+        id,
+        workerId,
+        status: 'ACCEPTED' as const,
+      };
+      this.inMemoryFallback.orders.set(id, updated);
+      return updated;
+    }
+
+    try {
+      const details = { ...additionalDetails, workerId, status: 'ACCEPTED' };
+      const result = await this.pool.query(
+        `UPDATE orders
+         SET status = 'ACCEPTED',
+             worker_id = $1,
+             worker_name = $2,
+             worker_phone = $3,
+             metadata = COALESCE(metadata, '{}'::jsonb) || $4::jsonb
+         WHERE id = $5
+           AND status IN ('DISPATCHING', 'Pending')
+           AND (worker_id IS NULL OR worker_id = $1)
+         RETURNING id`,
+        [
+          workerId,
+          additionalDetails.workerName || 'Assigned Specialist',
+          additionalDetails.workerPhone || '',
+          JSON.stringify(details),
+          id,
+        ]
+      );
+      if (result.rowCount === 0) return null;
+      return await this.getOrder(id);
+    } catch (error) {
+      logger.error('Supabase atomic booking acceptance failed:', error);
+      throw new Error('Booking acceptance could not be committed');
+    }
+  }
+
   async updateOrderStatus(id: string, status: string, additionalDetails?: Partial<OrderRecord>): Promise<OrderRecord | null> {
     if (!this.pool) {
       const existing = this.inMemoryFallback.orders.get(id);
