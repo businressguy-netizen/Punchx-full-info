@@ -3,7 +3,6 @@ import {
   OAuthProvider,
   User,
   onAuthStateChanged,
-  signInAnonymously,
   signInWithCredential,
   signInWithCustomToken,
   signOut as firebaseSignOut,
@@ -171,18 +170,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
 
           if (userSnap.exists()) {
             const existingData = userSnap.data() as UserProfile;
-            const rawStoredRole = localStorage.getItem('punchx_auth_role');
-            const hasWorkerDetails = Boolean(
-              (existingData as any).workerSkill || 
-              ((existingData as any).categories && (existingData as any).categories.length > 0) || 
-              (existingData as any).applicationId
-            );
-            const isWorker = existingData.role === 'worker' || hasWorkerDetails || (rawStoredRole === 'worker' && existingData.role !== 'admin');
-            const resolvedRole: 'citizen' | 'worker' | 'admin' = existingData.role === 'admin' 
-              ? 'admin' 
-              : isWorker 
-                ? 'worker' 
-                : 'citizen';
+            // Worker permissions require a server/admin-controlled APPROVED status.
+            // Cached client state and worker profile fields are never authorization.
+            const resolvedRole: 'citizen' | 'worker' | 'admin' =
+              existingData.role === 'admin'
+                ? 'admin'
+                : existingData.role === 'worker' && existingData.status === 'APPROVED'
+                  ? 'worker'
+                  : 'citizen';
 
             const updatedProfile: UserProfile = {
               ...existingData,
@@ -194,16 +189,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
               birthdate: existingData.birthdate || existingData.dob || extractedDob,
               isProfileCompleted: existingData.isProfileCompleted ?? (!!existingData.name && !!(existingData.dob || existingData.birthdate) && !!existingData.address),
               role: resolvedRole,
-              status: resolvedRole === 'worker' ? 'APPROVED' : existingData.status,
+              status: existingData.status,
               address: existingData.address !== undefined ? existingData.address : '',
               phone: existingData.phone || identity.phone_number || ''
             };
 
-            if (resolvedRole === 'worker' && existingData.status !== 'APPROVED') {
-              try {
-                await setDoc(userDocRef, { role: 'worker', status: 'APPROVED' }, { merge: true });
-              } catch {}
-            }
             
             setUserProfile(updatedProfile);
             localStorage.setItem('punchx_namoid_profile', JSON.stringify(updatedProfile));
@@ -214,12 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
             }
             return updatedProfile;
           } else {
-            const rawStoredRole = localStorage.getItem('punchx_auth_role');
-            const initialProfile: UserProfile = { ...fallbackProfile };
-            if (rawStoredRole === 'worker') {
-              initialProfile.role = 'worker';
-              initialProfile.status = 'PENDING';
-            }
+            const initialProfile: UserProfile = { ...fallbackProfile, role: 'citizen' };
 
             try {
               await Promise.race([
@@ -337,25 +322,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
         }
       }
 
-      // 3. Resilient Fallback: If custom token minting is unavailable (e.g. 404 or backend setup in progress),
-      // sign in anonymously to satisfy Firestore authentication rules without blocking the user.
-      if (!auth.currentUser) {
-        try {
-          console.warn('Custom token exchange unavailable; signing in anonymously to Firebase as fallback.');
-          const anonCred = await signInAnonymously(auth);
-          firebaseUid = anonCred.user.uid;
-          tokenExchangeError = '';
-        } catch (anonErr) {
-          console.warn('Firebase anonymous sign-in fallback notice:', anonErr);
-        }
-      }
-
+      // Fail closed: never silently replace a verified NamoID identity with
+      // an unrelated anonymous Firebase account.
       if (auth.currentUser) {
         firebaseUid = auth.currentUser.uid;
       } else {
-        console.warn(tokenExchangeError
-          ? `PunchX Firebase sign-in warning: ${tokenExchangeError}`
-          : 'Firebase Auth is unavailable. Proceeding with NamoID authenticated profile.');
+        throw new Error(tokenExchangeError || 'Secure sign-in could not be completed. Please retry.');
       }
     }
 
