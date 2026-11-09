@@ -400,8 +400,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
     if (!this.pool) return existing || null;
 
     try {
-      const q = 'UPDATE worker_applications SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *';
-      const res = await this.pool.query(q, [status, id]);
+      const q = 'UPDATE worker_applications SET status = $1, notes = COALESCE($2, notes), updated_at = NOW() WHERE id = $3 RETURNING *';
+      const res = await this.pool.query(q, [status, notes || null, id]);
       if (res.rows.length === 0) return existing || null;
       const row = res.rows[0];
       const updatedApp: WorkerApplication = {
