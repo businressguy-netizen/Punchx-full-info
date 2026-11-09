@@ -87,8 +87,8 @@ adminRouter.use(requireAdminApiKey);
 adminRouter.get('/health', async (_req: Request, res: Response) => {
   const isHealthy = await dbAdapter.isHealthy();
   return res.json({
-    success: true,
-    status: 'connected',
+    success: isHealthy,
+    status: isHealthy ? 'connected' : 'degraded',
     platform: 'PunchX Core Production Backend',
     version: '1.0.0',
     dbProvider: dbAdapter.providerName,
