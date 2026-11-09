@@ -985,10 +985,14 @@ export async function createApp() {
 
       // Claim the event in persistent storage before processing. The lease
       // prevents parallel Vercel instances from processing the same event.
-      const claimed = await dbAdapter.claimPaymentWebhookEvent(eventId, String(event?.event || "unknown"));
-      if (!claimed) {
-        logger.info(`Webhook event ${eventId} is already processed or currently being processed`);
+      const claimStatus = await dbAdapter.claimPaymentWebhookEvent(eventId, String(event?.event || "unknown"));
+      if (claimStatus === 'PROCESSED') {
+        logger.info(`Webhook event ${eventId} was already processed`);
         return res.json({ status: "already_processed" });
+      }
+      if (claimStatus === 'BUSY') {
+        logger.info(`Webhook event ${eventId} is currently being processed by another instance`);
+        return res.status(409).json({ status: "processing", retry: true });
       }
 
       // Handle payment capture / order paid events
