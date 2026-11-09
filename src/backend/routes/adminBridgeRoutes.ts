@@ -47,12 +47,11 @@ export const requireAdminApiKey = (req: Request, res: Response, next: NextFuncti
     (req.headers['X-Admin-Key'] as string) ||
     req.headers['authorization']?.replace('Bearer ', '').trim();
 
-  const expectedKey = process.env.ADMIN_API_KEY;
-  if (!expectedKey && process.env.NODE_ENV === 'production') {
-    logger.error('ADMIN_API_KEY environment variable is not configured on the production server');
-    return res.status(500).json({ success: false, error: 'Admin bridge authentication is not configured on server' });
+  const keyToCompare = process.env.ADMIN_API_KEY;
+  if (!keyToCompare || keyToCompare.length < 32) {
+    logger.error('ADMIN_API_KEY is missing or too short; admin bridge is disabled.');
+    return res.status(503).json({ success: false, error: 'Admin bridge authentication is not configured securely.' });
   }
-  const keyToCompare = expectedKey || 'punchx_admin_secure_live_key_2026_9941a8';
 
   if (!adminKey) {
     logger.security('Missing administrative key header', { ip: req.ip, path: req.originalUrl });
@@ -103,11 +102,11 @@ adminRouter.get('/health', async (_req: Request, res: Response) => {
 adminRouter.get('/overview', async (_req: Request, res: Response) => {
   try {
     const [users, workers, orders, claims, complaints] = await Promise.all([
-      dbAdapter.listUsers().catch(() => [] as UserProfile[]),
-      dbAdapter.listWorkerApplications().catch(() => [] as WorkerApplication[]),
-      dbAdapter.listOrders().catch(() => [] as OrderRecord[]),
-      dbAdapter.listWarrantyClaims().catch(() => [] as WarrantyClaim[]),
-      dbAdapter.listComplaints().catch(() => [] as ComplaintRecord[]),
+      dbAdapter.listUsers(),
+      dbAdapter.listWorkerApplications(),
+      dbAdapter.listOrders(),
+      dbAdapter.listWarrantyClaims(),
+      dbAdapter.listComplaints(),
     ]);
 
     const activeWorkers = workers.filter((w) => w.status === 'APPROVED').length;
