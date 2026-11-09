@@ -211,8 +211,8 @@ export async function createApp() {
   // Health check
   app.get("/api/health", async (req, res) => {
     const isDbHealthy = await dbAdapter.isHealthy();
-    res.json({
-      status: "ok",
+    res.status(isDbHealthy ? 200 : 503).json({
+      status: isDbHealthy ? "ok" : "degraded",
       dbProvider: dbAdapter.providerName,
       dbHealthy: isDbHealthy,
       timestamp: new Date().toISOString(),
