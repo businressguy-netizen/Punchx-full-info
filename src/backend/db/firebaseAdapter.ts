@@ -8,6 +8,7 @@ import { logger } from '../logger.js';
 
 export class FirebaseAdapter implements IDatabaseAdapter {
   providerName: 'firebase' = 'firebase';
+  private localWebhookEvents = new Set<string>();
 
   private inMemoryFallback: {
     users: Map<string, UserProfile>;
@@ -30,6 +31,61 @@ export class FirebaseAdapter implements IDatabaseAdapter {
       return getFirestore(undefined, FIRESTORE_DATABASE_ID);
     } catch {
       return null;
+    }
+  }
+
+  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<boolean> {
+    const firestore = this.db;
+    if (!firestore) {
+      if (this.localWebhookEvents.has(eventId)) return false;
+      this.localWebhookEvents.add(eventId);
+      return true;
+    }
+
+    const docId = Buffer.from(eventId).toString('base64url');
+    const eventRef = firestore.collection('payment_webhook_events').doc(docId);
+    const now = Date.now();
+    try {
+      return await firestore.runTransaction(async (transaction) => {
+        const snapshot = await transaction.get(eventRef);
+        const existing = snapshot.exists ? snapshot.data() || {} : {};
+        if (existing.status === 'PROCESSED' || Number(existing.lockedUntilMs || 0) > now) {
+          return false;
+        }
+        transaction.set(eventRef, {
+          eventId,
+          eventType,
+          status: 'PROCESSING',
+          lockedUntilMs: now + 5 * 60 * 1000,
+          createdAt: existing.createdAt || FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return true;
+      });
+    } catch (error) {
+      logger.error('Firebase webhook idempotency claim failed:', error);
+      throw new Error('Payment webhook idempotency could not be verified');
+    }
+  }
+
+  async completePaymentWebhookEvent(eventId: string): Promise<void> {
+    const firestore = this.db;
+    if (!firestore) {
+      this.localWebhookEvents.add(eventId);
+      return;
+    }
+    const docId = Buffer.from(eventId).toString('base64url');
+    try {
+      await firestore.collection('payment_webhook_events').doc(docId).set({
+        eventId,
+        status: 'PROCESSED',
+        lockedUntilMs: null,
+        processedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } catch (error) {
+      logger.error('Firebase webhook completion update failed:', error);
+      throw new Error('Payment webhook completion could not be recorded');
     }
   }
 
