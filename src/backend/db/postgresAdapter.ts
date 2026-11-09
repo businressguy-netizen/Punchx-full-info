@@ -94,6 +94,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         workerExperience: row.worker_experience,
         workerRating: row.worker_rating ? Number(row.worker_rating) : 5.0,
         workerCompletedJobs: row.worker_completed_jobs || 0,
+        status: row.status || undefined,
+        applicationId: row.application_id || undefined,
         createdAt: row.created_at?.toISOString(),
         updatedAt: row.updated_at?.toISOString(),
       };
@@ -112,8 +114,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
     try {
       const query = `
-        INSERT INTO users (id, name, email, photo_url, role, phone, dob, is_profile_completed, address, landmark, area, sector, visiting_fee, worker_skill, worker_categories, worker_experience, worker_rating, worker_completed_jobs, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())
+        INSERT INTO users (id, name, email, photo_url, role, phone, dob, is_profile_completed, address, landmark, area, sector, visiting_fee, worker_skill, worker_categories, worker_experience, worker_rating, worker_completed_jobs, status, application_id, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW())
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           email = EXCLUDED.email,
@@ -132,6 +134,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
           worker_experience = EXCLUDED.worker_experience,
           worker_rating = EXCLUDED.worker_rating,
           worker_completed_jobs = EXCLUDED.worker_completed_jobs,
+          status = EXCLUDED.status,
+          application_id = EXCLUDED.application_id,
           updated_at = NOW()
         RETURNING *;
       `;
@@ -154,6 +158,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         user.workerExperience || null,
         user.workerRating || 5.0,
         user.workerCompletedJobs || 0,
+        user.status || null,
+        user.applicationId || null,
       ];
       await this.pool.query(query, values);
       return user;
@@ -165,8 +171,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async listUsers(role?: string): Promise<UserProfile[]> {
     if (!this.pool) {
-      logger.error('Supabase listUsers failed:', e);
-      throw new Error('Supabase user list could not be loaded');
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const all = Array.from(this.inMemoryFallback.users.values());
+      return role ? all.filter((u) => u.role === role) : all;
     }
     try {
       const q = role ? 'SELECT * FROM users WHERE role = $1' : 'SELECT * FROM users';
@@ -184,6 +191,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         workerSkill: row.worker_skill,
         workerRating: row.worker_rating ? Number(row.worker_rating) : 5.0,
         workerCompletedJobs: row.worker_completed_jobs || 0,
+        status: row.status || undefined,
+        applicationId: row.application_id || undefined,
       }));
     } catch (e) {
       logger.error('Supabase listUsers failed:', e);
@@ -413,8 +422,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
       if (row.uid) {
         await this.pool.query(
-          `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2`,
-          [status === 'APPROVED' ? 'worker' : 'citizen', row.uid]
+          `UPDATE users SET role = $1, status = $2, updated_at = NOW() WHERE id = $3`,
+          [status === 'APPROVED' ? 'worker' : 'citizen', status, row.uid]
         );
       }
 
