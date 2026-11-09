@@ -411,10 +411,10 @@ export class PostgresAdapter implements IDatabaseAdapter {
         appliedAt: row.applied_at?.toISOString(),
       };
 
-      if (row.uid && status === 'APPROVED') {
+      if (row.uid) {
         await this.pool.query(
-          `UPDATE users SET role = 'worker', updated_at = NOW() WHERE id = $1`,
-          [row.uid]
+          `UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2`,
+          [status === 'APPROVED' ? 'worker' : 'citizen', row.uid]
         );
       }
 
