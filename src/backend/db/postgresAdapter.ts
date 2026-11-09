@@ -56,13 +56,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async isHealthy(): Promise<boolean> {
     if (!this.pool) return false;
+    let client: pg.PoolClient | null = null;
     try {
-      const client = await this.pool.connect();
+      client = await this.pool.connect();
       await client.query('SELECT 1');
-      client.release();
       return true;
     } catch (e) {
+      logger.error('Supabase database health check failed:', e);
       return false;
+    } finally {
+      client?.release();
     }
   }
 
