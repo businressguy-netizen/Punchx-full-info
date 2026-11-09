@@ -487,8 +487,15 @@ export async function createApp() {
         status: existingCustomerProfile?.status,
       } as any);
       const requestedWorkerId = String(orderData.workerId || "").trim();
-      const workerProfile = requestedWorkerId ? await dbAdapter.getUser(requestedWorkerId) : null;
-      const workerApplication = requestedWorkerId ? await dbAdapter.getWorkerApplicationByUid(requestedWorkerId) : null;
+      const workerApplication = requestedWorkerId
+        ? (await dbAdapter.getWorkerApplicationByUid(requestedWorkerId)) || await dbAdapter.getWorkerApplication(requestedWorkerId)
+        : null;
+      const resolvedWorkerId = workerApplication?.uid || requestedWorkerId;
+      const workerProfile = resolvedWorkerId ? await dbAdapter.getUser(resolvedWorkerId) : null;
+      if (requestedWorkerId && workerApplication?.status !== "APPROVED"
+        && !(workerProfile?.role === "worker" && workerProfile?.status === "APPROVED")) {
+        return res.status(400).json({ success: false, error: "The selected professional is not approved or is unavailable." });
+      }
       const nowIso = new Date().toISOString();
 
       // First booking welcome offer: waive the customer platform fee once per authenticated account.
@@ -549,7 +556,7 @@ export async function createApp() {
         serviceAreaMatch: orderData.serviceAreaMatch || null,
         serviceAvailabilityChecked: Boolean(orderData.serviceAvailabilityChecked),
         serviceAvailable: Boolean(orderData.serviceAvailable),
-        workerId: requestedWorkerId || null,
+        workerId: resolvedWorkerId || null,
         workerName: resolvedWorkerName,
         workerPhone: String(workerProfile?.phone || workerApplication?.phone || orderData.workerPhone || ""),
         workerEmail: String(workerProfile?.email || workerApplication?.email || orderData.workerEmail || ""),
@@ -566,7 +573,7 @@ export async function createApp() {
           area: workerProfile?.area || workerApplication?.area || "",
           city: workerProfile?.city || workerApplication?.city || "",
         } : (workerApplication ? {
-          uid: requestedWorkerId,
+          uid: resolvedWorkerId,
           name: workerApplication.legalName || "",
           phone: workerApplication.phone || "",
           email: workerApplication.email || "",
