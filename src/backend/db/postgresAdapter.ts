@@ -6,6 +6,7 @@ import { logger } from '../logger.js';
 export class PostgresAdapter implements IDatabaseAdapter {
   providerName: 'postgres' = 'postgres';
   private pool: pg.Pool | null = null;
+  private localWebhookEvents = new Set<string>();
   private inMemoryFallback: {
     users: Map<string, UserProfile>;
     workerApplications: Map<string, WorkerApplication>;
@@ -51,6 +52,52 @@ export class PostgresAdapter implements IDatabaseAdapter {
     } catch (err) {
       logger.error('Failed to initialize PostgreSQL pool:', err);
       throw err;
+    }
+  }
+
+  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<boolean> {
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      if (this.localWebhookEvents.has(eventId)) return false;
+      this.localWebhookEvents.add(eventId);
+      return true;
+    }
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO payment_webhook_events (event_id, event_type, status, locked_until)
+         VALUES ($1, $2, 'PROCESSING', NOW() + INTERVAL '5 minutes')
+         ON CONFLICT (event_id) DO UPDATE
+           SET event_type = EXCLUDED.event_type,
+               status = 'PROCESSING',
+               locked_until = NOW() + INTERVAL '5 minutes'
+         WHERE payment_webhook_events.status <> 'PROCESSED'
+           AND payment_webhook_events.locked_until < NOW()
+         RETURNING event_id`,
+        [eventId, eventType]
+      );
+      return result.rowCount === 1;
+    } catch (error) {
+      logger.error('Supabase webhook idempotency claim failed:', error);
+      throw new Error('Payment webhook idempotency could not be verified');
+    }
+  }
+
+  async completePaymentWebhookEvent(eventId: string): Promise<void> {
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.localWebhookEvents.add(eventId);
+      return;
+    }
+    try {
+      await this.pool.query(
+        `UPDATE payment_webhook_events
+         SET status = 'PROCESSED', processed_at = NOW(), locked_until = NULL
+         WHERE event_id = $1`,
+        [eventId]
+      );
+    } catch (error) {
+      logger.error('Supabase webhook completion update failed:', error);
+      throw new Error('Payment webhook completion could not be recorded');
     }
   }
 
