@@ -252,10 +252,10 @@ async function runTests() {
 
   await test('Persists webhook idempotency and rejects duplicate event claims', async () => {
     const eventId = `evt_test_${Date.now()}`;
-    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), true);
-    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), false);
+    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), 'CLAIMED');
+    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), 'BUSY');
     await dbAdapter.completePaymentWebhookEvent(eventId);
-    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), false);
+    assert.strictEqual(await dbAdapter.claimPaymentWebhookEvent(eventId, 'payment.captured'), 'PROCESSED');
   });
 
   // ─── 5. LIVE TRACKING & GEOFENCING TESTS ───
