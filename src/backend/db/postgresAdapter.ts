@@ -6,7 +6,7 @@ import { logger } from '../logger.js';
 export class PostgresAdapter implements IDatabaseAdapter {
   providerName: 'postgres' = 'postgres';
   private pool: pg.Pool | null = null;
-  private localWebhookEvents = new Set<string>();
+  private localWebhookEvents = new Map<string, 'PROCESSING' | 'PROCESSED'>();
   private inMemoryFallback: {
     users: Map<string, UserProfile>;
     workerApplications: Map<string, WorkerApplication>;
@@ -58,8 +58,10 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'> {
     if (!this.pool) {
       if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
-      if (this.localWebhookEvents.has(eventId)) return 'PROCESSED';
-      this.localWebhookEvents.add(eventId);
+      const localStatus = this.localWebhookEvents.get(eventId);
+      if (localStatus === 'PROCESSED') return 'PROCESSED';
+      if (localStatus === 'PROCESSING') return 'BUSY';
+      this.localWebhookEvents.set(eventId, 'PROCESSING');
       return 'CLAIMED';
     }
     try {
@@ -90,7 +92,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async completePaymentWebhookEvent(eventId: string): Promise<void> {
     if (!this.pool) {
       if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
-      this.localWebhookEvents.add(eventId);
+      this.localWebhookEvents.set(eventId, 'PROCESSED');
       return;
     }
     try {
