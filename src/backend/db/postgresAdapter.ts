@@ -55,12 +55,12 @@ export class PostgresAdapter implements IDatabaseAdapter {
     }
   }
 
-  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<boolean> {
+  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'> {
     if (!this.pool) {
       if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
-      if (this.localWebhookEvents.has(eventId)) return false;
+      if (this.localWebhookEvents.has(eventId)) return 'PROCESSED';
       this.localWebhookEvents.add(eventId);
-      return true;
+      return 'CLAIMED';
     }
     try {
       const result = await this.pool.query(
@@ -75,7 +75,12 @@ export class PostgresAdapter implements IDatabaseAdapter {
          RETURNING event_id`,
         [eventId, eventType]
       );
-      return result.rowCount === 1;
+      if (result.rowCount === 1) return 'CLAIMED';
+      const existing = await this.pool.query(
+        'SELECT status FROM payment_webhook_events WHERE event_id = $1',
+        [eventId]
+      );
+      return existing.rows[0]?.status === 'PROCESSED' ? 'PROCESSED' : 'BUSY';
     } catch (error) {
       logger.error('Supabase webhook idempotency claim failed:', error);
       throw new Error('Payment webhook idempotency could not be verified');
