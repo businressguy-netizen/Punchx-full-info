@@ -404,8 +404,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async listWorkerApplications(status?: string): Promise<WorkerApplication[]> {
     if (!this.pool) {
-      logger.error('Supabase listWorkerApplications failed:', err);
-      throw new Error('Professional applications could not be loaded');
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const list = Array.from(this.inMemoryFallback.workerApplications.values());
+      return status ? list.filter((application) => application.status === status) : list;
     }
     try {
       const q = status
@@ -752,8 +753,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async listWarrantyClaims(status?: string): Promise<WarrantyClaim[]> {
     if (!this.pool) {
-      logger.error('Supabase listWarrantyClaims failed:', e);
-      throw new Error('Warranty claims could not be loaded');
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const list = Array.from(this.inMemoryFallback.claims.values());
+      return status ? list.filter((claim) => claim.status === status) : list;
     }
     try {
       const res = await this.pool.query('SELECT * FROM warranty_claims ORDER BY created_at DESC');
@@ -831,8 +833,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async listComplaints(status?: string): Promise<ComplaintRecord[]> {
     if (!this.pool) {
-      logger.error('Supabase listComplaints failed:', e);
-      throw new Error('Complaints could not be loaded');
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const list = Array.from(this.inMemoryFallback.complaints.values());
+      return status ? list.filter((complaint) => complaint.status === status) : list;
     }
     try {
       const res = await this.pool.query('SELECT * FROM complaints ORDER BY created_at DESC');
@@ -910,8 +913,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async listReviews(workerId?: string): Promise<CustomerReview[]> {
     if (!this.pool) {
-      logger.error('Supabase listReviews failed:', e);
-      throw new Error('Reviews could not be loaded');
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const list = Array.from(this.inMemoryFallback.reviews.values());
+      return workerId ? list.filter((review) => review.workerId === workerId) : list;
     }
     try {
       const q = workerId ? 'SELECT * FROM reviews WHERE worker_id = $1 ORDER BY created_at DESC' : 'SELECT * FROM reviews ORDER BY created_at DESC';
