@@ -528,7 +528,6 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async listOrders(filters?: { customerId?: string; workerId?: string; status?: string }): Promise<OrderRecord[]> {
     if (!this.pool) {
       let list = Array.from(this.inMemoryFallback.orders.values());
-      if (filters?.status) list = list.filter((o) => o.status === filters.status);
       return list;
     }
     try {
