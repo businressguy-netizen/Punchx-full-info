@@ -437,9 +437,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
     try {
       const q = `
-        INSERT INTO orders (id, category, customer_id, worker_id, customer_name, customer_address, customer_phone, customer_lat, customer_lng, worker_name, worker_phone, worker_avatar, worker_rating, price, original_price, discount_applied, coupon_used, visiting_fee, platform_commission, gst_amount, total_amount_to_pay, date, time, status, area, sector, otp_code, issue_description, photo_proof, payment_method, has_warranty_guarantee, warranty_fee, warranty_expiry_date, emergency_eta, emergency_surcharge, base_fee, arrival_quality, quality_discount_applied, prepaid_refund_amount, prepaid_refund_status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40)
-        ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, worker_id = EXCLUDED.worker_id, worker_name = EXCLUDED.worker_name, worker_phone = EXCLUDED.worker_phone;
+        INSERT INTO orders (id, category, customer_id, worker_id, customer_name, customer_address, customer_phone, customer_lat, customer_lng, worker_name, worker_phone, worker_avatar, worker_rating, price, original_price, discount_applied, coupon_used, visiting_fee, platform_commission, gst_amount, total_amount_to_pay, date, time, status, area, sector, otp_code, issue_description, photo_proof, payment_method, has_warranty_guarantee, warranty_fee, warranty_expiry_date, emergency_eta, emergency_surcharge, base_fee, arrival_quality, quality_discount_applied, prepaid_refund_amount, prepaid_refund_status, metadata)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41)
+        ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, worker_id = EXCLUDED.worker_id, worker_name = EXCLUDED.worker_name, worker_phone = EXCLUDED.worker_phone, metadata = EXCLUDED.metadata;
       `;
       const values = [
         id,
@@ -482,9 +482,10 @@ export class PostgresAdapter implements IDatabaseAdapter {
         order.qualityDiscountApplied || 0,
         order.prepaidRefundAmount || 0,
         order.prepaidRefundStatus || 'NONE',
+        JSON.stringify(order),
       ];
       await this.pool.query(q, values);
-      return record;
+      return (await this.getOrder(id)) || record;
     } catch (err) {
       logger.error('Supabase createOrder failed:', err);
       throw new Error('Booking could not be saved');
@@ -498,8 +499,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
       if (res.rows.length === 0) return this.inMemoryFallback.orders.get(id) || null;
       const row = res.rows[0];
       return {
+        ...(row.metadata && typeof row.metadata === 'object' ? row.metadata : {}),
         id: row.id,
         category: row.category,
+        customerId: row.customer_id || undefined,
+        workerId: row.worker_id || undefined,
         workerName: row.worker_name,
         workerPhone: row.worker_phone,
         price: Number(row.price),
@@ -535,11 +539,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
       if (filters?.status) { values.push(filters.status); conditions.push(`status = ${values.length}`); }
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
       const res = await this.pool.query(`SELECT * FROM orders ${where} ORDER BY created_at DESC`, values);
-      let list: OrderRecord[] = res.rows.map((row) => ({
+      const list: OrderRecord[] = res.rows.map((row) => ({
+        ...(row.metadata && typeof row.metadata === 'object' ? row.metadata : {}),
         id: row.id,
         category: row.category,
+        customerId: row.customer_id || undefined,
+        workerId: row.worker_id || undefined,
         workerName: row.worker_name,
         workerPhone: row.worker_phone,
+        workerAvatar: row.worker_avatar,
+        workerRating: row.worker_rating == null ? undefined : Number(row.worker_rating),
         price: Number(row.price),
         totalAmountToPay: Number(row.total_amount_to_pay),
         date: row.date,
@@ -562,18 +571,39 @@ export class PostgresAdapter implements IDatabaseAdapter {
   }
 
   async updateOrderStatus(id: string, status: string, additionalDetails?: Partial<OrderRecord>): Promise<OrderRecord | null> {
-    const existing = this.inMemoryFallback.orders.get(id);
-    if (existing) {
+    if (!this.pool) {
+      const existing = this.inMemoryFallback.orders.get(id);
+      if (!existing) return null;
       existing.status = status as any;
       if (additionalDetails) Object.assign(existing, additionalDetails);
       this.inMemoryFallback.orders.set(id, existing);
+      return existing;
     }
 
-    if (!this.pool) return existing || null;
-
     try {
-      await this.pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, id]);
-      return existing || null;
+      const details = additionalDetails || {};
+      const result = await this.pool.query(
+        `UPDATE orders
+         SET status = $1,
+             worker_id = COALESCE($2, worker_id),
+             worker_name = COALESCE($3, worker_name),
+             worker_phone = COALESCE($4, worker_phone),
+             photo_proof = COALESCE($5, photo_proof),
+             metadata = COALESCE(metadata, '{}'::jsonb) || $6::jsonb
+         WHERE id = $7
+         RETURNING id`,
+        [
+          status,
+          details.workerId || null,
+          details.workerName || null,
+          details.workerPhone || null,
+          details.photoProof || null,
+          JSON.stringify(details),
+          id,
+        ]
+      );
+      if (result.rowCount === 0) return null;
+      return await this.getOrder(id);
     } catch (e) {
       logger.error('Supabase updateOrderStatus failed:', e);
       throw new Error('Booking status could not be updated');
