@@ -29,7 +29,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
         this.pool = new pg.Pool({
           connectionString,
           ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
-          max: Number(process.env.PG_POOL_MAX || 5),
+          max: Number(process.env.PG_POOL_MAX || (process.env.VERCEL ? 1 : 5)),
           idleTimeoutMillis: 30000,
           connectionTimeoutMillis: 10000,
         });
@@ -186,8 +186,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         workerCompletedJobs: row.worker_completed_jobs || 0,
       }));
     } catch (e) {
-      const all = Array.from(this.inMemoryFallback.users.values());
-      return role ? all.filter((u) => u.role === role) : all;
+      logger.error('Supabase listUsers failed:', e);
+      throw new Error('Supabase user list could not be loaded');
     }
   }
 
@@ -373,8 +373,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         appliedAt: row.applied_at?.toISOString(),
       }));
     } catch (err) {
-      const list = Array.from(this.inMemoryFallback.workerApplications.values());
-      return status ? list.filter((a) => a.status === status) : list;
+      logger.error('Supabase listWorkerApplications failed:', err);
+      throw new Error('Professional applications could not be loaded');
     }
   }
 
@@ -663,8 +663,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       }));
       return status ? list.filter((c) => c.status === status) : list;
     } catch (e) {
-      const list = Array.from(this.inMemoryFallback.claims.values());
-      return status ? list.filter((c) => c.status === status) : list;
+      logger.error('Supabase listWarrantyClaims failed:', e);
+      throw new Error('Warranty claims could not be loaded');
     }
   }
 
@@ -746,8 +746,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       }));
       return status ? list.filter((c) => c.status === status) : list;
     } catch (e) {
-      const list = Array.from(this.inMemoryFallback.complaints.values());
-      return status ? list.filter((c) => c.status === status) : list;
+      logger.error('Supabase listComplaints failed:', e);
+      throw new Error('Complaints could not be loaded');
     }
   }
 
@@ -821,8 +821,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         date: row.created_at?.toISOString() || new Date().toISOString(),
       }));
     } catch (e) {
-      const list = Array.from(this.inMemoryFallback.reviews.values());
-      return workerId ? list.filter((r) => r.workerId === workerId) : list;
+      logger.error('Supabase listReviews failed:', e);
+      throw new Error('Reviews could not be loaded');
     }
   }
 }
