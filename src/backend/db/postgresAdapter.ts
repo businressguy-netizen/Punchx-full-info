@@ -533,9 +533,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
     try {
       const conditions: string[] = [];
       const values: unknown[] = [];
-      if (filters?.customerId) { values.push(filters.customerId); conditions.push(`customer_id = ${values.length}`); }
-      if (filters?.workerId) { values.push(filters.workerId); conditions.push(`worker_id = ${values.length}`); }
-      if (filters?.status) { values.push(filters.status); conditions.push(`status = ${values.length}`); }
+      if (filters?.customerId) { values.push(filters.customerId); conditions.push(`customer_id = $${values.length}`); }
+      if (filters?.workerId) { values.push(filters.workerId); conditions.push(`worker_id = $${values.length}`); }
+      if (filters?.status) { values.push(filters.status); conditions.push(`status = $${values.length}`); }
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
       const res = await this.pool.query(`SELECT * FROM orders ${where} ORDER BY created_at DESC`, values);
       const list: OrderRecord[] = res.rows.map((row) => ({
