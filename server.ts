@@ -159,9 +159,8 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
-async function startServer() {
+export async function createApp() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   // ─── Security Middleware ───
 
@@ -2827,9 +2826,27 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`PunchX Full-Stack Server running on http://0.0.0.0:${PORT}`);
-  });
+  return app;
 }
 
-startServer();
+let appPromise: Promise<express.Express> | null = null;
+
+export function getApp(): Promise<express.Express> {
+  if (!appPromise) appPromise = createApp();
+  return appPromise;
+}
+
+// Local Node hosting keeps the existing Express startup. On Vercel, the
+// catch-all API function imports getApp() and lets the platform own the
+// request lifecycle (app.listen() must not run inside a serverless function).
+if (process.env.VERCEL !== "1") {
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  void getApp().then((app) => {
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`PunchX Full-Stack Server running on http://0.0.0.0:${port}`);
+    });
+  }).catch((error) => {
+    console.error("PunchX server failed to initialize:", error);
+    process.exitCode = 1;
+  });
+}
