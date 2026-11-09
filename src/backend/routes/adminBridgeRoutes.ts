@@ -187,10 +187,20 @@ adminRouter.get('/workers', async (req: Request, res: Response) => {
 adminRouter.post('/workers', async (req: Request, res: Response) => {
   try {
     const appData = req.body as WorkerApplication;
+    if (appData.uid) {
+      const current = await dbAdapter.getUser(appData.uid);
+      await dbAdapter.upsertUser({
+        ...(current || { uid: appData.uid, role: 'citizen' }),
+        uid: appData.uid,
+        name: appData.legalName || current?.name || 'PUNCHX Professional',
+        email: appData.email || current?.email || '',
+        phone: appData.phone || current?.phone || '',
+        role: current?.role === 'admin' ? 'admin' : 'citizen',
+      } as UserProfile);
+    }
     const created = await dbAdapter.createWorkerApplication({
       ...appData,
-      id: appData.id || `app_${Date.now()}`,
-      status: appData.status || 'PENDING',
+      status: 'PENDING',
       appliedAt: appData.appliedAt || new Date().toISOString(),
     });
 
@@ -238,11 +248,13 @@ adminRouter.post('/workers/:id/dispatch', async (req: Request, res: Response) =>
   try {
     const { id } = req.params;
     const jobData = req.body;
+    const workerApplication = await dbAdapter.getWorkerApplication(id);
+    const workerUid = workerApplication?.uid || id;
 
     const newOrder: OrderRecord = {
       id: jobData.id || `ord_dispatch_${Date.now()}`,
       category: jobData.category || jobData.trade || 'Emergency Repair',
-      workerId: id,
+      workerId: workerUid,
       workerName: jobData.workerName || 'Assigned Specialist',
       price: jobData.price || 299,
       visitingFee: jobData.price || 299,
