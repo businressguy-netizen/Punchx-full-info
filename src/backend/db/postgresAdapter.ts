@@ -536,7 +536,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
 
   async listOrders(filters?: { customerId?: string; workerId?: string; status?: string }): Promise<OrderRecord[]> {
     if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
       let list = Array.from(this.inMemoryFallback.orders.values());
+      if (filters?.customerId) list = list.filter((order) => order.customerId === filters.customerId);
+      if (filters?.workerId) list = list.filter((order) => order.workerId === filters.workerId);
+      if (filters?.status) list = list.filter((order) => order.status === filters.status);
       return list;
     }
     try {
@@ -570,7 +574,6 @@ export class PostgresAdapter implements IDatabaseAdapter {
         paymentMethod: row.payment_method,
         createdAt: row.created_at?.toISOString(),
       }));
-      if (filters?.status) list = list.filter((o) => o.status === filters.status);
       return list;
     } catch (e) {
       logger.error('Supabase listOrders failed:', e);
