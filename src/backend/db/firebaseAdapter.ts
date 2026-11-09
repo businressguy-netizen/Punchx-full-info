@@ -34,12 +34,12 @@ export class FirebaseAdapter implements IDatabaseAdapter {
     }
   }
 
-  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<boolean> {
+  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'> {
     const firestore = this.db;
     if (!firestore) {
-      if (this.localWebhookEvents.has(eventId)) return false;
+      if (this.localWebhookEvents.has(eventId)) return 'PROCESSED';
       this.localWebhookEvents.add(eventId);
-      return true;
+      return 'CLAIMED';
     }
 
     const docId = Buffer.from(eventId).toString('base64url');
@@ -49,9 +49,8 @@ export class FirebaseAdapter implements IDatabaseAdapter {
       return await firestore.runTransaction(async (transaction) => {
         const snapshot = await transaction.get(eventRef);
         const existing = snapshot.exists ? snapshot.data() || {} : {};
-        if (existing.status === 'PROCESSED' || Number(existing.lockedUntilMs || 0) > now) {
-          return false;
-        }
+        if (existing.status === 'PROCESSED') return 'PROCESSED';
+        if (Number(existing.lockedUntilMs || 0) > now) return 'BUSY';
         transaction.set(eventRef, {
           eventId,
           eventType,
@@ -60,7 +59,7 @@ export class FirebaseAdapter implements IDatabaseAdapter {
           createdAt: existing.createdAt || FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         }, { merge: true });
-        return true;
+        return 'CLAIMED';
       });
     } catch (error) {
       logger.error('Firebase webhook idempotency claim failed:', error);
