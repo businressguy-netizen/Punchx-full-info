@@ -36,6 +36,10 @@ export interface IDatabaseAdapter {
   createReview(review: CustomerReview): Promise<CustomerReview>;
   listReviews(workerId?: string): Promise<CustomerReview[]>;
 
+  // Persistent idempotency for payment gateway webhooks.
+  claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<boolean>;
+  completePaymentWebhookEvent(eventId: string): Promise<void>;
+
   // Health check
   isHealthy(): Promise<boolean>;
 }
