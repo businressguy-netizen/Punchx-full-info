@@ -1016,17 +1016,18 @@ export async function createApp() {
               },
             }
           );
-          if (paidResult.success) {
-            await executeOrderTransition(
-              appOrderId,
-              "DISPATCHING",
-              {
-                actorUid: "gateway_webhook",
-                actorRole: "system",
-                reason: "Webhook payment confirmed; specialist dispatch initiated",
-              }
-            );
+          if (!paidResult.success) {
+            throw new Error(paidResult.error || "Payment capture transition could not be committed");
           }
+          await executeOrderTransition(
+            appOrderId,
+            "DISPATCHING",
+            {
+              actorUid: "gateway_webhook",
+              actorRole: "system",
+              reason: "Webhook payment confirmed; specialist dispatch initiated",
+            }
+          );
         }
       }
 
