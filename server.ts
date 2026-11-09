@@ -43,8 +43,6 @@ import {
   createGatewayPaymentOrder,
   verifyPaymentSignature,
   verifyWebhookSignature,
-  isEventProcessed,
-  recordProcessedEvent,
 } from "./src/backend/paymentService.js";
 import {
   updateWorkerLocationTelemetry,
@@ -982,15 +980,16 @@ export async function createApp() {
       }
 
       const event = req.body;
-      const eventId = event?.id || `${event?.event}_${event?.created_at}`;
+      const eventId = String(event?.id || (event?.event && event?.created_at ? `${event.event}_${event.created_at}` : "")).slice(0, 200);
+      if (!eventId) return res.status(400).json({ error: "Webhook event ID is missing" });
 
-      // Idempotency check: prevent duplicate replay of the same webhook event
-      if (isEventProcessed(eventId)) {
-        logger.info(`Webhook event ${eventId} already processed, acknowledging idempotently`);
+      // Claim the event in persistent storage before processing. The lease
+      // prevents parallel Vercel instances from processing the same event.
+      const claimed = await dbAdapter.claimPaymentWebhookEvent(eventId, String(event?.event || "unknown"));
+      if (!claimed) {
+        logger.info(`Webhook event ${eventId} is already processed or currently being processed`);
         return res.json({ status: "already_processed" });
       }
-
-      recordProcessedEvent(eventId, event?.event || "unknown");
 
       // Handle payment capture / order paid events
       if (event?.event === "payment.captured" || event?.event === "order.paid") {
@@ -1031,6 +1030,7 @@ export async function createApp() {
         }
       }
 
+      await dbAdapter.completePaymentWebhookEvent(eventId);
       return res.json({ status: "ok" });
     } catch (err: any) {
       logger.error("Webhook processing error:", err);
