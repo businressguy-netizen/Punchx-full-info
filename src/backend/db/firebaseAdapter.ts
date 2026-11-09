@@ -8,7 +8,7 @@ import { logger } from '../logger.js';
 
 export class FirebaseAdapter implements IDatabaseAdapter {
   providerName: 'firebase' = 'firebase';
-  private localWebhookEvents = new Set<string>();
+  private localWebhookEvents = new Map<string, 'PROCESSING' | 'PROCESSED'>();
 
   private inMemoryFallback: {
     users: Map<string, UserProfile>;
@@ -37,8 +37,10 @@ export class FirebaseAdapter implements IDatabaseAdapter {
   async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'> {
     const firestore = this.db;
     if (!firestore) {
-      if (this.localWebhookEvents.has(eventId)) return 'PROCESSED';
-      this.localWebhookEvents.add(eventId);
+      const localStatus = this.localWebhookEvents.get(eventId);
+      if (localStatus === 'PROCESSED') return 'PROCESSED';
+      if (localStatus === 'PROCESSING') return 'BUSY';
+      this.localWebhookEvents.set(eventId, 'PROCESSING');
       return 'CLAIMED';
     }
 
@@ -70,7 +72,7 @@ export class FirebaseAdapter implements IDatabaseAdapter {
   async completePaymentWebhookEvent(eventId: string): Promise<void> {
     const firestore = this.db;
     if (!firestore) {
-      this.localWebhookEvents.add(eventId);
+      this.localWebhookEvents.set(eventId, 'PROCESSED');
       return;
     }
     const docId = Buffer.from(eventId).toString('base64url');
