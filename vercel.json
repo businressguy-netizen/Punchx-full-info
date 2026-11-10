@@ -15,6 +15,18 @@
       "destination": "/api/maps/geocode"
     },
     {
+      "source": "/api/location-services",
+      "destination": "/api/location/location-services"
+    },
+    {
+      "source": "/api/worker-location-customers",
+      "destination": "/api/location/worker-location-customers"
+    },
+    {
+      "source": "/api/maps/:slug*",
+      "destination": "/api/maps/:slug*"
+    },
+    {
       "source": "/api/admin/health",
       "destination": "/api/admin/health"
     },
