@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import geocode from './geocode.js';
-import routes from './routes.js';
-import distanceMatrix from './distance-matrix.js';
+import geocode from '../_lib/maps-geocode.js';
+import routes from '../_lib/maps-routes.js';
+import distanceMatrix from '../_lib/maps-distance-matrix.js';
 
 // Keep the existing public endpoints while routing them through one Hobby-plan function.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
