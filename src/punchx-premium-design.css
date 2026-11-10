@@ -203,3 +203,27 @@ main h3 { letter-spacing:-.025em; }
   html { scroll-behavior:auto !important; }
   *,*::before,*::after { animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important; }
 }
+
+/* Navbar and footer details */
+#punchx-website-navbar {
+  background:rgba(255,254,250,.94) !important;
+  border-bottom:1px solid var(--px-line) !important;
+  box-shadow:0 8px 28px rgba(32,27,18,.045);
+  backdrop-filter:blur(20px);
+}
+#punchx-website-navbar nav button[class*="bg-[#f0ecff]"],
+#punchx-website-navbar nav button[class*="bg-[#f7f5ff]"] {
+  background:var(--px-gold-soft) !important;
+  color:#765b2d !important;
+}
+#punchx-website-navbar button[class*="bg-[#7358d7]"] {
+  background:linear-gradient(135deg,var(--px-ink),#393329) !important;
+  color:#fff !important;
+  border:1px solid rgba(184,148,82,.45) !important;
+}
+#punchx-website-navbar [class*="bg-[#f0ecff]"] { background:var(--px-gold-soft) !important; }
+#punchx-website-navbar [class*="text-[#7358d7]"],
+#punchx-website-navbar [class*="text-[#5b45c7]"] { color:#8a6b35 !important; }
+#punchx-website-footer [class*="bg-[#7358d7]"] { background:#3a3328 !important; }
+#punchx-website-footer a:hover,#punchx-website-footer button:hover { color:var(--px-gold-bright) !important; }
+#punchx-website-footer .punchx-footer-glow { opacity:.2 !important; }
