@@ -484,8 +484,7 @@ async function startServer() {
       // Admin approval and customer WhatsApp confirmation must precede dispatch and payment.
       const initialStatus: OrderStatus = "PENDING_ADMIN_REVIEW";
 
-      // 3. Cryptographic Start OTP Generation for Customer Verification Gate
-      const startOtpChallenge = generateSecureOtp();
+      // Start OTP is generated later, after admin approval and confirmed professional assignment.
 
       const orderId = `ORD-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
       const resolvedWorkerName = workerProfile?.name || workerApplication?.legalName || String(orderData.workerName || "").trim() || (requestedWorkerId ? "Assigned professional" : "Not assigned");
@@ -592,10 +591,6 @@ async function startServer() {
           currentStage: "BOOKED",
           stages: Array.isArray(orderData.bookingTimeline?.stages) ? orderData.bookingTimeline.stages : ["BOOKED", "PROFESSIONAL_MATCH", "ARRIVAL", "WORK_STARTED", "COMPLETION", "INVOICE", "WARRANTY", "REVIEW"],
         },
-        startOtpHash: startOtpChallenge.hash,
-        startOtpSalt: startOtpChallenge.salt,
-        startOtpExpiresAt: startOtpChallenge.expiresAt,
-        startOtpAttempts: 0,
         stateHistory: [
           {
             from: "NONE",
@@ -610,13 +605,9 @@ async function startServer() {
 
       const created = await dbAdapter.createOrder(newOrder);
 
-      // Return order to caller, including startOtp in plain text ONLY to the customer creating the order
+      // Never issue a service-start OTP while the request is awaiting admin review.
       const { startOtpHash, startOtpSalt, completionOtpHash, completionOtpSalt, ...sanitized } = created as any;
-      return res.status(201).json({
-        success: true,
-        order: sanitized,
-        startOtp: startOtpChallenge.code, // Citizen receives their secret start code to give to the worker upon arrival
-      });
+      return res.status(201).json({ success: true, order: sanitized });
     } catch (err: any) {
       logger.error("Create order error:", err);
       return res.status(500).json({ success: false, error: "Failed to create order" });
