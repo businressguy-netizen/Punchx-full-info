@@ -25,6 +25,7 @@ const ConfirmBooking = lazy(() => import('./components/ConfirmBooking'));
 const ChoosePayment = lazy(() => import('./components/ChoosePayment'));
 const LiveTracking = lazy(() => import('./components/LiveTracking'));
 const WorkerDashboard = lazy(() => import('./components/WorkerPartnerPanel'));
+const AdminOrderReview = lazy(() => import('./components/AdminOrderReview'));
 
 const WorkerSignup = lazy(() => import('./components/WorkerSignup'));
 const WorkerOtpPass = lazy(() => import('./components/WorkerOtpPass'));
@@ -513,6 +514,7 @@ function AppMain() {
           {currentScreen === 'payment' && <ChoosePayment onTransition={handleTransition} selectedWorker={selectedWorker} promoApplied={promoApplied} hasUsedBonus={hasUsedBonus} onOrderFinalized={() => { if (promoApplied) { setHasUsedBonus(true); setPromoApplied(false); try { localStorage.setItem('punchx_first_order_coupon_used', 'true'); localStorage.removeItem('punchx_active_coupon_applied'); } catch {} } }} onApplyPromo={handleApplyPromoCode} showNotification={showToast} />}
           {currentScreen === 'tracking' && <LiveTracking onTransition={handleTransition} bookingTime={bookingTime} />}
           {currentScreen === 'worker-dashboard' && <WorkerDashboard onTransition={handleTransition} showNotification={showToast} />}
+          {currentScreen === 'admin-dashboard' && <AdminOrderReview showNotification={showToast} />}
 
           {currentScreen === 'privacy-policy' && <PrivacyPolicy onTransition={handleTransition} showNotification={showToast} />}
           {currentScreen === 'terms-and-conditions' && <TermsAndConditions onTransition={handleTransition} showNotification={showToast} />}
