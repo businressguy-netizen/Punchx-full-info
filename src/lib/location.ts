@@ -523,10 +523,10 @@ export interface RegisteredLocationCustomer {
   landmark: string;
   serviceNeeded: string;
   urgency: string;
-  distanceKm: number;
+  distanceKm?: number;
   verifiedStatus: string;
-  totalPreviousBookings: number;
-  rating: number;
+  totalPreviousBookings?: number;
+  rating?: number;
 }
 
 export interface WorkerLocationCustomersResponse {
@@ -552,7 +552,10 @@ export async function fetchRegisteredCustomersForWorkerLocation(params: {
   try {
     const res = await fetch('/api/worker-location-customers', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await getAuthToken()}`
+      },
       body: JSON.stringify(params)
     });
     if (res.ok) {
