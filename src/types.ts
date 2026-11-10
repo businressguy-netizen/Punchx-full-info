@@ -157,6 +157,10 @@ export type ServiceCategory = {
 
 export type OrderStatus =
   | 'DRAFT'
+  | 'PENDING_ADMIN_REVIEW'
+  | 'AWAITING_CUSTOMER_CONFIRMATION'
+  | 'CUSTOMER_CONFIRMED'
+  | 'REJECTED'
   | 'PENDING_PAYMENT'
   | 'PAID'
   | 'DISPATCHING'
@@ -249,6 +253,13 @@ export interface OrderRecord {
   userBehaviour?: string;
   paymentMethod?: string;
   paymentStatus?: string;
+  adminReviewedAt?: string;
+  adminReviewNotes?: string;
+  customerConfirmedAt?: string;
+  whatsappOpenedAt?: string;
+  invoiceStatus?: 'NOT_READY' | 'READY' | 'ISSUED';
+  invoiceId?: string;
+  finalInvoiceAmount?: number;
   createdAt?: string;
   completedAt?: string;
   hasWarrantyGuarantee?: boolean;

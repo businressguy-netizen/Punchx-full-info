@@ -481,11 +481,10 @@ async function startServer() {
       });
 
       // 2. Initial state determination
-      const isCashOnDelivery = orderData.paymentMethod === "COD" || orderData.paymentMethod === "CASH" || orderData.paymentMethod === "PAY_AFTER_SERVICE";
-      const initialStatus: OrderStatus = isCashOnDelivery ? "DISPATCHING" : "PENDING_PAYMENT";
+      // Admin approval and customer WhatsApp confirmation must precede dispatch and payment.
+      const initialStatus: OrderStatus = "PENDING_ADMIN_REVIEW";
 
-      // 3. Cryptographic Start OTP Generation for Customer Verification Gate
-      const startOtpChallenge = generateSecureOtp();
+      // Start OTP is generated later, after admin approval and confirmed professional assignment.
 
       const orderId = `ORD-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
       const resolvedWorkerName = workerProfile?.name || workerApplication?.legalName || String(orderData.workerName || "").trim() || (requestedWorkerId ? "Assigned professional" : "Not assigned");
@@ -576,9 +575,13 @@ async function startServer() {
         time: orderData.time || "",
         address: String(orderData.address || orderData.customerAddress || "").trim(),
         status: initialStatus,
-        paymentMethod: isCashOnDelivery ? "COD" : "ONLINE",
-        paymentStatus: isCashOnDelivery ? "pending" : (orderData.paymentId ? "paid" : "pending"),
-        paymentId: orderData.paymentId || null,
+        paymentMethod: "WHATSAPP_COORDINATED",
+        paymentStatus: "pending",
+        paymentId: null,
+        adminReviewedAt: null,
+        adminReviewNotes: "",
+        customerConfirmedAt: null,
+        invoiceStatus: "NOT_READY",
         createdAt: nowIso,
         updatedAt: nowIso,
         bookedAt: nowIso,
@@ -588,10 +591,6 @@ async function startServer() {
           currentStage: "BOOKED",
           stages: Array.isArray(orderData.bookingTimeline?.stages) ? orderData.bookingTimeline.stages : ["BOOKED", "PROFESSIONAL_MATCH", "ARRIVAL", "WORK_STARTED", "COMPLETION", "INVOICE", "WARRANTY", "REVIEW"],
         },
-        startOtpHash: startOtpChallenge.hash,
-        startOtpSalt: startOtpChallenge.salt,
-        startOtpExpiresAt: startOtpChallenge.expiresAt,
-        startOtpAttempts: 0,
         stateHistory: [
           {
             from: "NONE",
@@ -606,13 +605,9 @@ async function startServer() {
 
       const created = await dbAdapter.createOrder(newOrder);
 
-      // Return order to caller, including startOtp in plain text ONLY to the customer creating the order
+      // Never issue a service-start OTP while the request is awaiting admin review.
       const { startOtpHash, startOtpSalt, completionOtpHash, completionOtpSalt, ...sanitized } = created as any;
-      return res.status(201).json({
-        success: true,
-        order: sanitized,
-        startOtp: startOtpChallenge.code, // Citizen receives their secret start code to give to the worker upon arrival
-      });
+      return res.status(201).json({ success: true, order: sanitized });
     } catch (err: any) {
       logger.error("Create order error:", err);
       return res.status(500).json({ success: false, error: "Failed to create order" });
@@ -639,6 +634,7 @@ async function startServer() {
         actorRole = "worker";
       }
 
+      const reviewDecision = targetStatus === "AWAITING_CUSTOMER_CONFIRMATION" || targetStatus === "REJECTED";
       const result = await executeOrderTransition(
         id,
         targetStatus as OrderStatus,
@@ -651,7 +647,12 @@ async function startServer() {
           photoProof,
           notes,
         },
-        photoProof || notes ? { photoProof, issueDescription: notes } : undefined
+        {
+          ...(photoProof ? { photoProof } : {}),
+          ...(notes ? { issueDescription: notes } : {}),
+          ...(reviewDecision ? { adminReviewedAt: new Date().toISOString(), adminReviewNotes: String(reason || notes || "") } : {}),
+          ...(targetStatus === "CUSTOMER_CONFIRMED" ? { customerConfirmedAt: new Date().toISOString() } : {}),
+        } as Partial<OrderRecord>
       );
 
       if (!result.success) {
