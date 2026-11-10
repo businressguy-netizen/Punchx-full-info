@@ -29,7 +29,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
       if (connectionString) {
         this.pool = new pg.Pool({
           connectionString,
-          ssl: connectionString.includes('supabase') ? { rejectUnauthorized: false } : undefined,
+          // Keep PostgreSQL certificate verification enabled, including Supabase TLS.
           max: Number(process.env.PG_POOL_MAX || (process.env.VERCEL ? 1 : 5)),
           idleTimeoutMillis: 30000,
           connectionTimeoutMillis: 10000,
@@ -41,7 +41,7 @@ export class PostgresAdapter implements IDatabaseAdapter {
           user: process.env.POSTGRES_USER || 'postgres',
           password: process.env.POSTGRES_PASSWORD || '',
           database: process.env.POSTGRES_DB || 'punchx',
-          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : undefined,
           max: Number(process.env.PG_POOL_MAX || 5),
           idleTimeoutMillis: 30000,
           connectionTimeoutMillis: 10000,
