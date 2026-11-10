@@ -95,3 +95,14 @@ main:has([class*="Secure PUNCHX Gateway"]) [class*="rounded-[30px]"],main:has([c
   .wx-main,.wx-content{padding-left:12px!important;padding-right:12px!important}
   .wx-card{border-radius:16px!important}
 }
+
+/* Explicit workflow roots */
+#punchx-provider-discovery,#punchx-booking-flow{background:var(--px-paper)!important;color:var(--px-ink)!important}
+#punchx-provider-discovery>header,#punchx-booking-flow>header{border-color:var(--px-line)!important;background:rgba(255,255,255,.94)!important;box-shadow:0 4px 20px rgba(28,25,18,.035)}
+#punchx-provider-discovery .punchx-citizen-main>div:first-child{border-color:var(--px-line)!important;box-shadow:var(--px-shadow)!important}
+#punchx-provider-discovery article,#punchx-provider-discovery section{border-color:var(--px-line)!important}
+#punchx-booking-flow section{border-color:var(--px-line)!important;box-shadow:var(--px-shadow)!important}
+#punchx-booking-flow [class*="bg-[#2563eb]"],#punchx-provider-discovery [class*="bg-[#2563eb]"]{background:var(--px-ink)!important;color:#fff!important}
+#punchx-booking-flow [class*="text-[#2563eb]"],#punchx-provider-discovery [class*="text-[#2563eb]"]{color:var(--px-gold)!important}
+#punchx-booking-flow button,#punchx-provider-discovery button{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+#punchx-booking-flow button:active,#punchx-provider-discovery button:active{transform:scale(.985)}
