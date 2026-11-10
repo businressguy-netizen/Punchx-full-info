@@ -643,6 +643,7 @@ async function startServer() {
         actorRole = "worker";
       }
 
+      const reviewDecision = targetStatus === "AWAITING_CUSTOMER_CONFIRMATION" || targetStatus === "REJECTED";
       const result = await executeOrderTransition(
         id,
         targetStatus as OrderStatus,
@@ -655,7 +656,12 @@ async function startServer() {
           photoProof,
           notes,
         },
-        photoProof || notes ? { photoProof, issueDescription: notes } : undefined
+        {
+          ...(photoProof ? { photoProof } : {}),
+          ...(notes ? { issueDescription: notes } : {}),
+          ...(reviewDecision ? { adminReviewedAt: new Date().toISOString(), adminReviewNotes: String(reason || notes || "") } : {}),
+          ...(targetStatus === "CUSTOMER_CONFIRMED" ? { customerConfirmedAt: new Date().toISOString() } : {}),
+        } as Partial<OrderRecord>
       );
 
       if (!result.success) {
