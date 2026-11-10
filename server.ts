@@ -2515,7 +2515,7 @@ export async function createApp() {
         .filter((order) => activeStatuses.has(String(order.status)))
         .map((order) => {
           const phone = String(order.customerPhone || "");
-          const digits = phone.replace(/\\D/g, "");
+          const digits = phone.replace(/\D/g, "");
           const phoneMasked = digits.length >= 4
             ? `${phone.slice(0, Math.max(0, phone.length - 4))}${"•".repeat(Math.min(5, Math.max(0, digits.length - 4)))}${digits.slice(-4)}`
             : "";
