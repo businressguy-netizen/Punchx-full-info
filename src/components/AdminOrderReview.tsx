@@ -51,7 +51,7 @@ export default function AdminOrderReview({showNotification}:Props){
   const visible=orders.filter(o=>filter==='ALL'?['PENDING_ADMIN_REVIEW','AWAITING_CUSTOMER_CONFIRMATION','CUSTOMER_CONFIRMED','REJECTED'].includes(String(o.status)):o.status===filter);
   const count=(s:string)=>orders.filter(o=>o.status===s).length;
 
-  return <div className="min-h-screen bg-[#f7f8fa] px-3 py-5 text-[#17191d] sm:px-6">
+  return <div id="punchx-admin-order-review" className="min-h-screen bg-[#f7f8fa] px-3 py-5 text-[#17191d] sm:px-6">
     <div className="mx-auto max-w-6xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.18em] text-[#b99a62]"><ShieldCheck className="h-4 w-4"/> PUNCHX ADMIN</div><h1 className="mt-1 text-2xl font-black">Order review desk</h1><p className="mt-1 text-xs text-[#69707c]">Review customer requests before WhatsApp confirmation and payment.</p></div>
