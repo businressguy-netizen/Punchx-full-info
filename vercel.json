@@ -23,10 +23,6 @@
       "destination": "/api/location/worker-location-customers"
     },
     {
-      "source": "/api/maps/:slug*",
-      "destination": "/api/maps/:slug*"
-    },
-    {
       "source": "/api/admin/health",
       "destination": "/api/admin/health"
     },
