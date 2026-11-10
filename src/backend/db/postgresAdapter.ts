@@ -6,6 +6,7 @@ import { logger } from '../logger.js';
 export class PostgresAdapter implements IDatabaseAdapter {
   providerName: 'postgres' = 'postgres';
   private pool: pg.Pool | null = null;
+  private localWebhookEvents = new Map<string, 'PROCESSING' | 'PROCESSED'>();
   private inMemoryFallback: {
     users: Map<string, UserProfile>;
     workerApplications: Map<string, WorkerApplication>;
@@ -23,10 +24,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
   };
 
   constructor() {
-    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    const connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL;
     try {
       if (connectionString) {
-        this.pool = new pg.Pool({ connectionString });
+        this.pool = new pg.Pool({
+          connectionString,
+          // Keep PostgreSQL certificate verification enabled, including Supabase TLS.
+          max: Number(process.env.PG_POOL_MAX || (process.env.VERCEL ? 1 : 5)),
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 10000,
+        });
       } else if (process.env.POSTGRES_HOST) {
         this.pool = new pg.Pool({
           host: process.env.POSTGRES_HOST,
@@ -34,24 +41,85 @@ export class PostgresAdapter implements IDatabaseAdapter {
           user: process.env.POSTGRES_USER || 'postgres',
           password: process.env.POSTGRES_PASSWORD || '',
           database: process.env.POSTGRES_DB || 'punchx',
+          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : undefined,
+          max: Number(process.env.PG_POOL_MAX || 5),
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 10000,
         });
       } else {
-        logger.info('No PostgreSQL env config provided; using PostgresAdapter with fallback memory pool.');
+        logger.error('Supabase PostgreSQL is selected but no database connection URL is configured.');
       }
     } catch (err) {
-      logger.warn('Failed to initialize PostgreSQL pool, enabling fallback store:', err);
+      logger.error('Failed to initialize PostgreSQL pool:', err);
+      throw err;
+    }
+  }
+
+  async claimPaymentWebhookEvent(eventId: string, eventType: string): Promise<'CLAIMED' | 'PROCESSED' | 'BUSY'> {
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const localStatus = this.localWebhookEvents.get(eventId);
+      if (localStatus === 'PROCESSED') return 'PROCESSED';
+      if (localStatus === 'PROCESSING') return 'BUSY';
+      this.localWebhookEvents.set(eventId, 'PROCESSING');
+      return 'CLAIMED';
+    }
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO payment_webhook_events (event_id, event_type, status, locked_until)
+         VALUES ($1, $2, 'PROCESSING', NOW() + INTERVAL '5 minutes')
+         ON CONFLICT (event_id) DO UPDATE
+           SET event_type = EXCLUDED.event_type,
+               status = 'PROCESSING',
+               locked_until = NOW() + INTERVAL '5 minutes'
+         WHERE payment_webhook_events.status <> 'PROCESSED'
+           AND payment_webhook_events.locked_until < NOW()
+         RETURNING event_id`,
+        [eventId, eventType]
+      );
+      if (result.rowCount === 1) return 'CLAIMED';
+      const existing = await this.pool.query(
+        'SELECT status FROM payment_webhook_events WHERE event_id = $1',
+        [eventId]
+      );
+      return existing.rows[0]?.status === 'PROCESSED' ? 'PROCESSED' : 'BUSY';
+    } catch (error) {
+      logger.error('Supabase webhook idempotency claim failed:', error);
+      throw new Error('Payment webhook idempotency could not be verified');
+    }
+  }
+
+  async completePaymentWebhookEvent(eventId: string): Promise<void> {
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.localWebhookEvents.set(eventId, 'PROCESSED');
+      return;
+    }
+    try {
+      await this.pool.query(
+        `UPDATE payment_webhook_events
+         SET status = 'PROCESSED', processed_at = NOW(), locked_until = NULL
+         WHERE event_id = $1`,
+        [eventId]
+      );
+    } catch (error) {
+      logger.error('Supabase webhook completion update failed:', error);
+      throw new Error('Payment webhook completion could not be recorded');
     }
   }
 
   async isHealthy(): Promise<boolean> {
-    if (!this.pool) return true; // Fallback mode active
+    if (!this.pool) return false;
+    let client: any = null;
     try {
-      const client = await this.pool.connect();
+      client = await this.pool.connect();
       await client.query('SELECT 1');
-      client.release();
       return true;
     } catch (e) {
+      logger.error('Supabase database health check failed:', e);
       return false;
+    } finally {
+      client?.release();
     }
   }
 
@@ -83,23 +151,28 @@ export class PostgresAdapter implements IDatabaseAdapter {
         workerExperience: row.worker_experience,
         workerRating: row.worker_rating ? Number(row.worker_rating) : 5.0,
         workerCompletedJobs: row.worker_completed_jobs || 0,
+        status: row.status || undefined,
+        applicationId: row.application_id || undefined,
         createdAt: row.created_at?.toISOString(),
         updatedAt: row.updated_at?.toISOString(),
       };
     } catch (err) {
-      logger.error('Postgres getUser failed, falling back:', err);
-      return this.inMemoryFallback.users.get(uid) || null;
+      logger.error('Supabase getUser failed:', err);
+      throw new Error('Supabase user lookup failed');
     }
   }
 
   async upsertUser(user: UserProfile): Promise<UserProfile> {
-    this.inMemoryFallback.users.set(user.uid, user);
-    if (!this.pool) return user;
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.inMemoryFallback.users.set(user.uid, user);
+      return user;
+    }
 
     try {
       const query = `
-        INSERT INTO users (id, name, email, photo_url, role, phone, dob, is_profile_completed, address, landmark, area, sector, visiting_fee, worker_skill, worker_categories, worker_experience, worker_rating, worker_completed_jobs, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, NOW())
+        INSERT INTO users (id, name, email, photo_url, role, phone, dob, is_profile_completed, address, landmark, area, sector, visiting_fee, worker_skill, worker_categories, worker_experience, worker_rating, worker_completed_jobs, status, application_id, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, NOW())
         ON CONFLICT (id) DO UPDATE SET
           name = EXCLUDED.name,
           email = EXCLUDED.email,
@@ -118,6 +191,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
           worker_experience = EXCLUDED.worker_experience,
           worker_rating = EXCLUDED.worker_rating,
           worker_completed_jobs = EXCLUDED.worker_completed_jobs,
+          status = EXCLUDED.status,
+          application_id = EXCLUDED.application_id,
           updated_at = NOW()
         RETURNING *;
       `;
@@ -140,17 +215,20 @@ export class PostgresAdapter implements IDatabaseAdapter {
         user.workerExperience || null,
         user.workerRating || 5.0,
         user.workerCompletedJobs || 0,
+        user.status || null,
+        user.applicationId || null,
       ];
       await this.pool.query(query, values);
       return user;
     } catch (err) {
-      logger.error('Postgres upsertUser error:', err);
-      return user;
+      logger.error('Supabase upsertUser failed:', err);
+      throw new Error('Supabase user profile could not be saved');
     }
   }
 
   async listUsers(role?: string): Promise<UserProfile[]> {
     if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
       const all = Array.from(this.inMemoryFallback.users.values());
       return role ? all.filter((u) => u.role === role) : all;
     }
@@ -170,10 +248,12 @@ export class PostgresAdapter implements IDatabaseAdapter {
         workerSkill: row.worker_skill,
         workerRating: row.worker_rating ? Number(row.worker_rating) : 5.0,
         workerCompletedJobs: row.worker_completed_jobs || 0,
+        status: row.status || undefined,
+        applicationId: row.application_id || undefined,
       }));
     } catch (e) {
-      const all = Array.from(this.inMemoryFallback.users.values());
-      return role ? all.filter((u) => u.role === role) : all;
+      logger.error('Supabase listUsers failed:', e);
+      throw new Error('Supabase user list could not be loaded');
     }
   }
 
@@ -181,9 +261,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async createWorkerApplication(app: WorkerApplication): Promise<WorkerApplication> {
     const id = app.id || `app_${Date.now()}`;
     const record = { ...app, id };
-    this.inMemoryFallback.workerApplications.set(id, record);
-
-    if (!this.pool) return record;
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.inMemoryFallback.workerApplications.set(id, record);
+      return record;
+    }
 
     try {
       const q = `
@@ -211,8 +293,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       record.id = res.rows[0].id;
       return record;
     } catch (err) {
-      logger.error('Postgres createWorkerApplication error:', err);
-      return record;
+      logger.error('Supabase createWorkerApplication failed:', err);
+      throw new Error('Professional application could not be saved');
     }
   }
 
@@ -242,8 +324,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
         status: row.status,
         appliedAt: row.applied_at?.toISOString(),
       };
-    } catch {
-      return null;
+    } catch (err) {
+      logger.error('Supabase getWorkerApplication failed:', err);
+      throw new Error('Professional application lookup failed');
     }
   }
 
@@ -274,8 +357,9 @@ export class PostgresAdapter implements IDatabaseAdapter {
         status: row.status,
         appliedAt: row.applied_at?.toISOString(),
       };
-    } catch {
-      return null;
+    } catch (err) {
+      logger.error('Supabase getWorkerApplicationByUid failed:', err);
+      throw new Error('Professional application lookup failed');
     }
   }
 
@@ -319,15 +403,17 @@ export class PostgresAdapter implements IDatabaseAdapter {
         status: row.status,
         appliedAt: row.applied_at?.toISOString(),
       };
-    } catch {
-      return null;
+    } catch (err) {
+      logger.error('Supabase getWorkerApplicationByContact failed:', err);
+      throw new Error('Professional application lookup failed');
     }
   }
 
   async listWorkerApplications(status?: string): Promise<WorkerApplication[]> {
     if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
       const list = Array.from(this.inMemoryFallback.workerApplications.values());
-      return status ? list.filter((a) => a.status === status) : list;
+      return status ? list.filter((application) => application.status === status) : list;
     }
     try {
       const q = status
@@ -354,8 +440,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         appliedAt: row.applied_at?.toISOString(),
       }));
     } catch (err) {
-      const list = Array.from(this.inMemoryFallback.workerApplications.values());
-      return status ? list.filter((a) => a.status === status) : list;
+      logger.error('Supabase listWorkerApplications failed:', err);
+      throw new Error('Professional applications could not be loaded');
     }
   }
 
@@ -369,8 +455,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
     if (!this.pool) return existing || null;
 
     try {
-      const q = 'UPDATE worker_applications SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *';
-      const res = await this.pool.query(q, [status, id]);
+      const q = 'UPDATE worker_applications SET status = $1, notes = COALESCE($2, notes), updated_at = NOW() WHERE id = $3 RETURNING *';
+      const res = await this.pool.query(q, [status, notes || null, id]);
       if (res.rows.length === 0) return existing || null;
       const row = res.rows[0];
       const updatedApp: WorkerApplication = {
@@ -392,16 +478,17 @@ export class PostgresAdapter implements IDatabaseAdapter {
         appliedAt: row.applied_at?.toISOString(),
       };
 
-      if (row.uid && status === 'APPROVED') {
+      if (row.uid) {
         await this.pool.query(
-          `UPDATE users SET role = 'worker', updated_at = NOW() WHERE id = $1`,
-          [row.uid]
+          `UPDATE users SET role = $1, status = $2, updated_at = NOW() WHERE id = $3`,
+          [status === 'APPROVED' ? 'worker' : 'citizen', status, row.uid]
         );
       }
 
       return updatedApp;
     } catch (e) {
-      return existing || null;
+      logger.error('Supabase updateWorkerApplicationStatus failed:', e);
+      throw new Error('Professional application status could not be updated');
     }
   }
 
@@ -409,39 +496,66 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async createOrder(order: OrderRecord): Promise<OrderRecord> {
     const id = order.id || `ORD-${Date.now()}`;
     const record = { ...order, id };
-    this.inMemoryFallback.orders.set(id, record);
-
-    if (!this.pool) return record;
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.inMemoryFallback.orders.set(id, record);
+      return record;
+    }
 
     try {
       const q = `
-        INSERT INTO orders (id, category, customer_name, customer_address, customer_phone, worker_name, worker_phone, price, total_amount_to_pay, date, time, status, area, sector, payment_method, has_warranty_guarantee)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-        ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status;
+        INSERT INTO orders (id, category, customer_id, worker_id, customer_name, customer_address, customer_phone, customer_lat, customer_lng, worker_name, worker_phone, worker_avatar, worker_rating, price, original_price, discount_applied, coupon_used, visiting_fee, platform_commission, gst_amount, total_amount_to_pay, date, time, status, area, sector, otp_code, issue_description, photo_proof, payment_method, has_warranty_guarantee, warranty_fee, warranty_expiry_date, emergency_eta, emergency_surcharge, base_fee, arrival_quality, quality_discount_applied, prepaid_refund_amount, prepaid_refund_status, metadata)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41)
+        ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, worker_id = EXCLUDED.worker_id, worker_name = EXCLUDED.worker_name, worker_phone = EXCLUDED.worker_phone, metadata = EXCLUDED.metadata;
       `;
       const values = [
         id,
         order.category,
+        order.customerId || order.bookingCreatedByUid || null,
+        order.workerId || null,
         order.customerName || 'Customer',
-        order.customerAddress || 'Address',
+        order.customerAddress || order.address || 'Address',
         order.customerPhone || '',
+        order.customerLocation?.lat ?? order.addressCoordinates?.lat ?? null,
+        order.customerLocation?.lng ?? order.addressCoordinates?.lng ?? null,
         order.workerName || 'Worker',
         order.workerPhone || '',
+        order.workerAvatar || null,
+        order.workerRating ?? null,
         order.price || 0,
+        order.originalPrice ?? null,
+        order.discountApplied || 0,
+        order.couponUsed || null,
+        order.visitingFee || 0,
+        order.platformCommission || 0,
+        order.gstAmount || 0,
         order.totalAmountToPay || order.price || 0,
         order.date || new Date().toISOString().slice(0, 10),
         order.time || '10:00 AM',
         order.status || 'Pending',
         order.area || null,
         order.sector || null,
+        order.otpCode || null,
+        order.issueDescription || order.description || null,
+        order.photoProof || null,
         order.paymentMethod || 'COD',
         order.hasWarrantyGuarantee ?? true,
+        order.warrantyFee || 0,
+        order.warrantyExpiryDate || null,
+        order.emergencyETA || null,
+        order.emergencySurcharge || 0,
+        order.baseFee || 0,
+        order.arrivalQuality ? JSON.stringify(order.arrivalQuality) : null,
+        order.qualityDiscountApplied || 0,
+        order.prepaidRefundAmount || 0,
+        order.prepaidRefundStatus || 'NONE',
+        JSON.stringify(order),
       ];
       await this.pool.query(q, values);
-      return record;
+      return (await this.getOrder(id)) || record;
     } catch (err) {
-      logger.error('Postgres createOrder error:', err);
-      return record;
+      logger.error('Supabase createOrder failed:', err);
+      throw new Error('Booking could not be saved');
     }
   }
 
@@ -452,8 +566,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
       if (res.rows.length === 0) return this.inMemoryFallback.orders.get(id) || null;
       const row = res.rows[0];
       return {
+        ...(row.metadata && typeof row.metadata === 'object' ? row.metadata : {}),
         id: row.id,
         category: row.category,
+        customerId: row.customer_id || undefined,
+        workerId: row.worker_id || undefined,
         workerName: row.worker_name,
         workerPhone: row.worker_phone,
         price: Number(row.price),
@@ -470,23 +587,38 @@ export class PostgresAdapter implements IDatabaseAdapter {
         createdAt: row.created_at?.toISOString(),
       };
     } catch (err) {
-      return this.inMemoryFallback.orders.get(id) || null;
+      logger.error('Supabase getOrder failed:', err);
+      throw new Error('Booking lookup failed');
     }
   }
 
   async listOrders(filters?: { customerId?: string; workerId?: string; status?: string }): Promise<OrderRecord[]> {
     if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
       let list = Array.from(this.inMemoryFallback.orders.values());
-      if (filters?.status) list = list.filter((o) => o.status === filters.status);
+      if (filters?.customerId) list = list.filter((order) => order.customerId === filters.customerId);
+      if (filters?.workerId) list = list.filter((order) => order.workerId === filters.workerId);
+      if (filters?.status) list = list.filter((order) => order.status === filters.status);
       return list;
     }
     try {
-      const res = await this.pool.query('SELECT * FROM orders ORDER BY created_at DESC');
-      let list: OrderRecord[] = res.rows.map((row) => ({
+      const conditions: string[] = [];
+      const values: string[] = [];
+      if (filters?.customerId) { values.push(filters.customerId); conditions.push(`customer_id = $${values.length}`); }
+      if (filters?.workerId) { values.push(filters.workerId); conditions.push(`worker_id = $${values.length}`); }
+      if (filters?.status) { values.push(filters.status); conditions.push(`status = $${values.length}`); }
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+      const res = await this.pool.query(`SELECT * FROM orders ${where} ORDER BY created_at DESC`, values);
+      const list: OrderRecord[] = res.rows.map((row) => ({
+        ...(row.metadata && typeof row.metadata === 'object' ? row.metadata : {}),
         id: row.id,
         category: row.category,
+        customerId: row.customer_id || undefined,
+        workerId: row.worker_id || undefined,
         workerName: row.worker_name,
         workerPhone: row.worker_phone,
+        workerAvatar: row.worker_avatar,
+        workerRating: row.worker_rating == null ? undefined : Number(row.worker_rating),
         price: Number(row.price),
         totalAmountToPay: Number(row.total_amount_to_pay),
         date: row.date,
@@ -500,30 +632,96 @@ export class PostgresAdapter implements IDatabaseAdapter {
         paymentMethod: row.payment_method,
         createdAt: row.created_at?.toISOString(),
       }));
-      if (filters?.status) list = list.filter((o) => o.status === filters.status);
       return list;
     } catch (e) {
-      let list = Array.from(this.inMemoryFallback.orders.values());
-      if (filters?.status) list = list.filter((o) => o.status === filters.status);
-      return list;
+      logger.error('Supabase listOrders failed:', e);
+      throw new Error('Bookings could not be loaded');
+    }
+  }
+
+  async acceptOrder(id: string, workerId: string, additionalDetails: Partial<OrderRecord>): Promise<OrderRecord | null> {
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      const existing = this.inMemoryFallback.orders.get(id);
+      if (!existing || !['DISPATCHING', 'Pending'].includes(String(existing.status))) return null;
+      if (existing.workerId && existing.workerId !== workerId) return null;
+      const updated = {
+        ...existing,
+        ...additionalDetails,
+        id,
+        workerId,
+        status: 'ACCEPTED' as const,
+      };
+      this.inMemoryFallback.orders.set(id, updated);
+      return updated;
+    }
+
+    try {
+      const details = { ...additionalDetails, workerId, status: 'ACCEPTED' };
+      const result = await this.pool.query(
+        `UPDATE orders
+         SET status = 'ACCEPTED',
+             worker_id = $1,
+             worker_name = $2,
+             worker_phone = $3,
+             metadata = COALESCE(metadata, '{}'::jsonb) || $4::jsonb
+         WHERE id = $5
+           AND status IN ('DISPATCHING', 'Pending')
+           AND (worker_id IS NULL OR worker_id = $1)
+         RETURNING id`,
+        [
+          workerId,
+          additionalDetails.workerName || 'Assigned Specialist',
+          additionalDetails.workerPhone || '',
+          JSON.stringify(details),
+          id,
+        ]
+      );
+      if (result.rowCount === 0) return null;
+      return await this.getOrder(id);
+    } catch (error) {
+      logger.error('Supabase atomic booking acceptance failed:', error);
+      throw new Error('Booking acceptance could not be committed');
     }
   }
 
   async updateOrderStatus(id: string, status: string, additionalDetails?: Partial<OrderRecord>): Promise<OrderRecord | null> {
-    const existing = this.inMemoryFallback.orders.get(id);
-    if (existing) {
+    if (!this.pool) {
+      const existing = this.inMemoryFallback.orders.get(id);
+      if (!existing) return null;
       existing.status = status as any;
       if (additionalDetails) Object.assign(existing, additionalDetails);
       this.inMemoryFallback.orders.set(id, existing);
+      return existing;
     }
 
-    if (!this.pool) return existing || null;
-
     try {
-      await this.pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, id]);
-      return existing || null;
+      const details = additionalDetails || {};
+      const result = await this.pool.query(
+        `UPDATE orders
+         SET status = $1,
+             worker_id = COALESCE($2, worker_id),
+             worker_name = COALESCE($3, worker_name),
+             worker_phone = COALESCE($4, worker_phone),
+             photo_proof = COALESCE($5, photo_proof),
+             metadata = COALESCE(metadata, '{}'::jsonb) || $6::jsonb
+         WHERE id = $7
+         RETURNING id`,
+        [
+          status,
+          details.workerId || null,
+          details.workerName || null,
+          details.workerPhone || null,
+          details.photoProof || null,
+          JSON.stringify(details),
+          id,
+        ]
+      );
+      if (result.rowCount === 0) return null;
+      return await this.getOrder(id);
     } catch (e) {
-      return existing || null;
+      logger.error('Supabase updateOrderStatus failed:', e);
+      throw new Error('Booking status could not be updated');
     }
   }
 
@@ -531,8 +729,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async createWarrantyClaim(claim: WarrantyClaim): Promise<WarrantyClaim> {
     const id = claim.id || `CLM-${Date.now()}`;
     const record = { ...claim, id };
-    this.inMemoryFallback.claims.set(id, record);
-    if (!this.pool) return record;
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.inMemoryFallback.claims.set(id, record);
+      return record;
+    }
 
     try {
       const q = `
@@ -552,14 +753,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
       ]);
       return record;
     } catch (e) {
-      return record;
+      logger.error('Supabase createWarrantyClaim failed:', e);
+      throw new Error('Warranty claim could not be saved');
     }
   }
 
   async listWarrantyClaims(status?: string): Promise<WarrantyClaim[]> {
     if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
       const list = Array.from(this.inMemoryFallback.claims.values());
-      return status ? list.filter((c) => c.status === status) : list;
+      return status ? list.filter((claim) => claim.status === status) : list;
     }
     try {
       const res = await this.pool.query('SELECT * FROM warranty_claims ORDER BY created_at DESC');
@@ -577,8 +780,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       }));
       return status ? list.filter((c) => c.status === status) : list;
     } catch (e) {
-      const list = Array.from(this.inMemoryFallback.claims.values());
-      return status ? list.filter((c) => c.status === status) : list;
+      logger.error('Supabase listWarrantyClaims failed:', e);
+      throw new Error('Warranty claims could not be loaded');
     }
   }
 
@@ -594,7 +797,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       await this.pool.query('UPDATE warranty_claims SET status = $1, admin_notes = $2 WHERE id = $3', [status, notes || null, id]);
       return existing || null;
     } catch (e) {
-      return existing || null;
+      logger.error('Supabase updateWarrantyClaimStatus failed:', e);
+      throw new Error('Warranty claim status could not be updated');
     }
   }
 
@@ -602,8 +806,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async createComplaint(complaint: ComplaintRecord): Promise<ComplaintRecord> {
     const id = complaint.id || `CMP-${Date.now()}`;
     const record = { ...complaint, id };
-    this.inMemoryFallback.complaints.set(id, record);
-    if (!this.pool) return record;
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.inMemoryFallback.complaints.set(id, record);
+      return record;
+    }
 
     try {
       const q = `
@@ -626,14 +833,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
       ]);
       return record;
     } catch (e) {
-      return record;
+      logger.error('Supabase createComplaint failed:', e);
+      throw new Error('Complaint could not be saved');
     }
   }
 
   async listComplaints(status?: string): Promise<ComplaintRecord[]> {
     if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
       const list = Array.from(this.inMemoryFallback.complaints.values());
-      return status ? list.filter((c) => c.status === status) : list;
+      return status ? list.filter((complaint) => complaint.status === status) : list;
     }
     try {
       const res = await this.pool.query('SELECT * FROM complaints ORDER BY created_at DESC');
@@ -655,8 +864,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       }));
       return status ? list.filter((c) => c.status === status) : list;
     } catch (e) {
-      const list = Array.from(this.inMemoryFallback.complaints.values());
-      return status ? list.filter((c) => c.status === status) : list;
+      logger.error('Supabase listComplaints failed:', e);
+      throw new Error('Complaints could not be loaded');
     }
   }
 
@@ -672,7 +881,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
       await this.pool.query('UPDATE complaints SET status = $1, admin_action_notes = $2 WHERE id = $3', [status, notes || null, id]);
       return existing || null;
     } catch (e) {
-      return existing || null;
+      logger.error('Supabase updateComplaintStatus failed:', e);
+      throw new Error('Complaint status could not be updated');
     }
   }
 
@@ -680,8 +890,11 @@ export class PostgresAdapter implements IDatabaseAdapter {
   async createReview(review: CustomerReview): Promise<CustomerReview> {
     const id = review.id || `REV-${Date.now()}`;
     const record = { ...review, id };
-    this.inMemoryFallback.reviews.set(id, record);
-    if (!this.pool) return record;
+    if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
+      this.inMemoryFallback.reviews.set(id, record);
+      return record;
+    }
 
     try {
       const q = `
@@ -700,14 +913,16 @@ export class PostgresAdapter implements IDatabaseAdapter {
       ]);
       return record;
     } catch (e) {
-      return record;
+      logger.error('Supabase createReview failed:', e);
+      throw new Error('Review could not be saved');
     }
   }
 
   async listReviews(workerId?: string): Promise<CustomerReview[]> {
     if (!this.pool) {
+      if (process.env.NODE_ENV === 'production') throw new Error('Supabase database connection is not configured.');
       const list = Array.from(this.inMemoryFallback.reviews.values());
-      return workerId ? list.filter((r) => r.workerId === workerId) : list;
+      return workerId ? list.filter((review) => review.workerId === workerId) : list;
     }
     try {
       const q = workerId ? 'SELECT * FROM reviews WHERE worker_id = $1 ORDER BY created_at DESC' : 'SELECT * FROM reviews ORDER BY created_at DESC';
@@ -725,8 +940,8 @@ export class PostgresAdapter implements IDatabaseAdapter {
         date: row.created_at?.toISOString() || new Date().toISOString(),
       }));
     } catch (e) {
-      const list = Array.from(this.inMemoryFallback.reviews.values());
-      return workerId ? list.filter((r) => r.workerId === workerId) : list;
+      logger.error('Supabase listReviews failed:', e);
+      throw new Error('Reviews could not be loaded');
     }
   }
 }

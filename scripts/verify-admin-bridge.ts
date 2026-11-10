@@ -12,7 +12,8 @@ async function runVerification() {
   const server = app.listen(0);
   const address = server.address() as any;
   const baseUrl = `http://127.0.0.1:${address.port}/api/admin`;
-  const validKey = 'punchx_admin_secure_live_key_2026_9941a8';
+  const validKey = process.env.ADMIN_API_KEY;
+  if (!validKey || validKey.length < 32) throw new Error('Set a newly generated ADMIN_API_KEY (32+ characters) before running this verification.');
 
   try {
     // 1. Unauthorized check (No header)

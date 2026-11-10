@@ -172,18 +172,28 @@ export async function atomicAcceptOrder(
       reason: 'Specialist accepted broadcast dispatch',
     });
 
-    const updated = await dbAdapter.updateOrderStatus(orderId, 'ACCEPTED', {
-      workerId: context.actorUid,
+    const updated = await dbAdapter.acceptOrder(orderId, context.actorUid, {
       workerName: context.workerName || order.workerName || 'Assigned Specialist',
       workerPhone: context.workerPhone || order.workerPhone || '',
       stateHistory,
     });
 
+    if (!updated) {
+      const latest = await dbAdapter.getOrder(orderId);
+      return latest
+        ? {
+            success: false,
+            statusCode: 409,
+            error: 'Order was accepted by another specialist or is no longer available.',
+          }
+        : { success: false, statusCode: 404, error: 'Order not found' };
+    }
+
     logger.info(`Order ${orderId} atomically accepted by worker ${context.actorUid}`);
     return {
       success: true,
       statusCode: 200,
-      order: updated || undefined,
+      order: updated,
     };
   } finally {
     activeAcceptLocks.delete(orderId);
