@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import locationServices from '../location-services.js';
-import workerLocationCustomers from '../worker-location-customers.js';
+import locationServices from '../_lib/location-services.js';
+import workerLocationCustomers from '../_lib/worker-location-customers.js';
 
 // Keep both legacy location endpoints while sharing one serverless function.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
