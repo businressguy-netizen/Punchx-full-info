@@ -25,6 +25,7 @@ const ConfirmBooking = lazy(() => import('./components/ConfirmBooking'));
 const ChoosePayment = lazy(() => import('./components/ChoosePayment'));
 const LiveTracking = lazy(() => import('./components/LiveTracking'));
 const WorkerDashboard = lazy(() => import('./components/WorkerPartnerPanel'));
+const AdminOrderReview = lazy(() => import('./components/AdminOrderReview'));
 
 const WorkerSignup = lazy(() => import('./components/WorkerSignup'));
 const WorkerOtpPass = lazy(() => import('./components/WorkerOtpPass'));
@@ -511,10 +512,10 @@ function AppMain() {
           {currentScreen === 'providers' && <ProvidersList onTransition={handleTransition} selectedCategory={selectedCategory} onSelectWorker={setSelectedWorker} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
           {currentScreen === 'provider-details' && <ProviderDetails onTransition={handleTransition} selectedWorker={selectedWorker} showNotification={showToast} />}
           {currentScreen === 'booking' && <ConfirmBooking onTransition={handleTransition} selectedCategory={selectedCategory} selectedWorker={selectedWorker} promoApplied={promoApplied} issueDescription={issueDescription} setIssueDescription={setIssueDescription} bookingTime={bookingTime} setBookingTime={setBookingTime} bookingDate={bookingDate} setBookingDate={setBookingDate} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
-          {currentScreen === 'payment' && <ChoosePayment onTransition={handleTransition} selectedWorker={selectedWorker} promoApplied={promoApplied} hasUsedBonus={hasUsedBonus} onOrderFinalized={() => { if (promoApplied) { setHasUsedBonus(true); setPromoApplied(false); try { localStorage.setItem('punchx_first_order_coupon_used', 'true'); localStorage.removeItem('punchx_active_coupon_applied'); } catch {} } }} onApplyPromo={handleApplyPromoCode} showNotification={showToast} />}
+          {currentScreen === 'payment' && <ChoosePayment onTransition={handleTransition} selectedWorker={selectedWorker} promoApplied={promoApplied} hasUsedBonus={hasUsedBonus} onApplyPromo={handleApplyPromoCode} showNotification={showToast} />}
           {currentScreen === 'tracking' && <LiveTracking onTransition={handleTransition} bookingTime={bookingTime} />}
           {currentScreen === 'worker-dashboard' && <WorkerDashboard onTransition={handleTransition} showNotification={showToast} />}
-          {currentScreen === 'admin-dashboard' && <AdminBridgePortal onTransition={handleTransition} showNotification={showToast} />}
+          {currentScreen === 'admin-dashboard' && <AdminOrderReview showNotification={showToast} />}
 
           {currentScreen === 'privacy-policy' && <PrivacyPolicy onTransition={handleTransition} showNotification={showToast} />}
           {currentScreen === 'terms-and-conditions' && <TermsAndConditions onTransition={handleTransition} showNotification={showToast} />}

@@ -322,9 +322,23 @@ adminRouter.patch('/orders/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status, note, notes } = req.body;
-
+    const allowedReviewStatuses = new Set(['AWAITING_CUSTOMER_CONFIRMATION', 'REJECTED', 'CUSTOMER_CONFIRMED', 'DISPATCHING', 'EN_ROUTE', 'ARRIVED', 'IN_SERVICE', 'COMPLETION_PENDING', 'COMPLETED', 'CANCELLED']);
+    if (!allowedReviewStatuses.has(String(status))) {
+      return res.status(400).json({ success: false, error: 'Unsupported order status' });
+    }
+    const existing = await dbAdapter.getOrder(id);
+    if (!existing) return res.status(404).json({ success: false, error: 'Order not found' });
+    const now = new Date().toISOString();
+    if ((status === 'AWAITING_CUSTOMER_CONFIRMATION' || status === 'REJECTED') && existing.status !== 'PENDING_ADMIN_REVIEW') {
+      return res.status(409).json({ success: false, error: 'Only a pending admin-review order can be accepted or rejected' });
+    }
+    if (status === 'CUSTOMER_CONFIRMED' && existing.status !== 'AWAITING_CUSTOMER_CONFIRMATION') {
+      return res.status(409).json({ success: false, error: 'Order is not awaiting customer confirmation' });
+    }
     const updated = await dbAdapter.updateOrderStatus(id, status, {
       issueDescription: note || notes,
+      ...(status === 'AWAITING_CUSTOMER_CONFIRMATION' || status === 'REJECTED' ? { adminReviewedAt: now, adminReviewNotes: String(note || notes || '') } : {}),
+      ...(status === 'CUSTOMER_CONFIRMED' ? { customerConfirmedAt: now } : {}),
     });
 
     if (!updated) {
