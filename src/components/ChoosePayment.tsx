@@ -136,7 +136,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
   };
 
   if(order){
-    return <main className="min-h-screen bg-[#f7faff] px-4 py-8 text-[#0f172a]">
+    return <main id="punchx-payment-flow" className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-[#171714] sm:px-6">
       <section className="mx-auto max-w-lg rounded-3xl border border-[#dbeafe] bg-white p-6 text-center shadow-xl">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#eef6ff]">
           {accepted?<CheckCircle2 className="h-11 w-11 text-emerald-600"/>:rejected?<XCircle className="h-11 w-11 text-red-600"/>:<Clock3 className="h-11 w-11 text-[#2563eb]"/>}
