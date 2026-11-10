@@ -1,0 +1,305 @@
+/* PUNCHX Design System v1 — unified premium black / champagne / warm-neutral palette.
+   Loaded last so legacy screen styles cannot reintroduce competing blue, violet or olive accents. */
+:root {
+  color-scheme: light;
+  --px-brand-ink:#191a17;
+  --px-brand-ink-2:#282a24;
+  --px-brand-gold:#a78345;
+  --px-brand-gold-2:#c4a66b;
+  --px-brand-gold-soft:#f4eddf;
+  --px-brand-paper:#f6f5f1;
+  --px-brand-surface:#fffefa;
+  --px-brand-surface-2:#f0eee8;
+  --px-brand-text:#20211d;
+  --px-brand-muted:#707168;
+  --px-brand-line:rgba(38,37,30,.10);
+  --px-brand-success:#187653;
+  --px-brand-danger:#b94d43;
+  --px-brand-info:#596a61;
+  --px-brand-shadow:0 12px 34px rgba(34,31,23,.065);
+  --px-brand-shadow-hover:0 20px 48px rgba(34,31,23,.11);
+  --px-brand-radius:20px;
+  --px-bg:var(--px-brand-paper);
+  --px-surface:var(--px-brand-surface);
+  --px-surface-2:var(--px-brand-surface-2);
+  --px-text:var(--px-brand-text);
+  --px-muted:var(--px-brand-muted);
+  --px-border:var(--px-brand-line);
+  --px-primary:var(--px-brand-gold);
+  --px-primary-2:var(--px-brand-gold-2);
+  --px-success:var(--px-brand-success);
+  --px-shadow:var(--px-brand-shadow);
+  --px-market-bg:var(--px-brand-paper);
+  --px-market-card:var(--px-brand-surface);
+  --px-market-text:var(--px-brand-text);
+  --px-market-muted:var(--px-brand-muted);
+  --px-market-border:var(--px-brand-line);
+  --px-market-purple:var(--px-brand-gold);
+  --px-market-purple-dark:#896a37;
+  --px-market-lilac:var(--px-brand-gold-soft);
+  --px-market-green:var(--px-brand-success);
+  --px-market-green-soft:#e9f3ed;
+  --wx-bg:var(--px-brand-paper);
+  --wx-card:var(--px-brand-surface);
+  --wx-text:var(--px-brand-text);
+  --wx-muted:var(--px-brand-muted);
+  --wx-line:var(--px-brand-line);
+  --wx-brand:var(--px-brand-gold);
+  --wx-brand2:#806238;
+  --wx-green:var(--px-brand-success);
+  --wx-sidebar:var(--px-brand-ink);
+}
+html { background:var(--px-brand-paper); scroll-behavior:smooth; }
+body {
+  color:var(--px-brand-text) !important;
+  background:
+    radial-gradient(ellipse at 8% 0%,rgba(196,166,107,.13),transparent 34rem),
+    radial-gradient(ellipse at 96% 22%,rgba(100,116,93,.07),transparent 31rem),
+    linear-gradient(155deg,#faf9f5 0%,#f3f1eb 58%,#f8f7f3 100%) !important;
+  background-attachment:fixed !important;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif !important;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+#root { min-height:100svh; color:var(--px-brand-text); }
+::selection { background:rgba(167,131,69,.20); color:var(--px-brand-ink); }
+:focus-visible { outline:3px solid rgba(167,131,69,.42) !important; outline-offset:2px; }
+button,a,[role="button"] { -webkit-tap-highlight-color:transparent; }
+button:disabled { cursor:not-allowed; }
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),
+textarea,select {
+  border-color:rgba(63,58,45,.16) !important;
+  background:#fffefa !important;
+  color:var(--px-brand-text) !important;
+  border-radius:12px;
+}
+input:focus,textarea:focus,select:focus {
+  border-color:rgba(167,131,69,.72) !important;
+  box-shadow:0 0 0 4px rgba(167,131,69,.12) !important;
+  outline:0 !important;
+}
+input::placeholder,textarea::placeholder { color:#929187 !important; opacity:1; }
+a { text-underline-offset:3px; }
+img { image-rendering:auto; }
+
+/* One consistent page canvas and typography for customer journeys. */
+.punchx-citizen-shell,.punchx-citizen-main,
+#home-dashboard-root,#providers-list-root,#provider-details-root,
+#booking-container,#payment-screen-container,#citizen-profile-root {
+  background:transparent !important;
+  color:var(--px-brand-text) !important;
+}
+.punchx-citizen-shell header,
+#providers-list-root header,#provider-details-root header,
+#booking-topbar,#payment-topbar,#punchx-website-navbar {
+  background:rgba(255,254,250,.92) !important;
+  color:var(--px-brand-text) !important;
+  border-color:var(--px-brand-line) !important;
+  box-shadow:0 1px 0 rgba(35,33,27,.04),0 8px 28px rgba(35,33,27,.055) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  backdrop-filter:blur(18px) saturate(140%);
+}
+.punchx-citizen-shell main { color:var(--px-brand-text); }
+.punchx-citizen-shell main > section:first-child > div {
+  background:linear-gradient(130deg,#fffefa 0%,#f5f0e5 58%,#eef1eb 100%) !important;
+  border:1px solid rgba(167,131,69,.16) !important;
+  border-radius:24px !important;
+  box-shadow:var(--px-brand-shadow) !important;
+}
+.punchx-citizen-shell section h1,.punchx-citizen-shell section h2,
+.punchx-citizen-shell section h3,#home-dashboard-root h1,
+#home-dashboard-root h2,#home-dashboard-root h3 {
+  color:var(--px-brand-text);
+  letter-spacing:-.025em;
+}
+.punchx-citizen-shell section p,#home-dashboard-root p { color:var(--px-brand-muted); }
+.punchx-citizen-shell section article,
+.punchx-citizen-shell section [class*="rounded-"][class*="border"],
+#providers-list-root article,#provider-details-root article,
+#booking-container section,#payment-screen-container section {
+  border-color:var(--px-brand-line) !important;
+  box-shadow:var(--px-brand-shadow);
+}
+.punchx-citizen-shell section button,
+#providers-list-root button,#provider-details-root button,
+#booking-container button,#payment-screen-container button {
+  transition:transform .18s ease,box-shadow .2s ease,border-color .2s ease,filter .2s ease;
+}
+.punchx-citizen-shell section button:active,
+#providers-list-root button:active,#provider-details-root button:active,
+#booking-container button:active,#payment-screen-container button:active { transform:scale(.985); }
+.punchx-citizen-shell section button:hover,
+#providers-list-root button:hover,#provider-details-root button:hover,
+#booking-container button:hover,#payment-screen-container button:hover {
+  border-color:rgba(167,131,69,.32);
+}
+#providers-list-root,#provider-details-root,#booking-container,#payment-screen-container {
+  --px-local-ink:var(--px-brand-text);
+}
+#providers-list-root [class*="bg-[#07122a]"],
+#providers-list-root [class*="bg-[#111415]"],
+#providers-list-root [class*="bg-[#11192e]"],
+#providers-list-root [class*="bg-[#151f37]"],
+#providers-list-root [class*="bg-[#0a152e]"],
+#provider-details-root [class*="bg-[#07122a]"],
+#provider-details-root [class*="bg-[#111415]"],
+#provider-details-root [class*="bg-[#11192e]"],
+#provider-details-root [class*="bg-[#151f37]"],
+#provider-details-root [class*="bg-[#0a152e]"],
+#booking-container [class*="bg-[#07122a]"],
+#booking-container [class*="bg-[#111415]"],
+#booking-container [class*="bg-[#11192e]"],
+#booking-container [class*="bg-[#151f37]"],
+#booking-container [class*="bg-[#0a152e]"],
+#payment-screen-container [class*="bg-[#07122a]"],
+#payment-screen-container [class*="bg-[#111415]"],
+#payment-screen-container [class*="bg-[#11192e]"],
+#payment-screen-container [class*="bg-[#0a152e]"] {
+  background:#fffefa !important;
+  background-image:none !important;
+  color:var(--px-brand-text) !important;
+  border-color:var(--px-brand-line) !important;
+}
+#providers-list-root [class*="text-white"],
+#provider-details-root [class*="text-white"],
+#booking-container [class*="text-white"],
+#payment-screen-container [class*="text-white"] { color:var(--px-brand-text) !important; }
+#providers-list-root [class*="text-[#c5a059]"],
+#provider-details-root [class*="text-[#c5a059]"],
+#booking-container [class*="text-[#c5a059]"],
+#payment-screen-container [class*="text-[#c5a059]"] { color:var(--px-brand-gold) !important; }
+
+/* PUNCHX brand actions: champagne gold, not competing blue/purple gradients. */
+#root button[class*="bg-[#c5a059]"],#root button[class*="bg-[#b99a62]"],
+#root button[class*="bg-[#80663a]"],#root button[class*="bg-[#2563eb]"],
+#root button[class*="bg-[#3478f6]"],#root button[class*="bg-[#7358d7]"],
+#root button[class*="bg-[#5b45c7]"],#root button[class*="bg-[#6d4ee6]"],
+#root button[class*="bg-blue-"],#root button[class*="bg-sky-"],
+#root button[class*="bg-indigo-"],#root button[class*="bg-violet-"],
+#root button[class*="bg-purple-"] {
+  background:linear-gradient(135deg,#927343,#b99a62 58%,#c9ad77) !important;
+  border-color:rgba(128,98,55,.38) !important;
+  color:#fffdf7 !important;
+  box-shadow:0 8px 20px rgba(128,98,55,.18) !important;
+}
+#root [class*="text-[#2563eb]"],#root [class*="text-[#3478f6]"],
+#root [class*="text-[#7358d7]"],#root [class*="text-[#5b45c7]"],
+#root [class*="text-[#6d4ee6]"],#root [class*="text-[#6044d0]"] {
+  color:var(--px-brand-gold) !important;
+}
+#root [class*="border-[#dbeafe]"],#root [class*="border-[#bfdbfe]"],
+#root [class*="border-[#7358d7]"],#root [class*="border-[#6d4ee6]"] {
+  border-color:var(--px-brand-line) !important;
+}
+#root [class*="bg-[#eef4ff]"],#root [class*="bg-[#f7faff]"],
+#root [class*="bg-[#f8f9ff]"],#root [class*="bg-[#eee9ff]"],
+#root [class*="bg-[#f1edff]"],#root [class*="bg-[#e7e0ff]"] {
+  background-color:var(--px-brand-gold-soft) !important;
+}
+
+/* Panel selector and login / onboarding screens share the same premium canvas. */
+#panel-select-screen,#splash-screen-container,
+#worker-signup-screen,#worker-otp-pass-screen,
+#worker-setup-screen,#customer-setup-screen {
+  color:var(--px-brand-text) !important;
+}
+#panel-select-screen {
+  background:
+    radial-gradient(circle at 12% 10%,rgba(196,166,107,.16),transparent 30%),
+    radial-gradient(circle at 88% 18%,rgba(100,116,93,.08),transparent 28%),
+    linear-gradient(155deg,#fbfaf6,#f1eee6 100%) !important;
+}
+#panel-select-screen h1,#panel-select-screen h2,#panel-select-screen h3 { color:var(--px-brand-text) !important; }
+#panel-select-screen .grid > div {
+  background:rgba(255,254,250,.92) !important;
+  border:1px solid var(--px-brand-line) !important;
+  box-shadow:var(--px-brand-shadow) !important;
+  color:var(--px-brand-text) !important;
+}
+#panel-select-screen .grid > div:hover {
+  transform:translateY(-5px);
+  box-shadow:var(--px-brand-shadow-hover) !important;
+  border-color:rgba(167,131,69,.32) !important;
+}
+#panel-select-screen .grid > div button:first-of-type {
+  background:linear-gradient(135deg,#927343,#b99a62 58%,#c9ad77) !important;
+  color:#fffdf7 !important;
+}
+#splash-screen-container {
+  background:
+    radial-gradient(circle at 15% 15%,rgba(196,166,107,.18),transparent 30%),
+    linear-gradient(160deg,#fffefa,#f2efe7) !important;
+}
+
+/* Professional workspace: dark ink navigation, warm neutral content, restrained gold. */
+.wx-app { background:var(--px-brand-paper) !important; color:var(--px-brand-text) !important; }
+.wx-sidebar {
+  background:linear-gradient(180deg,#20211d 0%,#171814 100%) !important;
+  color:#f6f2e8 !important;
+  border-right:1px solid rgba(255,255,255,.06);
+}
+.wx-brand b,.wx-worker-mini b { color:#fffdf7 !important; }
+.wx-brand span,.wx-demo { color:#c4a66b !important; }
+.wx-sidebar nav button,.wx-logout { color:#b9b7aa !important; }
+.wx-sidebar nav button:hover,.wx-sidebar nav button.active {
+  background:rgba(196,166,107,.14) !important;
+  color:#fffdf7 !important;
+}
+.wx-sidebar nav button.active { box-shadow:inset 3px 0 #c4a66b !important; }
+.wx-header {
+  background:rgba(255,254,250,.94) !important;
+  border-bottom:1px solid var(--px-brand-line) !important;
+  box-shadow:0 6px 22px rgba(34,31,23,.035);
+  color:var(--px-brand-text) !important;
+}
+.wx-header h1,.wx-content h2,.wx-card h3 { color:var(--px-brand-text) !important; }
+.wx-content { color:var(--px-brand-text); }
+.wx-hero {
+  background:linear-gradient(120deg,#292a24 0%,#3b3a30 58%,#5a4a31 100%) !important;
+  box-shadow:0 16px 36px rgba(36,32,24,.13) !important;
+}
+.wx-hero p,.wx-hero-earn span,.wx-hero-earn small { color:#e0cda7 !important; }
+.wx-pill { color:#dce8df !important; background:rgba(24,118,83,.2) !important; }
+.wx-stat,.wx-card {
+  background:var(--px-brand-surface) !important;
+  border:1px solid var(--px-brand-line) !important;
+  box-shadow:0 5px 20px rgba(34,31,23,.035) !important;
+}
+.wx-icon { background:#f3ecdd !important; color:var(--px-brand-gold) !important; }
+.wx-link { color:var(--px-brand-gold) !important; }
+.wx-primary {
+  background:linear-gradient(135deg,#927343,#b99a62) !important;
+  color:#fffdf7 !important;
+  box-shadow:0 7px 17px rgba(128,98,55,.18) !important;
+}
+.wx-secondary { background:#f7f5ef !important; color:#4f4d44 !important; border:1px solid var(--px-brand-line) !important; }
+.wx-order-facts>div,.wx-icon-btn { background:#f7f5ef !important; }
+.wx-ring { border-color:#e8e0cf; border-top-color:var(--px-brand-gold); }
+.wx-sidebar .wx-avatar { background:#e9dfca; color:#70552d; }
+.wx-badge.new { background:#f3ecdd !important; color:#806238 !important; }
+.wx-badge.accepted,.wx-badge.travelling,.wx-badge.arrived,.wx-badge.service_started { background:#f7f0e4 !important; color:#8a6328 !important; }
+.wx-badge.completed { background:#e9f3ed !important; color:#187653 !important; }
+.wx-badge.cancelled { background:#faecea !important; color:#a8433c !important; }
+
+/* Shared website footer and dialog treatment. */
+#punchx-website-footer {
+  background:linear-gradient(145deg,#22231e,#171814) !important;
+  color:#f6f2e8 !important;
+  border-top:1px solid rgba(196,166,107,.22) !important;
+}
+#punchx-website-footer [class*="text-white"] { color:#f6f2e8 !important; }
+#punchx-website-footer [class*="text-[#b9adff]"],
+#punchx-website-footer [class*="text-[#d7d0ff]"] { color:#d6c092 !important; }
+#root [role="dialog"],#root [aria-modal="true"],
+#root [data-radix-dialog-content] {
+  border-color:rgba(167,131,69,.18) !important;
+  box-shadow:0 24px 70px rgba(24,22,17,.20) !important;
+}
+@media (max-width:767px) {
+  .punchx-citizen-shell main { padding-left:14px !important; padding-right:14px !important; }
+  .wx-content { padding:16px !important; }
+  .wx-header { padding-left:14px !important; padding-right:14px !important; }
+}
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
