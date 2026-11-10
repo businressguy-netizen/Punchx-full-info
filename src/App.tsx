@@ -35,6 +35,7 @@ const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 const TermsAndConditions = lazy(() => import('./components/TermsAndConditions'));
 const Founder = lazy(() => import('./components/Founder'));
 const AuthCallback = lazy(() => import('./components/AuthCallback'));
+const AdminBridgePortal = lazy(() => import('./components/AdminBridgePortal'));
 
 function AppMain() {
   // Keep the static, crawlable landing visible until React has committed its first screen.
@@ -513,6 +514,7 @@ function AppMain() {
           {currentScreen === 'payment' && <ChoosePayment onTransition={handleTransition} selectedWorker={selectedWorker} promoApplied={promoApplied} hasUsedBonus={hasUsedBonus} onOrderFinalized={() => { if (promoApplied) { setHasUsedBonus(true); setPromoApplied(false); try { localStorage.setItem('punchx_first_order_coupon_used', 'true'); localStorage.removeItem('punchx_active_coupon_applied'); } catch {} } }} onApplyPromo={handleApplyPromoCode} showNotification={showToast} />}
           {currentScreen === 'tracking' && <LiveTracking onTransition={handleTransition} bookingTime={bookingTime} />}
           {currentScreen === 'worker-dashboard' && <WorkerDashboard onTransition={handleTransition} showNotification={showToast} />}
+          {currentScreen === 'admin-dashboard' && <AdminBridgePortal onTransition={handleTransition} showNotification={showToast} />}
 
           {currentScreen === 'privacy-policy' && <PrivacyPolicy onTransition={handleTransition} showNotification={showToast} />}
           {currentScreen === 'terms-and-conditions' && <TermsAndConditions onTransition={handleTransition} showNotification={showToast} />}

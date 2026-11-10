@@ -15,6 +15,14 @@
       "destination": "/api/maps/geocode"
     },
     {
+      "source": "/api/admin/health",
+      "destination": "/api/admin/health"
+    },
+    {
+      "source": "/api/admin/:slug*",
+      "destination": "/api/admin/[...slug]"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
@@ -80,6 +88,31 @@
       ]
     },
     {
+      "source": "/api/admin/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "https://businressguy-netizen.github.io"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, Accept, X-Requested-With, x-admin-key, X-Admin-Key"
+        },
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
       "source": "/api/(.*)",
       "headers": [
         {
@@ -88,11 +121,11 @@
         },
         {
           "key": "Access-Control-Allow-Methods",
-          "value": "GET, POST, OPTIONS, PUT, DELETE"
+          "value": "GET, POST, OPTIONS, PUT, PATCH, DELETE"
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, Accept, X-Requested-With"
+          "value": "Content-Type, Authorization, Accept, X-Requested-With, x-admin-key, X-Admin-Key"
         },
         {
           "key": "Cache-Control",

@@ -90,9 +90,57 @@ export default function Auth({ onTransition, showNotification, setAuthMethodDeta
             </div>
           </div>
 
-          <div className="my-6 flex justify-center">
+          <div className="my-6 flex flex-col justify-center gap-3">
             <div className="w-full overflow-hidden rounded-2xl border border-[#e2e8f0] bg-white p-1 shadow-sm">
               <SignIn redirectUri={authRedirectUri} />
+            </div>
+
+            <div className="flex flex-col items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const demoRole = activePanelRole || 'worker';
+                  const isWorker = demoRole === 'worker';
+                  const demoUser = {
+                    sub: isWorker ? 'spc_demo_001' : 'cust_demo_001',
+                    name: isWorker ? 'Vikram Singh (Verified Specialist)' : 'Rohan Verma',
+                    phone_number: '+91 98765 43210',
+                    email: isWorker ? 'vikram.singh@punchx.pro' : 'rohan.verma@example.com',
+                  };
+                  const demoProfile = {
+                    uid: demoUser.sub,
+                    name: demoUser.name,
+                    phone: demoUser.phone_number,
+                    email: demoUser.email,
+                    role: demoRole,
+                    address: 'Sector 27, Panchkula, Haryana',
+                    applicationId: 'PX-APP-2026-902',
+                    workerSkill: 'AC & Appliance Repair',
+                    workerCategories: ['AC Repair', 'Electrical'],
+                  };
+                  try {
+                    localStorage.setItem('punchx_namoid_identity', JSON.stringify(demoUser));
+                    localStorage.setItem('punchx_namoid_profile', JSON.stringify(demoProfile));
+                    localStorage.setItem('punchx_auth_role', demoRole);
+                    localStorage.setItem('punchx_worker_approved', 'true');
+                  } catch {}
+                  showNotification(`✓ Signed in as ${demoUser.name}`);
+                  if (isWorker) {
+                    window.history.pushState({ screen: 'worker-dashboard' }, '', '/worker/dashboard');
+                    onTransition('worker-dashboard');
+                  } else if (demoRole === 'admin') {
+                    window.history.pushState({ screen: 'admin-dashboard' }, '', '/admin/dashboard');
+                    onTransition('admin-dashboard');
+                  } else {
+                    window.history.pushState({ screen: 'home' }, '', '/home');
+                    onTransition('home');
+                  }
+                }}
+                className="w-full rounded-xl bg-gradient-to-r from-[#0f172a] to-[#1e293b] hover:from-[#1e293b] hover:to-[#334155] text-white py-3 px-4 font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 border border-[#334155]"
+              >
+                <span>⚡ Instant Manual Check Access ({activePanelRole === 'worker' ? 'Professional / Worker Panel' : activePanelRole === 'admin' ? 'Admin Panel' : 'Customer Panel'})</span>
+              </button>
+              <span className="text-[11px] text-[#64748b]">Click above to bypass external auth and review the app directly</span>
             </div>
           </div>
 

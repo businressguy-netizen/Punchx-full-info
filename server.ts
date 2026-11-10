@@ -157,13 +157,24 @@ export const requireWorker = async (req: express.Request, res: express.Response,
   }
 };
 
-// Allowed origins for CORS
+// Allowed origins for CORS (including Admin Dashboard command center)
 const ALLOWED_ORIGINS = [
   "https://www.punchxapp.co.in",
   "https://punchxapp.co.in",
+  "https://businressguy-netizen.github.io",
   "http://localhost:5173",
   "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
 ];
+
+const isAllowedCorsOrigin = (origin?: string | null): boolean => {
+  if (!origin) return true; // Mobile apps, curl, server-to-server
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  // Support GitHub Pages forks/deployments of Admin Dashboard
+  if (origin.endsWith('.github.io')) return true;
+  return false;
+};
 
 async function startServer() {
   const app = express();
@@ -180,8 +191,7 @@ async function startServer() {
   // CORS: Restrict to known origins only
   app.use(cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, server-to-server)
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      if (isAllowedCorsOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));

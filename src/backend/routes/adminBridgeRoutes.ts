@@ -42,6 +42,11 @@ export const platformSettings: DynamicPlatformSettings = {
 
 // ─── Dual-Repository Security Authentication ───
 export const requireAdminApiKey = (req: Request, res: Response, next: NextFunction) => {
+  // Allow preflight OPTIONS requests to pass through without requiring auth header
+  if (req.method === 'OPTIONS') {
+    return next();
+  }
+
   const adminKey =
     (req.headers['x-admin-key'] as string) ||
     (req.headers['X-Admin-Key'] as string) ||
@@ -80,6 +85,34 @@ export const requireAdminApiKey = (req: Request, res: Response, next: NextFuncti
 
   next();
 };
+
+// Ensure CORS headers on all admin bridge requests
+adminRouter.use((req: Request, res: Response, next: NextFunction) => {
+  const origin = (req.headers.origin as string) || '';
+  const isAllowedOrigin =
+    origin === 'https://businressguy-netizen.github.io' ||
+    origin.endsWith('.github.io') ||
+    origin === 'https://www.punchxapp.co.in' ||
+    origin === 'https://punchxapp.co.in' ||
+    origin.startsWith('http://localhost:') ||
+    origin.startsWith('http://127.0.0.1:');
+
+  if (isAllowedOrigin && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, Accept, X-Requested-With, x-admin-key, X-Admin-Key'
+    );
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
+  next();
+});
 
 // All routes under adminRouter strictly enforce administrative authentication
 adminRouter.use(requireAdminApiKey);
