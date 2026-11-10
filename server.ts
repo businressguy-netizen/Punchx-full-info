@@ -481,8 +481,8 @@ async function startServer() {
       });
 
       // 2. Initial state determination
-      const isCashOnDelivery = orderData.paymentMethod === "COD" || orderData.paymentMethod === "CASH" || orderData.paymentMethod === "PAY_AFTER_SERVICE";
-      const initialStatus: OrderStatus = isCashOnDelivery ? "DISPATCHING" : "PENDING_PAYMENT";
+      // Admin approval and customer WhatsApp confirmation must precede dispatch and payment.
+      const initialStatus: OrderStatus = "PENDING_ADMIN_REVIEW";
 
       // 3. Cryptographic Start OTP Generation for Customer Verification Gate
       const startOtpChallenge = generateSecureOtp();
@@ -576,9 +576,13 @@ async function startServer() {
         time: orderData.time || "",
         address: String(orderData.address || orderData.customerAddress || "").trim(),
         status: initialStatus,
-        paymentMethod: isCashOnDelivery ? "COD" : "ONLINE",
-        paymentStatus: isCashOnDelivery ? "pending" : (orderData.paymentId ? "paid" : "pending"),
-        paymentId: orderData.paymentId || null,
+        paymentMethod: "WHATSAPP_COORDINATED",
+        paymentStatus: "pending",
+        paymentId: null,
+        adminReviewedAt: null,
+        adminReviewNotes: "",
+        customerConfirmedAt: null,
+        invoiceStatus: "NOT_READY",
         createdAt: nowIso,
         updatedAt: nowIso,
         bookedAt: nowIso,
