@@ -267,7 +267,7 @@ export default function CitizenHomeCatalog({
                   <Megaphone className="h-5 w-5" />
                 </div>
                 <div className="sm:hidden">
-                  <span className="rounded-full bg-emerald-300/15 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 ring-1 ring-emerald-200/30">₹0 PLATFORM FEE</span>
+                  <span className="rounded-full bg-emerald-300/15 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 ring-1 ring-emerald-200/30">Platform fee details confirmed during booking</span>
                   <span className="ml-2 text-[10px] font-semibold text-[#E8D2C4]">SPOTLIGHT</span>
                 </div>
               </div>
