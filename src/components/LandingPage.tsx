@@ -165,7 +165,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
           <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-3 sm:px-6 lg:px-8">
             {[
               ['✓', 'Local Professionals', 'Review available professional details before booking'],
-              ['₹', 'Pricing details', '[SERVICE PRICE RANGES: confirm with founders]'],
+              ['✓', 'Booking details', 'Request a service and review the quotation before confirming'],
               ['🛡️', 'Service support', '[DISPUTE AND REFUND PROCESS: confirm with founders]'],
             ].map(([icon, title, text]) => (
               <article key={title} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
@@ -185,7 +185,7 @@ export default function LandingPage({ onTransition, onSelectCategory, showNotifi
                 <button key={category.id} type="button" data-category={category.id} onClick={() => selectCategory(category)} className="category-card rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-xl">
                   <div className="mb-4 h-28 overflow-hidden rounded-xl bg-orange-50"><img src={category.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"/></div>
                   <h3 className="font-bold text-slate-950">{category.name}</h3>
-                  <p className="mt-2 text-xs font-semibold text-slate-500">Starting at ₹{category.price}</p>
+                  <p className="mt-2 text-xs font-semibold text-slate-500">Request this service</p>
                 </button>
               ))}
             </div>

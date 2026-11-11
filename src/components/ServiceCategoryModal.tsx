@@ -265,7 +265,7 @@ export default function ServiceCategoryModal({
                                 <img src={item.image} alt="" className="mb-3 h-28 w-full rounded-lg object-cover" loading="lazy" />
                                 <div className="flex items-start justify-between gap-2"><h4 className="text-xs font-bold text-white sm:text-sm">{item.name}</h4>{item.popular && <span className="rounded-full bg-[#c5a059]/15 px-1.5 py-1 text-[7px] font-bold uppercase text-[#e9c176]">Popular</span>}</div>
                                 <p className="mt-2 flex-1 text-[11px] leading-relaxed text-zinc-400">{item.description}</p>
-                                <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-800 pt-3"><div><div className="text-[8px] uppercase text-zinc-500">Starting from</div><div className="text-sm font-extrabold text-[#e9c176]">₹{item.price.toLocaleString('en-IN')}</div></div><button onClick={() => handleBookService(item)} className="rounded-lg bg-[#c5a059] px-3 py-2 text-[9px] font-extrabold uppercase text-black hover:bg-[#e9c176]">{availableProfessionals > 0 ? 'Book Service' : 'Check availability'}</button></div>
+                                <div className="mt-3 flex items-center justify-end gap-2 border-t border-zinc-800 pt-3"><button onClick={() => handleBookService(item)} className="rounded-lg bg-[#c5a059] px-3 py-2 text-[9px] font-extrabold uppercase text-black hover:bg-[#e9c176]">{availableProfessionals > 0 ? 'Book Service' : 'Check availability'}</button></div>
                               </article>
                             ))}
                           </div>
