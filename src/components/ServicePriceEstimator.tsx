@@ -474,7 +474,7 @@ export default function ServicePriceEstimator({
             </span>
           </div>
 
-          {/* Itemized Calculation Lines */}
+          {/* Public-facing quotation is confirmed separately; no price breakdown is shown here. */}
           <div className="py-4 space-y-2.5 text-xs text-zinc-300 font-mono">
             <div className="flex justify-between">
               <span className="text-zinc-400">Visit and inspection:</span>
@@ -513,7 +513,7 @@ export default function ServicePriceEstimator({
             </div>
           </div>
 
-          {/* Total Highlight Bar */}
+          {/* No public total or rate is rendered. */}
           <div className="p-4 rounded-2xl bg-[#081226] border border-[#c5a059]/50 my-4 flex items-center justify-between">
             <div>
               <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
