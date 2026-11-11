@@ -193,7 +193,7 @@ export default function ProviderDetails({
           <div className="grid grid-cols-3 gap-2.5 mt-6 pt-6 border-t border-zinc-800/80">
             <div className="bg-[#0c0f10] p-2.5 rounded-xl border border-zinc-850">
               <span className="text-[10px] text-zinc-500 font-sans block uppercase font-bold">Successful Orders</span>
-              <span className="text-base font-extrabold text-[#e9c176] font-mono">{selectedWorker.reviewsCount}</span>
+    
             </div>
             <div className="bg-[#0c0f10] p-2.5 rounded-xl border border-zinc-850">
               <span className="text-[10px] text-zinc-500 font-sans block uppercase font-bold">Success Rate</span>
