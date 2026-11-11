@@ -137,7 +137,7 @@ export default function InteractivePriceCatalogue({ onTransition, onSelectCatego
   const serviceCount = allServices.length;
 
   return (
-    <div className="min-h-[75vh] bg-[#f7f8fc] text-[#171923]">
+    <div id="punchx-public-catalogue" className="min-h-[75vh] bg-[#f7f8fc] text-[#171923]">
       <section className="relative overflow-hidden bg-[#101a34] px-4 py-10 text-white sm:px-8 lg:px-12 lg:py-14">
         <div className="pointer-events-none absolute -right-20 -top-28 h-80 w-80 rounded-full bg-[#8b78ff]/20 blur-3xl" />
         <div className="relative mx-auto max-w-7xl">
