@@ -310,19 +310,19 @@ export default function ServicePriceEstimator({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#c5a059]/20 text-[#e9c176] text-xs font-mono font-bold uppercase tracking-wider mb-2 border border-[#c5a059]/40">
             <Calculator className="w-3.5 h-3.5" />
-            <span>Interactive Cost Calculator</span>
+            <span>Service requirements</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Choose your service requirements
           </h2>
           <p className="text-sm text-zinc-400 mt-1">
-            Get instant itemized cost breakdowns with genuine spare parts estimation & 30-day warranty.
+            Choose the work scope and any optional requirements. The team will confirm the quotation before proceeding.
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 rounded-xl">
           <Shield className="w-4 h-4" />
-          <span>ZERO HIDDEN CHARGES • GST COMPLIANT</span>
+          <span>CLEAR BOOKING DETAILS</span>
         </div>
       </div>
 
@@ -393,9 +393,7 @@ export default function ServicePriceEstimator({
                     <span className="text-zinc-400 flex items-center gap-1">
                       <Clock className="w-3 h-3 text-[#c5a059]" /> {opt.timeEst}
                     </span>
-                    <span className="text-[#e9c176] font-bold">
-                      From 
-                    </span>
+                    <span className="text-[#e9c176] font-bold">Select</span>
                   </div>
                 </div>
               );
@@ -543,7 +541,7 @@ export default function ServicePriceEstimator({
           </button>
 
           <p className="text-[10px] text-zinc-400 text-center mt-3 leading-relaxed">
-            *Final price may adjust slightly based on on-site inspection of specialized spare parts. No payment required upfront.
+            No public prices are displayed. Final quotation is confirmed before the booking is authorised.
           </p>
         </div>
       </div>
