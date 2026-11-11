@@ -89,7 +89,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
       id: `${product.id}-${Date.now()}`, serviceId: product.id,
       serviceName: `${product.name} × ${quantity}`, category: category.name,
       subcategory: 'Products & materials',
-      description: `${product.specification}. Indicative unit price ₹${product.minPrice}–₹${product.maxPrice}; confirm stock and final supplier price before purchase.`,
+      description: `${product.specification}. confirm stock and final supplier price before purchase.`,
       price: Math.round((lineMin + lineMax) / 2), priceMin: lineMin, priceMax: lineMax,
       quantity, itemType: 'product'
     };
@@ -182,7 +182,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
                   </div>
                   <button type="button" onClick={()=>addProductToCart(product)} className={"rounded-xl px-3 py-2.5 text-[11px] font-black text-white " + (product.quoteRequired ? "bg-[#475569]" : "bg-[#2563eb]")}>{product.quoteRequired?'Request quote':'Add product'}</button>
                 </div>
-                {!product.quoteRequired && <div className="mt-2 text-[10px] text-[#64748b]">Estimated line range: ₹{(product.minPrice*qty).toLocaleString('en-IN')}–₹{(product.maxPrice*qty).toLocaleString('en-IN')}</div>}
+                
               </article>;
             })}
           </div> : <p className="mt-3 text-sm text-[#64748b]">No listed materials for this category yet. Ask your professional for an itemised quote.</p>}
