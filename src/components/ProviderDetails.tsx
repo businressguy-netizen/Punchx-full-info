@@ -142,8 +142,8 @@ export default function ProviderDetails({
           </div>
 
           <div className="px-3 py-1 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-lg text-right">
-            <span className="text-[9px] text-zinc-400 block font-mono">HOURLY RATE</span>
-            <span className="font-sans font-extrabold text-[#e9c176] text-sm">₹{selectedWorker.price}/hr</span>
+            <span className="text-[9px] text-zinc-400 block font-mono"></span>
+            <span className="font-sans font-extrabold text-[#e9c176] text-sm"></span>
           </div>
         </div>
       </header>
@@ -155,7 +155,7 @@ export default function ProviderDetails({
         <div className="bg-gradient-to-b from-[#11192e] to-[#111415] border border-[#c5a059]/30 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#e9c176] text-[10px] font-mono font-bold px-3 py-1 rounded-full flex items-center gap-1">
             <Award className="w-3.5 h-3.5" />
-            {selectedWorker.proBadge === 'PRO' ? 'Elite Professional' : selectedWorker.proBadge === 'TOP' ? 'Top Rated Partner' : 'Vetted Veteran'}
+            {selectedWorker.proBadge === 'PRO' ? 'Elite Professional' : selectedWorker.proBadge === 'TOP' ? 'Verified Professional' : 'Vetted Veteran'}
           </div>
 
           <div className="relative inline-block mt-4">
@@ -185,8 +185,8 @@ export default function ProviderDetails({
                 );
               })}
             </div>
-            <span className="text-white font-extrabold text-sm">{selectedWorker.rating}</span>
-            <span className="text-zinc-500 text-xs">({selectedWorker.reviewsCount} customer reviews)</span>
+            <span className="text-white font-extrabold text-sm"></span>
+            <span className="text-zinc-500 text-xs"></span>
           </div>
 
           {/* Quick Stats Grid */}
