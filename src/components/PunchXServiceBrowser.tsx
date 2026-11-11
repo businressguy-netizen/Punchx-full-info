@@ -1219,7 +1219,7 @@ export default function PunchXServiceBrowser({ open, onClose, onSelectCategory, 
             <div className="relative max-w-2xl p-5 sm:p-8 lg:p-10">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-orange-200"><Zap className="h-3.5 w-3.5"/> PUNCHX electrical care</span>
               <h3 className="mt-4 max-w-xl text-3xl font-black leading-[1.05] tracking-tight sm:text-4xl">Power problems? <span className="text-orange-400">Let’s fix them smartly.</span></h3>
-              <p className="mt-3 max-w-lg text-sm leading-6 text-white/75 sm:text-base">Choose the issue, compare clear starting prices and find the right electrical service for your home.</p>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-white/75 sm:text-base">Choose the issue, explore the right electrical service for your home.</p>
               <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-bold">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/20 px-3 py-2"><Check className="h-3.5 w-3.5 text-orange-300"/> Task-based selection</span>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/20 px-3 py-2"><ShieldCheck className="h-3.5 w-3.5 text-orange-300"/> Safety-first service choices</span>
