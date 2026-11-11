@@ -313,7 +313,7 @@ export default function ServicePriceEstimator({
             <span>Interactive Cost Calculator</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Transparent Price Estimator
+            Choose your service requirements
           </h2>
           <p className="text-sm text-zinc-400 mt-1">
             Get instant itemized cost breakdowns with genuine spare parts estimation & 30-day warranty.
@@ -394,7 +394,7 @@ export default function ServicePriceEstimator({
                       <Clock className="w-3 h-3 text-[#c5a059]" /> {opt.timeEst}
                     </span>
                     <span className="text-[#e9c176] font-bold">
-                      From ₹{opt.baseLabor + opt.partsEst}
+                      From 
                     </span>
                   </div>
                 </div>
@@ -441,7 +441,7 @@ export default function ServicePriceEstimator({
                   className="w-4 h-4 rounded text-[#c5a059] focus:ring-[#c5a059] accent-[#c5a059] bg-zinc-900 border-zinc-700"
                 />
                 <span className="text-xs text-zinc-300">
-                  Include <strong>Extended {activeService.warrantyDays}-Day Master Warranty Protection</strong> (+₹99)
+                  Include <strong>Extended {activeService.warrantyDays}-Day Master Warranty Protection</strong> 
                 </span>
               </label>
 
@@ -453,7 +453,7 @@ export default function ServicePriceEstimator({
                   className="w-4 h-4 rounded text-[#c5a059] focus:ring-[#c5a059] accent-[#c5a059] bg-zinc-900 border-zinc-700"
                 />
                 <span className="text-xs text-zinc-300">
-                  Priority <strong>Instant Emergency Fast-Track Dispatch</strong> (+₹249)
+                  Priority <strong>Instant Emergency Fast-Track Dispatch</strong> 
                 </span>
               </label>
             </div>
@@ -465,7 +465,7 @@ export default function ServicePriceEstimator({
           <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#c5a059] font-bold">
-                ESTIMATE SUMMARY
+                BOOKING SUMMARY
               </span>
               <h3 className="text-lg font-bold text-white leading-tight mt-0.5">
                 {activeService.name}
@@ -479,39 +479,39 @@ export default function ServicePriceEstimator({
           {/* Itemized Calculation Lines */}
           <div className="py-4 space-y-2.5 text-xs text-zinc-300 font-mono">
             <div className="flex justify-between">
-              <span className="text-zinc-400">Base Doorstep Visit & Inspection:</span>
-              <span className="text-white">₹{baseInspection}</span>
+              <span className="text-zinc-400">Visit and inspection:</span>
+              <span className="text-white"></span>
             </div>
 
             <div className="flex justify-between">
-              <span className="text-zinc-400">Master Technician Labor ({quantity}x):</span>
-              <span className="text-white">₹{calculatedLabor}</span>
+              <span className="text-zinc-400">Service scope:</span>
+              <span className="text-white"></span>
             </div>
 
             {calculatedParts > 0 && (
               <div className="flex justify-between">
-                <span className="text-zinc-400">Estimated Genuine Spare Parts / Consumables:</span>
-                <span className="text-white">₹{calculatedParts}</span>
+                <span className="text-zinc-400">Parts and consumables:</span>
+                <span className="text-white"></span>
               </div>
             )}
 
             {includeMaterialWarranty && (
               <div className="flex justify-between text-emerald-400">
                 <span>Extended {activeService.warrantyDays}-Day Revisit Guarantee:</span>
-                <span>+₹99</span>
+                <span>+</span>
               </div>
             )}
 
             {isUrgentEmergency && (
               <div className="flex justify-between text-amber-400">
                 <span>Emergency Priority Dispatch:</span>
-                <span>+₹249</span>
+                <span>+</span>
               </div>
             )}
 
             <div className="flex justify-between text-emerald-400">
-              <span>First-Time Citizen Coupon Applied:</span>
-              <span>-₹{promoSavings}</span>
+              <span>Offer:</span>
+              <span>-</span>
             </div>
           </div>
 
@@ -519,10 +519,10 @@ export default function ServicePriceEstimator({
           <div className="p-4 rounded-2xl bg-[#081226] border border-[#c5a059]/50 my-4 flex items-center justify-between">
             <div>
               <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
-                Total Estimated Payable
+                Quotation
               </span>
               <span className="text-2xl sm:text-3xl font-black text-[#e9c176] font-mono tracking-tight">
-                ₹{finalEstimate}
+                
               </span>
             </div>
 
@@ -538,7 +538,7 @@ export default function ServicePriceEstimator({
             onClick={handleBookNow}
             className="w-full py-3.5 px-4 rounded-2xl bg-[#c5a059] hover:bg-[#e9c176] text-black font-extrabold text-sm tracking-wide transition-all shadow-xl shadow-[#c5a059]/25 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
           >
-            <span>Book This Service at ₹{finalEstimate}</span>
+            <span>Continue booking</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
