@@ -149,7 +149,7 @@ export default function ProviderDetails({
       </header>
 
       {/* Main Content Pane */}
-      <main className="punchx-citizen-main max-w-xl mx-auto px-6 pt-24 space-y-6">
+      <main id="punchx-provider-details" className="punchx-citizen-main max-w-xl mx-auto px-6 pt-24 space-y-6">
         
         {/* Profile Card Intro hero banner block */}
         <div className="bg-gradient-to-b from-[#11192e] to-[#111415] border border-[#c5a059]/30 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
