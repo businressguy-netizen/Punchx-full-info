@@ -273,7 +273,7 @@ export default function CitizenHomeCatalog({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="hidden sm:flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-emerald-300/15 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 ring-1 ring-emerald-200/30">₹0 PLATFORM FEE</span>
+                  <span className="rounded-full bg-emerald-300/15 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 ring-1 ring-emerald-200/30">Booking details confirmed before approval</span>
                   <span className="text-[10px] font-semibold text-[#E8D2C4]">PUNCHX SPOTLIGHT</span>
                 </div>
                 <h2 className="mt-1 text-base font-extrabold leading-5 text-[#F7EFE7] sm:text-lg">Your first booking, platform-fee free.</h2>
