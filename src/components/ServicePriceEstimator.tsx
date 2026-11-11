@@ -474,61 +474,7 @@ export default function ServicePriceEstimator({
             </span>
           </div>
 
-          {/* Public-facing quotation is confirmed separately; no price breakdown is shown here. */}
-          <div className="py-4 space-y-2.5 text-xs text-zinc-300 font-mono">
-            <div className="flex justify-between">
-              <span className="text-zinc-400">Visit and inspection:</span>
-              <span className="text-white"></span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-zinc-400">Service scope:</span>
-              <span className="text-white"></span>
-            </div>
-
-            {calculatedParts > 0 && (
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Parts and consumables:</span>
-                <span className="text-white"></span>
-              </div>
-            )}
-
-            {includeMaterialWarranty && (
-              <div className="flex justify-between text-emerald-400">
-                <span>Extended {activeService.warrantyDays}-Day Revisit Guarantee:</span>
-                <span>+</span>
-              </div>
-            )}
-
-            {isUrgentEmergency && (
-              <div className="flex justify-between text-amber-400">
-                <span>Emergency Priority Dispatch:</span>
-                <span>+</span>
-              </div>
-            )}
-
-            <div className="flex justify-between text-emerald-400">
-              <span>Offer:</span>
-              <span>-</span>
-            </div>
-          </div>
-
-          {/* No public total or rate is rendered. */}
-          <div className="p-4 rounded-2xl bg-[#081226] border border-[#c5a059]/50 my-4 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
-                Quotation
-              </span>
-              <span className="text-2xl sm:text-3xl font-black text-[#e9c176] font-mono tracking-tight">
-                
-              </span>
-            </div>
-
-            <div className="text-right text-[10px] text-zinc-400 font-mono">
-              <span className="text-emerald-400 font-bold block">✓ Pay After Service</span>
-              <span>Online UPI / Cash</span>
-            </div>
-          </div>
+          <div className="py-4 text-sm leading-6 text-zinc-300">Your selected service requirements will be reviewed by the PunchX team. The final quotation will be shared with you for approval before the booking is authorised.</div>
 
           {/* Action Trigger */}
           <button
