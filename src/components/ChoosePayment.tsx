@@ -180,8 +180,8 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
         <div className="text-sm font-black">{pending.serviceName||'Selected PUNCHX service'}</div>
         <div className="mt-1 text-xs text-[#64748b]">{pending.date||'Date'} · {pending.time||'Time'}</div>
         <div className="mt-1 break-words text-xs text-[#64748b]">{pending.address||'Service address'}</div>
-        <div className="mt-4 flex justify-between border-t border-[#e5eefb] pt-3 text-sm"><span className="text-[#64748b]">Indicative visit + platform fee</span><strong>{formatINR(estimatedTotal)}</strong></div>
-        <p className="mt-2 text-[10px] leading-4 text-[#64748b]">This is an estimate only. Final labour, materials, taxes and payment details will be confirmed by PUNCHX before payment.</p>
+        <div className="mt-4 border-t border-[#e5eefb] pt-3 text-sm leading-6 text-[#64748b]">No prices are displayed at this stage. PUNCHX will share the final quotation for your approval before payment.</div>
+        <p className="mt-2 text-[10px] leading-4 text-[#64748b]">Labour, materials, applicable charges and payment details are confirmed by PUNCHX before payment.</p>
       </div>
       {error&&<p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</p>}
       <button onClick={submitRequest} disabled={submitting} className="mt-5 w-full rounded-2xl bg-[#2563eb] py-4 text-sm font-black text-white disabled:opacity-50">{submitting?'Submitting request…':'Submit order for admin approval'}</button>
