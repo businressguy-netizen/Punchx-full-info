@@ -52,12 +52,13 @@ export const requireAdminApiKey = (req: Request, res: Response, next: NextFuncti
     (req.headers['X-Admin-Key'] as string) ||
     req.headers['authorization']?.replace('Bearer ', '').trim();
 
-  const expectedKey = process.env.ADMIN_API_KEY;
-  if (!expectedKey && process.env.NODE_ENV === 'production') {
-    logger.error('ADMIN_API_KEY environment variable is not configured on the production server');
-    return res.status(500).json({ success: false, error: 'Admin bridge authentication is not configured on server' });
+  // Fail closed: never ship a fallback credential. The legacy shared-key bridge
+  // must use a freshly rotated value stored only in the backend environment.
+  const keyToCompare = process.env.ADMIN_API_KEY;
+  if (!keyToCompare) {
+    logger.error('ADMIN_API_KEY is not configured; admin bridge is disabled');
+    return res.status(503).json({ success: false, error: 'Admin bridge is temporarily disabled pending secure server-side authentication setup' });
   }
-  const keyToCompare = expectedKey || 'punchx_admin_secure_live_key_2026_9941a8';
 
   if (!adminKey) {
     logger.security('Missing administrative key header', { ip: req.ip, path: req.originalUrl });
