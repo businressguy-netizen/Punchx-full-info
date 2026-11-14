@@ -166,7 +166,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
         </button>)}
       </div>}
 
-      {step==='services'&&category&&subcategory&&<div className="overflow-hidden rounded-2xl border border-[#e8e1d4] bg-white shadow-sm">
+      {step==='services'&&category&&subcategory&&<><div className="overflow-hidden rounded-2xl border border-[#e8e1d4] bg-white shadow-sm">
         <div className="border-b border-[#eee8dc] bg-[#fbfaf6] p-4"><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#94703a]">{category.name}</p><h2 className="mt-1 text-lg font-black">{subcategory.name}</h2><p className="mt-1 text-xs text-[#77736b]">Select one or more work items to include in your request.</p></div>
         {services.map(service=><article key={service.id} className="flex flex-col gap-4 border-b border-[#eee8dc] p-4 last:border-b-0 sm:flex-row sm:items-center">
           <img src={service.image} alt="" loading="lazy" className="h-20 w-20 rounded-xl object-cover bg-[#f1ede4]"/>
