@@ -7,7 +7,7 @@ import {OrderRecord} from '../types';
 // message; an admin must review it and press Send in the official Business account.
 function buildCustomerWhatsAppUrl(order: ReviewOrder): string {
   const rawPhone = String(order.customerPhone || '').trim();
-  let phone = rawPhone.replace(/\\D/g, '');
+  let phone = rawPhone.replace(/\D/g, '');
   if (phone.startsWith('00')) phone = phone.slice(2);
   if (phone.length === 11 && phone.startsWith('0')) phone = phone.slice(1);
   if (phone.length === 10) phone = `91${phone}`;
@@ -22,7 +22,7 @@ function buildCustomerWhatsAppUrl(order: ReviewOrder): string {
     `Preferred slot: ${order.date || 'To be confirmed'} ${order.time || ''}`.trim(),
     'Please reply here so our team can confirm the service details and next steps.',
     'Thank you, Team PUNCHX.',
-  ].join('\\n');
+  ].join('\n');
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }
