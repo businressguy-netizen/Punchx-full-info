@@ -444,6 +444,8 @@ function AppMain() {
 
   const handlePublicCategory = (category: string) => {
     setSelectedCategory(category);
+    setSelectedWorker(null);
+    try { localStorage.removeItem('punchx_cart_selected_worker'); } catch {}
     if (currentUser) { handleTransition('providers'); return; }
     try { localStorage.setItem('punchx_pending_public_category', category); } catch {}
     setActivePanelRole('customer');
