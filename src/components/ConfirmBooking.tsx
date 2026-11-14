@@ -45,7 +45,7 @@ export default function ConfirmBooking({ onTransition, bookingTime, setBookingTi
   const estimatedDuration=cart.map(item=>item.duration).filter(Boolean)[0] || 'Confirmed after request review';
   const scheduleDays=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i);return d.toLocaleDateString('en-CA');});
   const addressText=[address.house,address.street,address.landmark,address.villageArea,address.city,address.district,address.state,address.pinCode].filter(Boolean).join(', ');
-  const validAddress=[address.house,address.street,address.villageArea,address.city,address.district,address.state].every(v=>String(v).trim().length>0)&&/^\\d{6}$/.test(address.pinCode.trim());
+  const validAddress=[address.house,address.street,address.villageArea,address.city,address.district,address.state].every(v=>String(v).trim().length>0)&&/^\d{6}$/.test(address.pinCode.trim());
   const valid=cart.length>0&&validAddress&&date&&time;
 
   const removeItem=(id:string)=>{const next=cart.filter(item=>item.id!==id);setCart(next);saveJSON('punchx_cart',next);};
