@@ -129,12 +129,6 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
     return()=>{active=false;window.clearInterval(timer);};
   },[order?.id]);
 
-  const openWhatsApp=()=>{
-    if(!order?.id||!accepted)return;
-    const message=`Hi PUNCHX, my order ID is ${order.id}. My booking has been accepted. I am ready to confirm the service details and coordinate payment.`;
-    window.open(`${WHATSAPP_URL}?text=${encodeURIComponent(message)}`,'_blank','noopener,noreferrer');
-  };
-
   if(order){
     return <main id="punchx-payment-flow" className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-[#171714] sm:px-6">
       <section className="mx-auto max-w-lg rounded-3xl border border-[#dbeafe] bg-white p-6 text-center shadow-xl">
@@ -144,7 +138,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
         <p className="mt-5 text-[10px] font-black uppercase tracking-[.18em] text-[#2563eb]">PUNCHX booking request</p>
         <h1 className="mt-2 text-2xl font-black">{accepted?'Your order has been accepted':rejected?'Order request not accepted':'Request submitted successfully'}</h1>
         <p className="mt-2 text-sm leading-6 text-[#64748b]">
-          {accepted?'The PUNCHX team has accepted your request. Continue to our official WhatsApp Business to confirm the appointment and coordinate payment.':
+          {accepted?'Your request has been accepted. A PUNCHX admin will contact you directly on WhatsApp from our official Business account. Please keep your registered mobile number available.':
            rejected?'The PUNCHX team could not accept this request. Please contact our team if you need help.':
            'Your order details have been sent to the PUNCHX Admin Panel. Please wait while our team reviews service availability and professional assignment.'}
         </p>
@@ -163,7 +157,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
             <span className="text-xs font-bold">Not collected yet</span>
           </div>
         </div>
-        {accepted&&<button onClick={openWhatsApp} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#15945a] py-4 text-sm font-black text-white"><MessageCircle className="h-5 w-5"/> Continue to PUNCHX WhatsApp</button>}
+        {accepted&&<div className="mt-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left"><MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700"/><div><p className="text-sm font-black text-emerald-900">PUNCHX will contact you</p><p className="mt-1 text-xs leading-5 text-emerald-800">Our admin team will start the WhatsApp conversation with you. You do not need to open WhatsApp or message us first.</p></div></div>}
         {waiting&&<p className="mt-4 text-xs text-[#64748b]">{checking?'Checking for an admin update…':'This page will update automatically when the team reviews your request.'}</p>}
         {rejected&&order.adminReviewNotes&&<p className="mt-3 rounded-xl bg-red-50 p-3 text-left text-xs text-red-700">{order.adminReviewNotes}</p>}
         <button onClick={()=>onTransition('home')} className="mt-4 w-full rounded-2xl border border-[#dbeafe] py-3 text-sm font-bold text-[#2563eb]">Back to PUNCHX home</button>
@@ -175,7 +169,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
     <section className="mx-auto max-w-lg rounded-3xl border border-[#dbeafe] bg-white p-6 shadow-xl">
       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#2563eb]"><ShieldCheck className="h-4 w-4"/> Admin-reviewed booking</div>
       <h1 className="mt-3 text-2xl font-black">Submit your service request</h1>
-      <p className="mt-2 text-sm leading-6 text-[#64748b]">Your booking details will first go to the PUNCHX Admin Panel. No payment is taken at this stage. If accepted, you will receive a confirmation prompt and continue through our official WhatsApp Business.</p>
+      <p className="mt-2 text-sm leading-6 text-[#64748b]">Your booking details will first go to the PUNCHX Admin Panel. No payment is taken at this stage. If accepted, a PUNCHX admin will contact you directly through our official WhatsApp Business account.</p>
       <div className="mt-5 rounded-2xl bg-[#f8fbff] p-4">
         <div className="text-sm font-black">{pending.serviceName||'Selected PUNCHX service'}</div>
         <div className="mt-1 text-xs text-[#64748b]">{pending.date||'Date'} · {pending.time||'Time'}</div>
