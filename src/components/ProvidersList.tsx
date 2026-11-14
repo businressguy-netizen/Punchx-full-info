@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, ChevronRight, Search, ShoppingCart, ShieldCheck,
 import { AppScreen } from '../types';
 import { PUNCHX_50_CATEGORIES } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
+import { getProductsForCategory, PriceProduct } from '../data/expandedPriceCatalogue';
 
 interface ProvidersListProps {
   onTransition: (target: AppScreen) => void;
@@ -22,6 +23,8 @@ type CartItem = {
   duration?: string;
   image?: string;
   bookingTiming: 'later';
+  quantity?: number;
+  itemType?: 'service'|'product';
 };
 
 const FEATURED_IDS = ['electrician','plumber','cleaner-housekeeper','ac-technician','pest-control-worker','beautician','carpenter','painter','cook','home-care-physiotherapy'];
@@ -40,6 +43,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>(readCart);
   const [addedServiceIds, setAddedServiceIds] = useState<string[]>([]);
+  const products = category ? getProductsForCategory(category) : [];
 
   const categories = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -89,6 +93,30 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
       showNotification(`${service.name} added to your request.`);
     } catch {
       showNotification('Could not save this service. Please check device storage and try again.');
+    }
+  };
+
+  const addProductToRequest = (product: PriceProduct) => {
+    if (!category) return;
+    const item: CartItem = {
+      id: `${product.id}-${Date.now()}`,
+      serviceId: product.id,
+      serviceName: product.name,
+      category: category.name,
+      subcategory: 'Products & materials',
+      description: `${product.specification}. Exact model, stock, quantity and final supplier price will be confirmed before purchase.`,
+      price: 0,
+      bookingTiming: 'later',
+      quantity: 1,
+      itemType: 'product'
+    };
+    const next = [...cart, item];
+    try {
+      localStorage.setItem('punchx_cart', JSON.stringify(next));
+      setCart(next);
+      showNotification(`${product.name} added to your request. Final price will be confirmed before purchase.`);
+    } catch {
+      showNotification('Could not save this product. Please check device storage and try again.');
     }
   };
 
@@ -145,7 +173,12 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
           <div className="min-w-0 flex-1"><div className="font-black">{service.name}</div><p className="mt-1 text-xs leading-5 text-[#77736b]">{service.description}</p><p className="mt-2 text-[10px] font-semibold text-[#8b8579]">Estimated duration: {service.duration || 'Confirmed after review'}</p></div>
           <button type="button" onClick={()=>addToRequest(service)} className={`shrink-0 rounded-xl px-4 py-3 text-xs font-black transition ${addedServiceIds.includes(service.id)?'border border-[#c5a66a] bg-[#f6f0e4] text-[#75572c]':'bg-[#171714] text-white hover:bg-[#343128]'}`}>{addedServiceIds.includes(service.id)?'Add another':'Add to request'} <ArrowRight className="ml-1 inline h-4 w-4 text-[#d7bd82]"/></button>
         </article>)}
-      </div>}
+      </div>
+      {products.length>0&&<section className="mt-6 rounded-2xl border border-[#e8e1d4] bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f0e5] text-[#94703a]"><Package className="h-5 w-5"/></span><div><h3 className="font-black">Products & materials</h3><p className="mt-1 text-[11px] text-[#77736b]">Add optional items to your request. No public prices are shown.</p></div></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{products.map(product=><article key={product.id} className="rounded-xl border border-[#eee8dc] bg-[#fbfaf6] p-3"><h4 className="text-sm font-black">{product.name}</h4><p className="mt-1 text-[10px] font-semibold text-[#94703a]">Unit: {product.unit}</p><p className="mt-2 text-xs leading-5 text-[#77736b]">{product.specification}</p>{product.quoteRequired&&<p className="mt-2 rounded-lg bg-[#f5f0e5] p-2 text-[10px] text-[#75572c]">Exact model and supplier quote required.</p>}<button type="button" onClick={()=>addProductToRequest(product)} className="mt-3 w-full rounded-lg bg-[#171714] px-3 py-2.5 text-[11px] font-black text-white hover:bg-[#343128]">Add product to request <ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#d7bd82]"/></button></article>)}</div>
+      </section>}
+      </>}
 
       {((step==='categories'&&!categories.length)||(step==='subcategories'&&!subcategories.length)||(step==='services'&&!services.length))&&<div className="rounded-2xl border border-dashed border-[#d8cfbd] bg-white p-8 text-center text-sm text-[#77736b]">No matching options found. Try a broader search.</div>}
     </main>
