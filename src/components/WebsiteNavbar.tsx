@@ -69,7 +69,7 @@ export default function WebsiteNavbar({
     setMobileOpen(false);
     setCategoryModalOpen(false);
     onTransition('providers');
-    showNotification(`Showing local PunchX professionals for ${name}.`);
+    showNotification(`Choose the work you need for ${name}; PUNCHX will review your request.`);
   };
 
   const signOut = async () => {
@@ -90,7 +90,7 @@ export default function WebsiteNavbar({
           <button
             aria-label="Open navigation"
             onClick={() => setMobileOpen(v => !v)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f6f8] text-[#30333a] transition hover:bg-[#eeeef2] md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f8f7f3] text-[#191814] transition hover:bg-[#f1ede4] md:hidden"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -100,13 +100,13 @@ export default function WebsiteNavbar({
               <img src={PUNCHX_LOGO} alt="PunchX" className="h-full w-full rounded-[10px] object-contain" />
             </div>
             <div className="hidden sm:block">
-              <div className="text-[17px] font-black tracking-[-0.03em] text-[#17191d]">PunchX</div>
-              <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#7f8390]">Local service network</div>
+              <div className="text-[17px] font-black tracking-[-0.03em] text-[#171714]">PunchX</div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#8b8579]">Local service network</div>
             </div>
           </button>
 
-          <button className="ml-auto hidden min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left transition hover:bg-[#f6f7fa] lg:flex" onClick={() => showNotification('Location selector is ready for your service address.')}>
-            <MapPin className="h-4 w-4 shrink-0 text-[#7358d7]" />
+          <button className="ml-auto hidden min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-left transition hover:bg-[#fbfaf6] lg:flex" onClick={() => showNotification('Location selector is ready for your service address.')}>
+            <MapPin className="h-4 w-4 shrink-0 text-[#94703a]" />
             <div className="min-w-0">
               <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#9296a0]">Service at</div>
               <div className="max-w-[235px] truncate text-xs font-extrabold text-[#272a31]">{citizenAddress || 'Choose service location'}</div>
@@ -114,12 +114,12 @@ export default function WebsiteNavbar({
           </button>
 
           <nav className="hidden items-center gap-1 md:flex">
-            <button onClick={() => go('home')} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'home' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}>Home</button>
+            <button onClick={() => go('home')} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'home' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#fbfaf6] hover:text-[#171714]'}`}>Home</button>
 
             <div className="relative">
               <button
                 onClick={() => setServicesOpen(v => !v)}
-                className={`flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-extrabold transition ${servicesOpen ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}
+                className={`flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-extrabold transition ${servicesOpen ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#fbfaf6] hover:text-[#171714]'}`}
               >
                 Services <ChevronDown className={`h-3.5 w-3.5 transition ${servicesOpen ? 'rotate-180' : ''}`} />
               </button>
@@ -132,8 +132,8 @@ export default function WebsiteNavbar({
                     className="absolute left-0 top-[calc(100%+8px)] w-[360px] rounded-3xl border border-black/5 bg-white p-3 shadow-[0_24px_70px_rgba(24,24,30,.14)]"
                   >
                     <div className="mb-2 flex items-center justify-between rounded-2xl bg-[#f7f5ff] px-3 py-2">
-                      <div className="flex items-center gap-2 text-xs font-black text-[#2d2d34]"><Grid2X2 className="h-4 w-4 text-[#7358d7]" /> Quick services</div>
-                      <button onClick={() => { setServicesOpen(false); setCategoryModalOpen(true); }} className="text-[10px] font-extrabold text-[#7358d7]">Browse all 10</button>
+                      <div className="flex items-center gap-2 text-xs font-black text-[#2d2d34]"><Grid2X2 className="h-4 w-4 text-[#94703a]" /> Quick services</div>
+                      <button onClick={() => { setServicesOpen(false); setCategoryModalOpen(true); }} className="text-[10px] font-extrabold text-[#94703a]">Browse all 10</button>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {QUICK_CATEGORIES.map(cat => (
@@ -148,18 +148,18 @@ export default function WebsiteNavbar({
               </AnimatePresence>
             </div>
 
-            <button onClick={() => go('tracking')} className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'tracking' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}>
+            <button onClick={() => go('tracking')} className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'tracking' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#fbfaf6] hover:text-[#171714]'}`}>
               <Navigation2 className="h-3.5 w-3.5" /> Live tracking
               {hasActiveBooking && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />}
             </button>
 
-            <button onClick={() => go('providers')} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'providers' || currentScreen === 'provider-details' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}>
+            <button onClick={() => go('providers')} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'providers' || currentScreen === 'provider-details' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#fbfaf6] hover:text-[#171714]'}`}>
               Find a pro
             </button>
 
-            <button onClick={() => go('catalogue')} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'catalogue' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}>Price catalogue</button>
+            <button onClick={() => go('catalogue')} className={`rounded-xl px-3 py-2 text-xs font-extrabold transition ${currentScreen === 'catalogue' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#fbfaf6] hover:text-[#171714]'}`}>Price catalogue</button>
 
-            <button onClick={() => go('founder')} className={`hidden rounded-xl px-3 py-2 text-xs font-extrabold transition lg:block ${currentScreen === 'founder' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#f6f7fa] hover:text-[#17191d]'}`}>
+            <button onClick={() => go('founder')} className={`hidden rounded-xl px-3 py-2 text-xs font-extrabold transition lg:block ${currentScreen === 'founder' ? 'bg-[#f0ecff] text-[#5b45c7]' : 'text-[#60656f] hover:bg-[#fbfaf6] hover:text-[#171714]'}`}>
               Team
             </button>
           </nav>
@@ -168,12 +168,12 @@ export default function WebsiteNavbar({
             <CitizenCartButton onCheckout={(hasItems) => go(hasItems ? 'booking' : 'providers')} />
             <button onClick={onOpenNotificationCenter} className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-[#f7f7f8] text-[#5f636d] transition hover:bg-[#efeff3]" aria-label="Notifications">
               <Bell className="h-5 w-5" />
-              {unreadCount > 0 && <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#7358d7] px-1 text-[8px] font-black text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+              {unreadCount > 0 && <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#94703a] px-1 text-[8px] font-black text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}
             </button>
 
             {currentUser ? (
               <div className="relative">
-                <button onClick={() => setProfileOpen(v => !v)} className="flex h-10 items-center gap-2 rounded-xl bg-[#17191d] px-2.5 text-white transition hover:bg-[#24272d]" aria-label="Open profile">
+                <button onClick={() => setProfileOpen(v => !v)} className="flex h-10 items-center gap-2 rounded-xl bg-[#171714] px-2.5 text-white transition hover:bg-[#24272d]" aria-label="Open profile">
                   <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg bg-white/10">{userProfile?.photoURL ? <img src={userProfile.photoURL} alt="Profile" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}</div>
                   <span className="hidden max-w-24 truncate text-xs font-extrabold sm:block">{citizenName || userProfile?.name || 'Customer'}</span>
                   <ChevronDown className={`h-3.5 w-3.5 transition ${profileOpen ? 'rotate-180' : ''}`} />
@@ -182,14 +182,14 @@ export default function WebsiteNavbar({
                   {profileOpen && (
                     <motion.div initial={{ opacity: 0, y: 7, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 7, scale: .98 }} className="absolute right-0 top-[calc(100%+8px)] w-72 rounded-3xl border border-black/5 bg-white p-3 shadow-[0_24px_70px_rgba(24,24,30,.14)]">
                       <div className="rounded-2xl bg-[#f7f5ff] p-3">
-                        <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-[#17191d] text-white">{userProfile?.photoURL ? <img src={userProfile.photoURL} alt="Profile" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}</div><div className="min-w-0"><div className="truncate text-xs font-black">{citizenName || 'PunchX Customer'}</div><div className="truncate text-[10px] text-[#848994]">{citizenAddress || 'Service address not set'}</div></div></div>
-                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-1 text-[9px] font-extrabold text-[#5b45c7] ring-1 ring-[#7358d7]/10"><ShieldCheck className="h-3 w-3" /> PunchX account</div>
+                        <div className="flex items-center gap-2"><div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-[#171714] text-white">{userProfile?.photoURL ? <img src={userProfile.photoURL} alt="Profile" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}</div><div className="min-w-0"><div className="truncate text-xs font-black">{citizenName || 'PunchX Customer'}</div><div className="truncate text-[10px] text-[#848994]">{citizenAddress || 'Service address not set'}</div></div></div>
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white px-2 py-1 text-[9px] font-extrabold text-[#5b45c7] ring-1 ring-[#94703a]/10"><ShieldCheck className="h-3 w-3" /> PunchX account</div>
                       </div>
                       <div className="mt-2 space-y-1">
-                        <button onClick={() => { setProfileOpen(false); onOpenProfile?.(); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><UserRound className="h-4 w-4 text-[#7358d7]" /> Manage account & bookings</button>
-                        <button onClick={() => { setProfileOpen(false); onOpenNotificationCenter(); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><Bell className="h-4 w-4 text-[#7358d7]" /> Alerts & notifications</button>
-                        <button onClick={() => { setProfileOpen(false); setCategoryModalOpen(true); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><Search className="h-4 w-4 text-[#7358d7]" /> Search all services</button>
-                        <button onClick={() => { setProfileOpen(false); go('tracking'); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><Navigation2 className="h-4 w-4 text-[#7358d7]" /> Active service tracking</button>
+                        <button onClick={() => { setProfileOpen(false); onOpenProfile?.(); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><UserRound className="h-4 w-4 text-[#94703a]" /> Manage account & bookings</button>
+                        <button onClick={() => { setProfileOpen(false); onOpenNotificationCenter(); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><Bell className="h-4 w-4 text-[#94703a]" /> Alerts & notifications</button>
+                        <button onClick={() => { setProfileOpen(false); setCategoryModalOpen(true); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><Search className="h-4 w-4 text-[#94703a]" /> Search all services</button>
+                        <button onClick={() => { setProfileOpen(false); go('tracking'); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-[#4b4f58] hover:bg-[#f7f7f9]"><Navigation2 className="h-4 w-4 text-[#94703a]" /> Active service tracking</button>
                         <div className="my-1 border-t border-black/5" />
                         <button onClick={signOut} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-bold text-rose-500 hover:bg-rose-50"><LogOut className="h-4 w-4" /> Sign out</button>
                       </div>
@@ -198,17 +198,17 @@ export default function WebsiteNavbar({
                 </AnimatePresence>
               </div>
             ) : (
-              <button onClick={() => go('auth')} className="rounded-xl bg-[#7358d7] px-4 py-2.5 text-xs font-black text-white shadow-[0_10px_25px_rgba(115,88,215,.20)] transition hover:bg-[#5b45c7]">Sign in</button>
+              <button onClick={() => go('auth')} className="rounded-xl bg-[#94703a] px-4 py-2.5 text-xs font-black text-white shadow-[0_10px_25px_rgba(115,88,215,.20)] transition hover:bg-[#5b45c7]">Sign in</button>
             )}
           </div>
         </div>
 
         <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-4 pb-2 lg:hidden">
-          <button onClick={() => showNotification('Use your saved service address or refresh your location from the service flow.')} className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-[#f5f6f8] px-3 py-2 text-left">
-            <MapPin className="h-4 w-4 shrink-0 text-[#7358d7]" />
+          <button onClick={() => showNotification('Use your saved service address or refresh your location from the service flow.')} className="flex min-w-0 flex-1 items-center gap-2 rounded-xl bg-[#f8f7f3] px-3 py-2 text-left">
+            <MapPin className="h-4 w-4 shrink-0 text-[#94703a]" />
             <span className="truncate text-[10px] font-bold text-[#6d727c]">{citizenAddress || 'Set your service location'}</span>
           </button>
-          <button onClick={() => go('providers')} className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0ecff] text-[#7358d7]" aria-label="Find a professional"><Search className="h-4 w-4" /></button>
+          <button onClick={() => go('providers')} className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0ecff] text-[#94703a]" aria-label="Find a professional"><Search className="h-4 w-4" /></button>
           <button onClick={() => go('catalogue')} className="rounded-xl bg-[#171c35] px-3 py-2 text-[10px] font-extrabold text-white" aria-label="Open service and product catalogue">Catalogue</button>
         </div>
 
@@ -228,7 +228,7 @@ export default function WebsiteNavbar({
                     if (screen === 'services-categories') { setMobileOpen(false); setCategoryModalOpen(true); return; }
                     go(screen as AppScreen);
                   }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-xs font-black text-[#444850] hover:bg-[#f7f7fa]">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0ecff] text-[#7358d7]"><Icon className="h-4 w-4" /></span>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f0ecff] text-[#94703a]"><Icon className="h-4 w-4" /></span>
                     {String(label)}
                   </button>
                 ))}
