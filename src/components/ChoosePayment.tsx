@@ -81,7 +81,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
           workerName:null,
           workerIsDemo:Boolean(pending.workerIsDemo),
           isPersonalSelection:Boolean(pending.isPersonalSelection),
-          dispatchMode:'ADMIN_REVIEW',
+          dispatchMode:'AREA_MATCH',
           bookingTiming:pending.bookingTiming||'later',
           bookingType:pending.bookingTiming==='instant'?'INSTANT':'SCHEDULED',
           paymentMethod:'WHATSAPP_COORDINATED',paymentStatus:'pending',
