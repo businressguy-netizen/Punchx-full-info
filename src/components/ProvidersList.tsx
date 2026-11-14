@@ -180,7 +180,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
       </section>}
       </>}
 
-      {((step==='categories'&&!categories.length)||(step==='subcategories'&&!subcategories.length)||(step==='services'&&!services.length))&&<div className="rounded-2xl border border-dashed border-[#d8cfbd] bg-white p-8 text-center text-sm text-[#77736b]">No matching options found. Try a broader search.</div>}
+      {((step==='categories'&&!categories.length)||(step==='subcategories'&&!subcategories.length)||(step==='services'&&!services.length&&!products.length))&&<div className="rounded-2xl border border-dashed border-[#d8cfbd] bg-white p-8 text-center text-sm text-[#77736b]">No matching options found. Try a broader search.</div>}
     </main>
 
     {cart.length>0&&<div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e8e1d4] bg-white/95 p-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(30,27,19,.08)] backdrop-blur-xl"><div className="mx-auto flex max-w-4xl items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f6f0e4] text-[#94703a]"><ShoppingCart className="h-5 w-5"/></div><div className="min-w-0 flex-1"><div className="text-sm font-black">{cart.length} request item{cart.length===1?'':'s'}</div><div className="text-[10px] text-[#77736b]">Quotation is shared after review</div></div><button type="button" onClick={()=>onTransition('booking')} className="rounded-xl bg-[#c5a66a] px-5 py-3 text-xs font-black text-[#171510] hover:bg-[#dfc58b]">Review request <ArrowRight className="ml-1 inline h-4 w-4"/></button></div></div>}
