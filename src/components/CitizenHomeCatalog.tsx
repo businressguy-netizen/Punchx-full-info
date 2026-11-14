@@ -31,14 +31,14 @@ const POPULAR_IDS = ['electrician', 'plumber', 'cleaner-housekeeper', 'ac-techni
 
 /* ── Accent color per group for visual variety ── */
 const GROUP_COLORS = [
-  { bg: 'bg-[#F7EFE7]', text: 'text-[#6B5560]', border: 'border-[#E8D2C4]', icon: 'text-[#9E8189]', ring: 'ring-[#C7A9A3]' },
-  { bg: 'bg-[#F0E4E2]', text: 'text-[#6B5560]', border: 'border-[#E8D2C4]', icon: 'text-[#9E8189]', ring: 'ring-[#C7A9A3]' },
-  { bg: 'bg-[#F7EFE7]', text: 'text-[#3E3239]', border: 'border-[#C7A9A3]', icon: 'text-[#6B5560]', ring: 'ring-[#E8D2C4]' },
-  { bg: 'bg-[#E8D2C4]', text: 'text-[#3E3239]', border: 'border-[#C7A9A3]', icon: 'text-[#6B5560]', ring: 'ring-[#9E8189]' },
-  { bg: 'bg-[#F7EFE7]', text: 'text-[#6B5560]', border: 'border-[#E8D2C4]', icon: 'text-[#9E8189]', ring: 'ring-[#C7A9A3]' },
-  { bg: 'bg-[#F0E4E2]', text: 'text-[#3E3239]', border: 'border-[#C7A9A3]', icon: 'text-[#6B5560]', ring: 'ring-[#E8D2C4]' },
-  { bg: 'bg-[#E8D2C4]', text: 'text-[#3E3239]', border: 'border-[#C7A9A3]', icon: 'text-[#6B5560]', ring: 'ring-[#9E8189]' },
-  { bg: 'bg-[#F7EFE7]', text: 'text-[#6B5560]', border: 'border-[#E8D2C4]', icon: 'text-[#9E8189]', ring: 'ring-[#C7A9A3]' },
+  { bg: 'bg-[#F6F0E5]', text: 'text-[#5E5037]', border: 'border-[#D7BD82]', icon: 'text-[#94703A]', ring: 'ring-[#C5A66A]' },
+  { bg: 'bg-[#FBFAF6]', text: 'text-[#5E5037]', border: 'border-[#D7BD82]', icon: 'text-[#94703A]', ring: 'ring-[#C5A66A]' },
+  { bg: 'bg-[#F6F0E5]', text: 'text-[#191814]', border: 'border-[#C5A66A]', icon: 'text-[#5E5037]', ring: 'ring-[#D7BD82]' },
+  { bg: 'bg-[#D7BD82]', text: 'text-[#191814]', border: 'border-[#C5A66A]', icon: 'text-[#5E5037]', ring: 'ring-[#94703A]' },
+  { bg: 'bg-[#F6F0E5]', text: 'text-[#5E5037]', border: 'border-[#D7BD82]', icon: 'text-[#94703A]', ring: 'ring-[#C5A66A]' },
+  { bg: 'bg-[#FBFAF6]', text: 'text-[#191814]', border: 'border-[#C5A66A]', icon: 'text-[#5E5037]', ring: 'ring-[#D7BD82]' },
+  { bg: 'bg-[#D7BD82]', text: 'text-[#191814]', border: 'border-[#C5A66A]', icon: 'text-[#5E5037]', ring: 'ring-[#94703A]' },
+  { bg: 'bg-[#F6F0E5]', text: 'text-[#5E5037]', border: 'border-[#D7BD82]', icon: 'text-[#94703A]', ring: 'ring-[#C5A66A]' },
 ];
 
 interface Props {
@@ -161,7 +161,7 @@ export default function CitizenHomeCatalog({
         className={`px-service-card group flex flex-col items-center gap-2 rounded-[1.2rem] border ${color.border}
                      bg-[#FFFCF8] p-2.5 sm:p-3 text-center transition-all duration-300 cursor-pointer`}
       >
-        <div className="relative mb-1 h-[76px] w-full overflow-hidden rounded-xl bg-[#E8D2C4] sm:h-[90px]" style={{backgroundImage:"linear-gradient(135deg,#E8D2C4,#C7A9A3)"}}>
+        <div className="relative mb-1 h-[76px] w-full overflow-hidden rounded-xl bg-[#D7BD82] sm:h-[90px]" style={{backgroundImage:"linear-gradient(135deg,#D7BD82,#C5A66A)"}}>
           <img
             src={cat.imageUrl}
             alt="" aria-hidden="true" loading="lazy"
@@ -169,7 +169,7 @@ export default function CitizenHomeCatalog({
             onError={(event) => { event.currentTarget.style.display = 'none'; }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#171813]/70 via-[#171813]/5 to-transparent" />
-          <div className="absolute bottom-1.5 left-1.5 flex h-7 w-7 items-center justify-center rounded-lg border border-white/30 bg-[#171813]/85 text-[#E8D2C4] backdrop-blur">
+          <div className="absolute bottom-1.5 left-1.5 flex h-7 w-7 items-center justify-center rounded-lg border border-white/30 bg-[#171813]/85 text-[#D7BD82] backdrop-blur">
             <IconComp className="h-3.5 w-3.5" />
           </div>
         </div>
@@ -186,7 +186,7 @@ export default function CitizenHomeCatalog({
 
   return (
     <div id="punchx-customer-home" className="punchx-citizen-shell min-h-screen bg-[#f7f6f2] pb-24 text-[#171714]">
-      <style>{".punchx-citizen-shell .px-page-enter{animation:px-page-enter .42s cubic-bezier(.2,.7,.2,1) both}.punchx-citizen-shell .px-service-card{position:relative;overflow:hidden;isolation:isolate;border-color:#e5dfd1!important;box-shadow:0 7px 20px rgba(35,33,26,.045)}.punchx-citizen-shell .px-service-card:after{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.22),transparent 46%);opacity:0;transition:opacity .3s ease;pointer-events:none}.punchx-citizen-shell .px-service-card:hover:after{opacity:1}.punchx-citizen-shell .px-service-photo{transition:transform .65s cubic-bezier(.2,.7,.2,1),filter .4s ease}.punchx-citizen-shell .px-service-card:hover .px-service-photo{transform:scale(1.08);filter:saturate(1.08)}.punchx-citizen-shell .px-tab-panel{animation:px-page-enter .38s cubic-bezier(.2,.7,.2,1) both}.punchx-citizen-shell .px-order-card{animation:px-page-enter .4s cubic-bezier(.2,.7,.2,1) both;transition:transform .25s ease,box-shadow .25s ease}.punchx-citizen-shell .px-order-card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(35,33,26,.09)}.punchx-citizen-shell .px-premium-hero h1{color:#fff!important;text-shadow:0 2px 24px rgba(0,0,0,.3)}.punchx-citizen-shell .px-premium-hero p{color:rgba(255,255,255,.82)!important}@keyframes px-page-enter{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:translate3d(0,0,0)}}@media(prefers-reduced-motion:reduce){.punchx-citizen-shell .px-page-enter,.punchx-citizen-shell .px-tab-panel,.punchx-citizen-shell .px-order-card{animation:none!important}.punchx-citizen-shell .px-service-photo,.punchx-citizen-shell .px-order-card{transition:none!important}}.punchx-citizen-shell{background-image:radial-gradient(ellipse at 10% 0%,rgba(199,169,163,.18),transparent 30%),radial-gradient(ellipse at 100% 35%,rgba(158,129,137,.08),transparent 30%)}.punchx-citizen-shell .px-premium-hero{box-shadow:0 24px 65px rgba(28,29,23,.2)}.punchx-citizen-shell .px-photo-card{transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease}.punchx-citizen-shell .px-photo-card:hover{transform:translateY(-5px);box-shadow:0 18px 35px rgba(27,29,22,.13)}.punchx-citizen-shell .px-shine{position:relative;isolation:isolate;overflow:hidden}.punchx-citizen-shell .px-shine:after{content:'';position:absolute;inset:-30% auto -30% -70%;width:38%;transform:skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:px-home-shine 6.5s ease-in-out infinite;pointer-events:none}@keyframes px-home-shine{0%,58%{left:-70%}100%{left:140%}}@keyframes px-home-glow{0%,100%{opacity:.28;transform:scale(.96)}50%{opacity:.65;transform:scale(1.05)}}.punchx-citizen-shell main>section{animation:px-section-arrive .58s cubic-bezier(.22,1,.36,1) both}.punchx-citizen-shell main>section:nth-of-type(2){animation-delay:.06s}.punchx-citizen-shell main>section:nth-of-type(3){animation-delay:.12s}.punchx-citizen-shell main>section:nth-of-type(4){animation-delay:.18s}@keyframes px-section-arrive{from{opacity:0;transform:translate3d(0,16px,0)}to{opacity:1;transform:translate3d(0,0,0)}}.punchx-citizen-shell button,.punchx-citizen-shell a,[role=button]{transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .25s ease,background-color .25s ease,border-color .25s ease,filter .25s ease}.punchx-citizen-shell button:active,.punchx-citizen-shell a:active,.punchx-citizen-shell [role=button]:active{transform:scale(.975)}.punchx-citizen-shell button:focus-visible,.punchx-citizen-shell a:focus-visible{outline:2px solid #9E8189;outline-offset:3px}.punchx-citizen-shell .px-service-card,.punchx-citizen-shell .px-photo-card,.punchx-citizen-shell .px-order-card{will-change:transform;transform-origin:center bottom}.punchx-citizen-shell .px-service-card:hover,.punchx-citizen-shell .px-photo-card:hover,.punchx-citizen-shell .px-order-card:hover{box-shadow:0 18px 38px rgba(62,50,57,.13)}.punchx-citizen-shell .px-premium-hero{transform:translateZ(0);background-size:140% 140%;animation:px-hero-breathe 12s ease-in-out infinite alternate}.punchx-citizen-shell .px-premium-hero:focus-within{box-shadow:0 0 0 3px rgba(199,169,163,.25),0 22px 54px rgba(62,50,57,.18)}@keyframes px-hero-breathe{from{background-position:0% 50%}to{background-position:100% 50%}}.punchx-citizen-shell .px-glow{animation:px-home-glow 7s ease-in-out infinite}@media(prefers-reduced-motion:reduce){.punchx-citizen-shell *,.punchx-citizen-shell *:before,.punchx-citizen-shell *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}"}</style>
+      <style>{".punchx-citizen-shell .px-page-enter{animation:px-page-enter .42s cubic-bezier(.2,.7,.2,1) both}.punchx-citizen-shell .px-service-card{position:relative;overflow:hidden;isolation:isolate;border-color:#e5dfd1!important;box-shadow:0 7px 20px rgba(35,33,26,.045)}.punchx-citizen-shell .px-service-card:after{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.22),transparent 46%);opacity:0;transition:opacity .3s ease;pointer-events:none}.punchx-citizen-shell .px-service-card:hover:after{opacity:1}.punchx-citizen-shell .px-service-photo{transition:transform .65s cubic-bezier(.2,.7,.2,1),filter .4s ease}.punchx-citizen-shell .px-service-card:hover .px-service-photo{transform:scale(1.08);filter:saturate(1.08)}.punchx-citizen-shell .px-tab-panel{animation:px-page-enter .38s cubic-bezier(.2,.7,.2,1) both}.punchx-citizen-shell .px-order-card{animation:px-page-enter .4s cubic-bezier(.2,.7,.2,1) both;transition:transform .25s ease,box-shadow .25s ease}.punchx-citizen-shell .px-order-card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(35,33,26,.09)}.punchx-citizen-shell .px-premium-hero h1{color:#fff!important;text-shadow:0 2px 24px rgba(0,0,0,.3)}.punchx-citizen-shell .px-premium-hero p{color:rgba(255,255,255,.82)!important}@keyframes px-page-enter{from{opacity:0;transform:translate3d(0,14px,0)}to{opacity:1;transform:translate3d(0,0,0)}}@media(prefers-reduced-motion:reduce){.punchx-citizen-shell .px-page-enter,.punchx-citizen-shell .px-tab-panel,.punchx-citizen-shell .px-order-card{animation:none!important}.punchx-citizen-shell .px-service-photo,.punchx-citizen-shell .px-order-card{transition:none!important}}.punchx-citizen-shell{background-image:radial-gradient(ellipse at 10% 0%,rgba(199,169,163,.18),transparent 30%),radial-gradient(ellipse at 100% 35%,rgba(158,129,137,.08),transparent 30%)}.punchx-citizen-shell .px-premium-hero{box-shadow:0 24px 65px rgba(28,29,23,.2)}.punchx-citizen-shell .px-photo-card{transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease}.punchx-citizen-shell .px-photo-card:hover{transform:translateY(-5px);box-shadow:0 18px 35px rgba(27,29,22,.13)}.punchx-citizen-shell .px-shine{position:relative;isolation:isolate;overflow:hidden}.punchx-citizen-shell .px-shine:after{content:'';position:absolute;inset:-30% auto -30% -70%;width:38%;transform:skewX(-18deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);animation:px-home-shine 6.5s ease-in-out infinite;pointer-events:none}@keyframes px-home-shine{0%,58%{left:-70%}100%{left:140%}}@keyframes px-home-glow{0%,100%{opacity:.28;transform:scale(.96)}50%{opacity:.65;transform:scale(1.05)}}.punchx-citizen-shell main>section{animation:px-section-arrive .58s cubic-bezier(.22,1,.36,1) both}.punchx-citizen-shell main>section:nth-of-type(2){animation-delay:.06s}.punchx-citizen-shell main>section:nth-of-type(3){animation-delay:.12s}.punchx-citizen-shell main>section:nth-of-type(4){animation-delay:.18s}@keyframes px-section-arrive{from{opacity:0;transform:translate3d(0,16px,0)}to{opacity:1;transform:translate3d(0,0,0)}}.punchx-citizen-shell button,.punchx-citizen-shell a,[role=button]{transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .25s ease,background-color .25s ease,border-color .25s ease,filter .25s ease}.punchx-citizen-shell button:active,.punchx-citizen-shell a:active,.punchx-citizen-shell [role=button]:active{transform:scale(.975)}.punchx-citizen-shell button:focus-visible,.punchx-citizen-shell a:focus-visible{outline:2px solid #94703A;outline-offset:3px}.punchx-citizen-shell .px-service-card,.punchx-citizen-shell .px-photo-card,.punchx-citizen-shell .px-order-card{will-change:transform;transform-origin:center bottom}.punchx-citizen-shell .px-service-card:hover,.punchx-citizen-shell .px-photo-card:hover,.punchx-citizen-shell .px-order-card:hover{box-shadow:0 18px 38px rgba(62,50,57,.13)}.punchx-citizen-shell .px-premium-hero{transform:translateZ(0);background-size:140% 140%;animation:px-hero-breathe 12s ease-in-out infinite alternate}.punchx-citizen-shell .px-premium-hero:focus-within{box-shadow:0 0 0 3px rgba(199,169,163,.25),0 22px 54px rgba(62,50,57,.18)}@keyframes px-hero-breathe{from{background-position:0% 50%}to{background-position:100% 50%}}.punchx-citizen-shell .px-glow{animation:px-home-glow 7s ease-in-out infinite}@media(prefers-reduced-motion:reduce){.punchx-citizen-shell *,.punchx-citizen-shell *:before,.punchx-citizen-shell *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}"}</style>
 
 
       <main className="mx-auto w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
@@ -215,7 +215,7 @@ export default function CitizenHomeCatalog({
               <h1 className="mt-3 text-2xl sm:text-4xl font-extrabold leading-tight">
                 Expert help for every corner<br className="hidden sm:block" /> of your home.
               </h1>
-              <p className="mt-2 max-w-md text-sm text-[#F7EFE7]/85 leading-relaxed">
+              <p className="mt-2 max-w-md text-sm text-[#F6F0E5]/85 leading-relaxed">
                 Discover trusted local professionals, compare service details and request a visit—all in one place.
               </p>
 
@@ -225,10 +225,10 @@ export default function CitizenHomeCatalog({
                 onClick={() => { setQuery(''); setSearchOpen(true); }}
                 className="mt-5 flex w-full items-center gap-3 rounded-2xl bg-[#FFFCF8] p-1.5 text-left
                            shadow-xl shadow-black/10 ring-1 ring-white/20
-                           hover:ring-2 hover:ring-[#C7A9A3] transition-all"
+                           hover:ring-2 hover:ring-[#C5A66A] transition-all"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F7EFE7]">
-                  <Search className="h-5 w-5 text-[#6B5560]" />
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F6F0E5]">
+                  <Search className="h-5 w-5 text-[#5E5037]" />
                 </div>
                 <span className="flex-1 text-sm font-medium text-gray-400">
                   Search 50+ services…
@@ -245,11 +245,11 @@ export default function CitizenHomeCatalog({
         {/* ── INFO PILLS ── */}
         <section className="flex gap-2 overflow-x-auto py-3 no-scrollbar">
           {[
-            { icon: <ShieldCheck className="h-3.5 w-3.5 text-[#6B5560]" />, text: 'Service details before booking' },
+            { icon: <ShieldCheck className="h-3.5 w-3.5 text-[#5E5037]" />, text: 'Service details before booking' },
             
-            { icon: <MapPin className="h-3.5 w-3.5 text-[#6B5560]" />, text: residential || 'Add address for visits' },
+            { icon: <MapPin className="h-3.5 w-3.5 text-[#5E5037]" />, text: residential || 'Add address for visits' },
           ].map((pill, i) => (
-            <div key={i} className="flex shrink-0 items-center gap-2 rounded-full border border-[#E8D2C4]
+            <div key={i} className="flex shrink-0 items-center gap-2 rounded-full border border-[#D7BD82]
                                     bg-[#FFFCF8] px-3.5 py-2 text-[11px] font-semibold text-[#796B70] shadow-sm">
               {pill.icon}
               <span className="truncate max-w-[180px]">{pill.text}</span>
@@ -268,16 +268,16 @@ export default function CitizenHomeCatalog({
                 </div>
                 <div className="sm:hidden">
                   <span className="rounded-full bg-emerald-300/15 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 ring-1 ring-emerald-200/30">Platform fee details confirmed during booking</span>
-                  <span className="ml-2 text-[10px] font-semibold text-[#E8D2C4]">SPOTLIGHT</span>
+                  <span className="ml-2 text-[10px] font-semibold text-[#D7BD82]">SPOTLIGHT</span>
                 </div>
               </div>
               <div className="min-w-0 flex-1">
                 <div className="hidden sm:flex flex-wrap items-center gap-2">
                   <span className="rounded-full bg-emerald-300/15 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-emerald-200 ring-1 ring-emerald-200/30">Booking details confirmed before approval</span>
-                  <span className="text-[10px] font-semibold text-[#E8D2C4]">PUNCHX SPOTLIGHT</span>
+                  <span className="text-[10px] font-semibold text-[#D7BD82]">PUNCHX SPOTLIGHT</span>
                 </div>
-                <h2 className="mt-1 text-base font-extrabold leading-5 text-[#F7EFE7] sm:text-lg">Your first booking, platform-fee free.</h2>
-                <p className="mt-1 text-xs leading-5 text-[#E8D2C4]">Welcome to PUNCHX! Pay no platform charge on your first booking. Visiting fees and product/material costs may still apply.</p>
+                <h2 className="mt-1 text-base font-extrabold leading-5 text-[#F6F0E5] sm:text-lg">Your first booking, platform-fee free.</h2>
+                <p className="mt-1 text-xs leading-5 text-[#D7BD82]">Welcome to PUNCHX! Pay no platform charge on your first booking. Visiting fees and product/material costs may still apply.</p>
               </div>
               <button type="button" onClick={() => { setQuery(''); setSearchOpen(true); }} className="relative shrink-0 w-full sm:w-auto text-center rounded-xl bg-[#c4a568] px-3.5 py-2.5 text-xs font-extrabold text-[#171813] shadow-sm transition hover:bg-[#d8c18d] sm:px-4">Explore <ArrowRight className="ml-1 inline h-3.5 w-3.5" /></button>
             </div>
@@ -290,8 +290,8 @@ export default function CitizenHomeCatalog({
             <h2 className="text-lg font-black tracking-tight text-[#24251f]">Popular services</h2>
             <button
               onClick={() => { setQuery(''); setSearchOpen(true); }}
-              className="flex items-center gap-1 text-xs font-bold text-[#6B5560]
-                         hover:text-[#3E3239] transition-colors"
+              className="flex items-center gap-1 text-xs font-bold text-[#5E5037]
+                         hover:text-[#191814] transition-colors"
             >
               See all <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -313,7 +313,7 @@ export default function CitizenHomeCatalog({
                   whileTap={{ scale: 0.97 }}
                   className="px-photo-card group flex shrink-0 w-[152px] flex-col rounded-[1.25rem] border border-[#e5dfd1] bg-[#FFFCF8] p-2.5 shadow-[0_5px_18px_rgba(35,33,26,.05)] transition-all cursor-pointer"
                 >
-                  <div className="relative mb-3 h-[92px] overflow-hidden rounded-xl bg-[#E8D2C4]" style={{backgroundImage:"linear-gradient(135deg,#E8D2C4,#C7A9A3)"}}>
+                  <div className="relative mb-3 h-[92px] overflow-hidden rounded-xl bg-[#D7BD82]" style={{backgroundImage:"linear-gradient(135deg,#D7BD82,#C5A66A)"}}>
                     <img
                       src={cat.imageUrl}
                       alt=""
@@ -323,7 +323,7 @@ export default function CitizenHomeCatalog({
                       onError={(event) => { event.currentTarget.style.display = 'none'; }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#171813]/65 via-transparent to-transparent" />
-                    <div className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/30 bg-[#171813]/75 text-[#E8D2C4] backdrop-blur">
+                    <div className="absolute bottom-2 left-2 flex h-8 w-8 items-center justify-center rounded-lg border border-white/30 bg-[#171813]/75 text-[#D7BD82] backdrop-blur">
                       <IconComp className="h-4 w-4" />
                     </div>
                   </div>
@@ -335,7 +335,7 @@ export default function CitizenHomeCatalog({
                   </span>
                   <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-[#80663a]">
                     <Info className="h-3 w-3" /> View details
-                    <span className="ml-auto flex items-center gap-0.5 text-[#9E8189]">
+                    <span className="ml-auto flex items-center gap-0.5 text-[#94703A]">
 
                     </span>
                   </div>
@@ -376,11 +376,11 @@ export default function CitizenHomeCatalog({
         {/* ── TRUST FOOTER ── */}
         <section className="py-10 grid gap-3 sm:grid-cols-3">
           {[
-            { icon: <ShieldCheck className="h-5 w-5 text-[#6B5560]" />,
+            { icon: <ShieldCheck className="h-5 w-5 text-[#5E5037]" />,
               title: 'Professional information', desc: 'Review the available profile information before booking.' },
-            { icon: <CalendarDays className="h-5 w-5 text-[#6B5560]" />,
+            { icon: <CalendarDays className="h-5 w-5 text-[#5E5037]" />,
               title: 'Easy booking flow', desc: 'Pick service → facility → exact work → confirm.' },
-            { icon: <CheckCircle2 className="h-5 w-5 text-[#6B5560]" />,
+            { icon: <CheckCircle2 className="h-5 w-5 text-[#5E5037]" />,
               title: 'Door-step service', desc: 'The professional visits your confirmed address.' },
           ].map((card, i) => (
             <motion.div
@@ -388,11 +388,11 @@ export default function CitizenHomeCatalog({
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 + i * 0.1 }}
-              className="rounded-2xl border border-[#E8D2C4] bg-[#FFFCF8] p-5 shadow-sm"
+              className="rounded-2xl border border-[#D7BD82] bg-[#FFFCF8] p-5 shadow-sm"
             >
               {card.icon}
               <h3 className="mt-3 text-sm font-bold text-gray-900">{card.title}</h3>
-              <p className="mt-1 text-xs text-[#9E8189] leading-relaxed">{card.desc}</p>
+              <p className="mt-1 text-xs text-[#94703A] leading-relaxed">{card.desc}</p>
             </motion.div>
           ))}
         </section>
@@ -401,13 +401,13 @@ export default function CitizenHomeCatalog({
 
         {activeTab === 'bookings' && (
           <section className="px-tab-panel pt-6 pb-20">
-            <div className="mb-6 rounded-[1.6rem] bg-gradient-to-br from-[#3E3239] via-[#6B5560] to-[#9E8189] p-5 text-white shadow-[0_20px_50px_rgba(28,29,23,.18)]"><span className="text-[10px] font-bold uppercase tracking-[.22em] text-[#E8D2C4]">YOUR PUNCHX JOURNEY</span><h2 className="mt-2 text-2xl font-extrabold text-[#F7EFE7]">Your Bookings</h2><p className="mt-1 text-xs leading-relaxed text-[#E8D2C4]">Every service, all in one place. Your next little win starts here.</p><div className="mt-4 flex items-center gap-2 text-xs text-[#E8D2C4]"><CalendarDays className="h-4 w-4"/>{orderHistory.length} booking{orderHistory.length===1?'':'s'} in your history</div></div>
+            <div className="mb-6 rounded-[1.6rem] bg-gradient-to-br from-[#191814] via-[#5E5037] to-[#94703A] p-5 text-white shadow-[0_20px_50px_rgba(28,29,23,.18)]"><span className="text-[10px] font-bold uppercase tracking-[.22em] text-[#D7BD82]">YOUR PUNCHX JOURNEY</span><h2 className="mt-2 text-2xl font-extrabold text-[#F6F0E5]">Your Bookings</h2><p className="mt-1 text-xs leading-relaxed text-[#D7BD82]">Every service, all in one place. Your next little win starts here.</p><div className="mt-4 flex items-center gap-2 text-xs text-[#D7BD82]"><CalendarDays className="h-4 w-4"/>{orderHistory.length} booking{orderHistory.length===1?'':'s'} in your history</div></div>
             {orderHistory.length === 0 ? (
-              <div className="rounded-3xl bg-[#FFFCF8] p-10 text-center shadow-sm border border-[#E8D2C4]">
+              <div className="rounded-3xl bg-[#FFFCF8] p-10 text-center shadow-sm border border-[#D7BD82]">
                 <CalendarDays className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                 <h3 className="text-lg font-bold text-gray-800">No recent bookings</h3>
-                <p className="text-sm text-[#9E8189] mt-2">Services you book will appear here.</p>
-                <button onClick={() => { setActiveTab('home'); setActiveDockItem('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-6 rounded-xl bg-[#6B5560] px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#3E3239]">Find a service</button>
+                <p className="text-sm text-[#94703A] mt-2">Services you book will appear here.</p>
+                <button onClick={() => { setActiveTab('home'); setActiveDockItem('home'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="mt-6 rounded-xl bg-[#5E5037] px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-[#191814]">Find a service</button>
               </div>
             ) : (
               <div className="space-y-4">
@@ -416,12 +416,12 @@ export default function CitizenHomeCatalog({
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-bold text-gray-900">{order.category || 'Service Booking'}</span>
-                        <span className="rounded-full bg-[#F7EFE7] px-2.5 py-0.5 text-[10px] font-bold text-[#6B5560] border border-[#E8D2C4]">Recent</span>
+                        <span className="rounded-full bg-[#F6F0E5] px-2.5 py-0.5 text-[10px] font-bold text-[#5E5037] border border-[#D7BD82]">Recent</span>
                       </div>
-                      <div className="text-xs text-[#9E8189] flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {order.date || 'Today'} {order.time || ''}</div>
+                      <div className="text-xs text-[#94703A] flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {order.date || 'Today'} {order.time || ''}</div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <button onClick={() => onTransition('tracking')} className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-[#6B5560] hover:bg-[#F7EFE7] transition">Track Status</button>
+                      <button onClick={() => onTransition('tracking')} className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-bold text-[#5E5037] hover:bg-[#F6F0E5] transition">Track Status</button>
                     </div>
                   </div>
                 ))}
@@ -432,36 +432,36 @@ export default function CitizenHomeCatalog({
 
         {activeTab === 'profile' && (
           <section className="px-tab-panel pt-6 pb-20">
-            <div className="mb-6 rounded-[1.6rem] bg-gradient-to-br from-[#3E3239] via-[#6B5560] to-[#9E8189] p-5 text-white shadow-[0_20px_50px_rgba(28,29,23,.18)]"><span className="text-[10px] font-bold uppercase tracking-[.22em] text-[#E8D2C4]">YOUR SPACE</span><h2 className="mt-2 text-2xl font-extrabold text-[#F7EFE7]">Your Profile</h2><p className="mt-1 text-xs text-[#E8D2C4]">Your details, your preferences, your PunchX.</p></div>
-            <div className="rounded-3xl bg-[#FFFCF8] p-8 shadow-sm border border-[#E8D2C4] flex flex-col items-center text-center">
-              <div className="h-24 w-24 rounded-full bg-[#F7EFE7] text-[#6B5560] flex items-center justify-center mb-5 ring-4 ring-white shadow-md">
+            <div className="mb-6 rounded-[1.6rem] bg-gradient-to-br from-[#191814] via-[#5E5037] to-[#94703A] p-5 text-white shadow-[0_20px_50px_rgba(28,29,23,.18)]"><span className="text-[10px] font-bold uppercase tracking-[.22em] text-[#D7BD82]">YOUR SPACE</span><h2 className="mt-2 text-2xl font-extrabold text-[#F6F0E5]">Your Profile</h2><p className="mt-1 text-xs text-[#D7BD82]">Your details, your preferences, your PunchX.</p></div>
+            <div className="rounded-3xl bg-[#FFFCF8] p-8 shadow-sm border border-[#D7BD82] flex flex-col items-center text-center">
+              <div className="h-24 w-24 rounded-full bg-[#F6F0E5] text-[#5E5037] flex items-center justify-center mb-5 ring-4 ring-white shadow-md">
                 <UserRound className="h-10 w-10" />
               </div>
               <h3 className="text-xl font-bold text-gray-900">{citizenName || 'PunchX Customer'}</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl mt-8 text-left">
-                <div className="rounded-2xl bg-[#F7EFE7] p-4 border border-[#E8D2C4]">
-                  <div className="flex items-center gap-2 mb-1"><MapPin className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-bold uppercase tracking-wider text-[#9E8189]">Service Location</span></div>
+                <div className="rounded-2xl bg-[#F6F0E5] p-4 border border-[#D7BD82]">
+                  <div className="flex items-center gap-2 mb-1"><MapPin className="h-4 w-4 text-gray-400" /><span className="text-[10px] font-bold uppercase tracking-wider text-[#94703A]">Service Location</span></div>
                   <div className="text-sm font-semibold text-gray-800 ml-6">{citizenAddress || 'Not specified'}</div>
                 </div>
-                <div className="rounded-2xl bg-[#F7EFE7] p-4 border border-[#E8D2C4]">
-                  <div className="flex items-center gap-2 mb-1"><ShieldCheck className="h-4 w-4 text-[#9E8189]" /><span className="text-[10px] font-bold uppercase tracking-wider text-[#9E8189]">Account Status</span></div>
+                <div className="rounded-2xl bg-[#F6F0E5] p-4 border border-[#D7BD82]">
+                  <div className="flex items-center gap-2 mb-1"><ShieldCheck className="h-4 w-4 text-[#94703A]" /><span className="text-[10px] font-bold uppercase tracking-wider text-[#94703A]">Account Status</span></div>
                   <div className="text-sm font-semibold text-gray-800 ml-6">Customer account</div>
                 </div>
               </div>
               
               <div className="w-full max-w-2xl mt-6 space-y-3">
-                <button onClick={() => onTransition('customer-setup')} className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 hover:bg-[#F7EFE7] transition">
+                <button onClick={() => onTransition('customer-setup')} className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 hover:bg-[#F6F0E5] transition">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-[#F7EFE7] text-[#6B5560] flex items-center justify-center"><MapPin className="h-4 w-4" /></div>
-                    <span className="text-sm font-bold text-[#6B5560]">Update Address</span>
+                    <div className="h-8 w-8 rounded-lg bg-[#F6F0E5] text-[#5E5037] flex items-center justify-center"><MapPin className="h-4 w-4" /></div>
+                    <span className="text-sm font-bold text-[#5E5037]">Update Address</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-400" />
                 </button>
-                <button onClick={onOpenProfile} className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 hover:bg-[#F7EFE7] transition">
+                <button onClick={onOpenProfile} className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 hover:bg-[#F6F0E5] transition">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-gray-100 text-[#796B70] flex items-center justify-center"><UserRound className="h-4 w-4" /></div>
-                    <span className="text-sm font-bold text-[#6B5560]">Manage Account</span>
+                    <span className="text-sm font-bold text-[#5E5037]">Manage Account</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-400" />
                 </button>
@@ -472,20 +472,20 @@ export default function CitizenHomeCatalog({
                     localStorage.removeItem('punchx_worker_approved');
                   } catch {}
                   onTransition('worker-signup');
-                }} className="w-full flex items-center justify-between rounded-xl border border-[#C7A9A3] bg-[#F7EFE7] p-4 hover:bg-[#E8D2C4] transition">
+                }} className="w-full flex items-center justify-between rounded-xl border border-[#C5A66A] bg-[#F6F0E5] p-4 hover:bg-[#D7BD82] transition">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-[#E8D2C4] text-[#6B5560] flex items-center justify-center"><Wrench className="h-4 w-4" /></div>
+                    <div className="h-8 w-8 rounded-lg bg-[#D7BD82] text-[#5E5037] flex items-center justify-center"><Wrench className="h-4 w-4" /></div>
                     <div className="text-left">
-                      <span className="block text-sm font-bold text-[#3E3239]">Apply as Professional Specialist</span>
-                      <span className="block text-[11px] text-[#6B5560]">Register your trade, set visiting fee, and start getting bookings</span>
+                      <span className="block text-sm font-bold text-[#191814]">Apply as Professional Specialist</span>
+                      <span className="block text-[11px] text-[#5E5037]">Register your trade, set visiting fee, and start getting bookings</span>
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-[#6B5560]" />
+                  <ChevronRight className="h-4 w-4 text-[#5E5037]" />
                 </button>
-                <button onClick={() => onTransition('panel-select')} className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 hover:bg-[#F7EFE7] transition">
+                <button onClick={() => onTransition('panel-select')} className="w-full flex items-center justify-between rounded-xl border border-gray-200 p-4 hover:bg-[#F6F0E5] transition">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-lg bg-gray-100 text-[#796B70] flex items-center justify-center"><ShieldCheck className="h-4 w-4" /></div>
-                    <span className="text-sm font-bold text-[#6B5560]">Switch Workspace / Specialist Login</span>
+                    <span className="text-sm font-bold text-[#5E5037]">Switch Workspace / Specialist Login</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-gray-400" />
                 </button>
@@ -515,8 +515,8 @@ export default function CitizenHomeCatalog({
                          flex-col overflow-hidden rounded-3xl bg-[#FFFCF8] shadow-2xl ring-1 ring-black/5"
             >
               {/* Search input */}
-              <div className="flex items-center gap-3 border-b border-[#E8D2C4] px-4 sm:px-5 py-3.5 sm:py-4">
-                <Search className="h-5 w-5 text-[#6B5560] shrink-0" />
+              <div className="flex items-center gap-3 border-b border-[#D7BD82] px-4 sm:px-5 py-3.5 sm:py-4">
+                <Search className="h-5 w-5 text-[#5E5037] shrink-0" />
                 <input
                   ref={searchInputRef}
                   autoFocus
@@ -525,8 +525,8 @@ export default function CitizenHomeCatalog({
                   placeholder="Search the 10 service categories…"
                   className="min-w-0 flex-1 text-sm font-medium outline-none placeholder:text-gray-400"
                 />
-                <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F7EFE7] px-3 py-1
-                                 text-[10px] font-bold text-[#6B5560]">
+                <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F6F0E5] px-3 py-1
+                                 text-[10px] font-bold text-[#5E5037]">
                   {matches.length} found
                 </span>
                 <button
@@ -553,14 +553,14 @@ export default function CitizenHomeCatalog({
                           whileHover={{ y: -3 }}
                           whileTap={{ scale: 0.96 }}
                           className="group flex flex-col items-center gap-2 rounded-2xl border
-                                     border-[#E8D2C4] bg-[#F7EFE7]/50 p-3 text-center
-                                     hover:bg-[#FFFCF8] hover:shadow-md hover:border-[#E8D2C4]
+                                     border-[#D7BD82] bg-[#F6F0E5]/50 p-3 text-center
+                                     hover:bg-[#FFFCF8] hover:shadow-md hover:border-[#D7BD82]
                                      transition-all cursor-pointer"
                         >
                           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm">
                             <img src={cat.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
                           </div>
-                          <span className="text-[11px] font-semibold leading-tight text-[#6B5560]
+                          <span className="text-[11px] font-semibold leading-tight text-[#5E5037]
                                            line-clamp-2">
                             {cat.name}
                           </span>
