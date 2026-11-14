@@ -19,24 +19,24 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
     onSelectCategory?.(category);
     onTransition('providers');
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    showNotification(`Opening ${category} professionals.`);
+    showNotification(`Opening ${category} service options.`);
   };
 
   return (
-    <footer id="punchx-website-footer" className="relative overflow-hidden border-t border-white/10 bg-[#0c1020] text-white">
-      <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-[#7358d7]/15 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-0 left-0 h-56 w-56 rounded-full bg-[#6d91ff]/10 blur-3xl" />
+    <footer id="punchx-website-footer" className="relative overflow-hidden border-t border-white/10 bg-[#11110f] text-white">
+      <div className="pointer-events-none absolute -right-32 -top-32 h-80 w-80 rounded-full bg-[#94703a]/15 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-0 h-56 w-56 rounded-full bg-[#c5a66a]/10 blur-3xl" />
 
       <div className="relative z-10 mx-auto max-w-[1440px] px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {[
-            [Clock3, 'Smart dispatch', 'Match a professional to your service need and preferred timing.'],
-            [ShieldCheck, 'Clear service details', 'Review the service details and booking terms before you confirm.'],
-            [CheckCircle2, 'Clear checkout', 'See the booking total, add-ons and payment mode before confirming.'],
-            [Navigation2Icon, 'Service tracking', 'Follow active jobs from assignment to arrival with live updates.'],
+            [Clock3, 'Admin-reviewed requests', 'Your request is reviewed before a professional is coordinated.'],
+            [ShieldCheck, 'Independent professionals', 'Independent professionals provide the service; PUNCHX coordinates the request journey.'],
+            [CheckCircle2, 'Quotation before work', 'Review the itemised quotation before authorising the service.'],
+            [Navigation2Icon, 'Transparent next steps', 'Receive updates as the team reviews and coordinates your request.'],
           ].map(([Icon, title, desc]) => (
             <div key={String(title)} className="rounded-3xl border border-white/10 bg-white/[0.045] p-4 backdrop-blur">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7358d7]/15 text-[#b9adff]"><Icon className="h-5 w-5" /></div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#94703a]/15 text-[#d7bd82]"><Icon className="h-5 w-5" /></div>
               <div className="mt-4 text-sm font-black">{title as string}</div>
               <div className="mt-1 text-[11px] leading-5 text-white/55">{desc as string}</div>
             </div>
@@ -58,7 +58,7 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
               aria-label="Meet PunchX founders Rimil Das and Abhradip Ghosh"
-              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#b9adff]/30 bg-[#7358d7]/15 px-4 py-3 text-xs font-extrabold text-[#d7d0ff] transition hover:border-[#b9adff]/60 hover:bg-[#7358d7]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b9adff]"
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#d7bd82]/30 bg-[#94703a]/15 px-4 py-3 text-xs font-extrabold text-[#d7bd82] transition hover:border-[#d7bd82]/60 hover:bg-[#94703a]/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d7bd82]"
             >
               Meet the founders <ArrowRight className="h-4 w-4" />
             </a>
@@ -68,19 +68,19 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
           </div>
 
           <div>
-            <button onClick={() => onTransition('catalogue')} className="mb-4 flex w-full items-center justify-between rounded-xl border border-[#b9adff]/25 bg-[#7358d7]/15 px-3 py-3 text-left text-xs font-extrabold text-[#d7d0ff] transition hover:bg-[#7358d7]/25">Browse interactive price catalogue <ArrowRight className="h-4 w-4" /></button>
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b9adff]">Explore services</div>
+            <button onClick={() => onTransition('catalogue')} className="mb-4 flex w-full items-center justify-between rounded-xl border border-[#d7bd82]/25 bg-[#94703a]/15 px-3 py-3 text-left text-xs font-extrabold text-[#d7d0ff] transition hover:bg-[#94703a]/25">Browse interactive price catalogue <ArrowRight className="h-4 w-4" /></button>
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d7bd82]">Explore services</div>
             <div className="mt-4 space-y-2">
               {serviceLinks.map(cat => <button key={cat.id} onClick={() => jump(cat.name)} className="group flex w-full items-center justify-between rounded-xl px-2 py-2 text-left text-[11px] font-bold text-white/65 hover:bg-white/5 hover:text-white"><span className="flex items-center gap-2"><span className="h-8 w-8 shrink-0 overflow-hidden rounded-lg bg-white/10"><img src={cat.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110" /></span>{cat.name}</span><ChevronRight className="h-3.5 w-3.5 text-white/25 transition group-hover:translate-x-0.5" /></button>)}
             </div>
           </div>
 
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#b9adff]">PunchX support</div>
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#d7bd82]">PunchX support</div>
             <div className="mt-4 rounded-3xl border border-white/10 bg-white/[0.045] p-4">
-              <div className="flex items-center gap-2 text-xs font-black"><Mail className="h-4 w-4 text-[#b9adff]" /> Contact PunchX</div>
+              <div className="flex items-center gap-2 text-xs font-black"><Mail className="h-4 w-4 text-[#d7bd82]" /> Contact PunchX</div>
               <a className="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-white underline underline-offset-4" href="mailto:punchxservice@gmail.com">punchxservice@gmail.com</a>
-              <button onClick={() => showNotification('Support request entry point is available from your PunchX account.')} className="mt-4 flex w-full items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs font-black text-[#17191d] transition hover:bg-[#efeff2]">Open support flow <ArrowRight className="h-4 w-4" /></button>
+              <button onClick={() => showNotification('Support request entry point is available from your PunchX account.')} className="mt-4 flex w-full items-center justify-between rounded-xl bg-white px-3 py-2.5 text-xs font-black text-[#171714] transition hover:bg-[#f1ede4]">Open support flow <ArrowRight className="h-4 w-4" /></button>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button onClick={() => {
@@ -150,9 +150,9 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
 
   function MotionRefund() {
     return (
-      <div className="w-full max-w-xl max-h-[92dvh] overflow-y-auto rounded-3xl border border-white/10 bg-[#101525] p-4 sm:p-5 shadow-2xl pb-[max(16px,env(safe-area-inset-bottom))]">
+      <div className="w-full max-w-xl max-h-[92dvh] overflow-y-auto rounded-3xl border border-white/10 bg-[#11110f] p-4 sm:p-5 shadow-2xl pb-[max(16px,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2 text-sm font-black"><Gift className="h-4 w-4 text-[#b9adff]" /> Refund & warranty</div>
+          <div className="flex items-center gap-2 text-sm font-black"><Gift className="h-4 w-4 text-[#d7bd82]" /> Refund & warranty</div>
           <button onClick={() => setRefundOpen(false)} className="rounded-xl bg-white/5 p-2 text-white/70 hover:bg-white/10"><X className="h-4 w-4" /></button>
         </div>
         <div className="space-y-3 pt-4 text-xs leading-5 text-white/65">

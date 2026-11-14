@@ -142,20 +142,20 @@ export default function ProviderDetails({
           </div>
 
           <div className="px-3 py-1 bg-[#c5a059]/10 border border-[#c5a059]/30 rounded-lg text-right">
-            <span className="text-[9px] text-zinc-400 block font-mono">HOURLY RATE</span>
-            <span className="font-sans font-extrabold text-[#e9c176] text-sm">₹{selectedWorker.price}/hr</span>
+            <span className="text-[9px] text-zinc-400 block font-mono"></span>
+            <span className="font-sans font-extrabold text-[#e9c176] text-sm"></span>
           </div>
         </div>
       </header>
 
       {/* Main Content Pane */}
-      <main className="punchx-citizen-main max-w-xl mx-auto px-6 pt-24 space-y-6">
+      <main id="punchx-provider-details" className="punchx-citizen-main max-w-xl mx-auto px-6 pt-24 space-y-6">
         
         {/* Profile Card Intro hero banner block */}
         <div className="bg-gradient-to-b from-[#11192e] to-[#111415] border border-[#c5a059]/30 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
           <div className="absolute top-4 right-4 bg-[#c5a059]/10 border border-[#c5a059]/30 text-[#e9c176] text-[10px] font-mono font-bold px-3 py-1 rounded-full flex items-center gap-1">
             <Award className="w-3.5 h-3.5" />
-            {selectedWorker.proBadge === 'PRO' ? 'Elite Professional' : selectedWorker.proBadge === 'TOP' ? 'Top Rated Partner' : 'Vetted Veteran'}
+            {selectedWorker.proBadge === 'PRO' ? 'Elite Professional' : selectedWorker.proBadge === 'TOP' ? 'Verified Professional' : 'Vetted Veteran'}
           </div>
 
           <div className="relative inline-block mt-4">
@@ -173,27 +173,13 @@ export default function ProviderDetails({
           <h2 className="text-xl font-bold font-sans text-white mt-4">{selectedWorker.name}</h2>
           <p className="text-sm text-[#e9c176] font-medium mt-1 font-sans">{selectedWorker.category} Specialist</p>
 
-          <div className="flex items-center justify-center gap-2 mt-3 font-sans">
-            <div className="flex items-center gap-0.5">
-              {[...Array(5)].map((_, i) => {
-                const isFull = i < Math.floor(selectedWorker.rating);
-                return (
-                  <Star
-                    key={i}
-                    className={`w-4 h-4 ${isFull ? 'fill-[#e9c176] text-[#e9c176]' : 'text-zinc-650'}`}
-                  />
-                );
-              })}
-            </div>
-            <span className="text-white font-extrabold text-sm">{selectedWorker.rating}</span>
-            <span className="text-zinc-500 text-xs">({selectedWorker.reviewsCount} customer reviews)</span>
-          </div>
+          {/* Public ratings are intentionally not displayed. */}
 
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-3 gap-2.5 mt-6 pt-6 border-t border-zinc-800/80">
             <div className="bg-[#0c0f10] p-2.5 rounded-xl border border-zinc-850">
               <span className="text-[10px] text-zinc-500 font-sans block uppercase font-bold">Successful Orders</span>
-              <span className="text-base font-extrabold text-[#e9c176] font-mono">{selectedWorker.reviewsCount}</span>
+    
             </div>
             <div className="bg-[#0c0f10] p-2.5 rounded-xl border border-zinc-850">
               <span className="text-[10px] text-zinc-500 font-sans block uppercase font-bold">Success Rate</span>
@@ -216,135 +202,7 @@ export default function ProviderDetails({
         </section>
 
         {/* Customer Satisfaction Checklist */}
-        <section className="bg-[#111415] border border-zinc-850 rounded-2xl p-5 shadow space-y-4">
-          <h3 className="text-xs uppercase font-mono tracking-wider text-[#e9c176] font-bold flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            Verified Guarantees
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="bg-[#151f37]/35 border border-zinc-800 p-3 rounded-xl flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-              <span className="text-xs text-zinc-200">No Spot Damage Guarantee</span>
-            </div>
-            <div className="bg-[#151f37]/35 border border-zinc-800 p-3 rounded-xl flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-              <span className="text-xs text-zinc-200">Fully Insured & Bonded Work</span>
-            </div>
-            <div className="bg-[#151f37]/35 border border-zinc-800 p-3 rounded-xl flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-              <span className="text-xs text-zinc-200">Pre-Vetted Professional ID</span>
-            </div>
-            <div className="bg-[#151f37]/35 border border-zinc-800 p-3 rounded-xl flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-              <span className="text-xs text-zinc-200">No Hidden Visiting Surcharges</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Customer Verified Behaviour Tags */}
-        <section className="bg-[#111415] border border-zinc-850 rounded-2xl p-5 shadow space-y-3">
-          <h3 className="text-xs uppercase font-mono tracking-wider text-[#e9c176] font-bold flex items-center gap-1.5">
-            <Heart className="w-4 h-4 text-rose-400" />
-            Verified Behavior Reviews
-          </h3>
-          <p className="text-xs text-zinc-400 font-sans leading-relaxed">
-            Customers have reviewed {selectedWorker.name} for the following professional behavioral standards:
-          </p>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {behaviourTags.map((tag, index) => (
-              <span
-                key={index}
-                className="text-xs font-semibold px-3 py-1 bg-[#c5a059]/15 text-[#e9c176] border border-[#c5a059]/35 rounded-full"
-              >
-                ★ {tag}
-              </span>
-            ))}
-          </div>
-        </section>
-
-        {/* Real Customer Review Feed from Firestore */}
-        <section className="bg-[#111415] border border-zinc-850 rounded-2xl p-5 shadow space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xs uppercase font-mono tracking-wider text-[#e9c176] font-bold flex items-center gap-1.5">
-              <ThumbsUp className="w-4 h-4 text-[#e9c176]" />
-              Verified Citizen Reviews
-            </h3>
-            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-0.5 rounded border border-emerald-500/20 uppercase">
-              {firestoreReviews.length > 0 ? `${firestoreReviews.length} Live Reviews` : 'Verified Feedback'}
-            </span>
-          </div>
-
-          {isLoadingReviews ? (
-            <div className="space-y-4">
-              {[1, 2].map((sk) => (
-                <div key={sk} className="space-y-2 p-3 bg-zinc-900/40 rounded-xl border border-zinc-850 animate-pulse">
-                  <div className="flex justify-between items-center">
-                    <div className="h-3.5 w-24 bg-zinc-800 rounded"></div>
-                    <div className="h-3 w-16 bg-zinc-800 rounded"></div>
-                  </div>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((st) => (
-                      <div key={st} className="w-3 h-3 bg-zinc-800 rounded-full"></div>
-                    ))}
-                  </div>
-                  <div className="h-3.5 w-full bg-zinc-800/60 rounded"></div>
-                  <div className="h-3.5 w-3/4 bg-zinc-800/60 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4 divide-y divide-zinc-805">
-              {firestoreReviews.map((rev) => (
-                <div key={rev.id} className="space-y-2 pt-3 first:pt-0">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-white text-xs flex items-center gap-1.5">
-                      {rev.customer}
-                      <span className="text-[9px] bg-[#c5a059]/15 text-[#e9c176] px-1.5 py-0.2 rounded border border-[#c5a059]/30 font-mono">Verified Citizen</span>
-                    </span>
-                    <span className="text-zinc-500 text-[10px]">{rev.date || 'Recently'}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center text-[#e9c176]">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${i < rev.rating ? 'fill-current text-[#e9c176]' : 'text-zinc-750'}`}
-                        />
-                      ))}
-                    </div>
-                    {rev.punctuality && (
-                      <span className="text-[9px] font-mono bg-zinc-900 text-zinc-400 px-1.5 py-0.5 rounded border border-zinc-800">
-                        {rev.punctuality}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-zinc-300 leading-relaxed italic">
-                    "{rev.comment}"
-                  </p>
-
-                  {rev.tags && rev.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {rev.tags.map((tg, idx) => (
-                        <span key={idx} className="text-[9px] font-bold text-[#e9c176] bg-[#c5a059]/10 px-2 py-0.5 rounded-md border border-[#c5a059]/20">
-                          ✓ {tg}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Clean Empty State when no real customer reviews yet */}
-              {firestoreReviews.length === 0 && (
-                <div className="py-6 text-center text-zinc-500 text-xs font-mono">
-                  No verified citizen reviews logged for this specialist yet.
-                </div>
-              )}
-            </div>
-          )}
-        </section>
+        
 
       </main>
 

@@ -310,19 +310,19 @@ export default function ServicePriceEstimator({
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#c5a059]/20 text-[#e9c176] text-xs font-mono font-bold uppercase tracking-wider mb-2 border border-[#c5a059]/40">
             <Calculator className="w-3.5 h-3.5" />
-            <span>Interactive Cost Calculator</span>
+            <span>Service requirements</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Transparent Price Estimator
+            Choose your service requirements
           </h2>
           <p className="text-sm text-zinc-400 mt-1">
-            Get instant itemized cost breakdowns with genuine spare parts estimation & 30-day warranty.
+            Choose the work scope and any optional requirements. The team will confirm the quotation before proceeding.
           </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3.5 py-2 rounded-xl">
           <Shield className="w-4 h-4" />
-          <span>ZERO HIDDEN CHARGES • GST COMPLIANT</span>
+          <span>CLEAR BOOKING DETAILS</span>
         </div>
       </div>
 
@@ -393,9 +393,7 @@ export default function ServicePriceEstimator({
                     <span className="text-zinc-400 flex items-center gap-1">
                       <Clock className="w-3 h-3 text-[#c5a059]" /> {opt.timeEst}
                     </span>
-                    <span className="text-[#e9c176] font-bold">
-                      From ₹{opt.baseLabor + opt.partsEst}
-                    </span>
+                    <span className="text-[#e9c176] font-bold">Select</span>
                   </div>
                 </div>
               );
@@ -441,7 +439,7 @@ export default function ServicePriceEstimator({
                   className="w-4 h-4 rounded text-[#c5a059] focus:ring-[#c5a059] accent-[#c5a059] bg-zinc-900 border-zinc-700"
                 />
                 <span className="text-xs text-zinc-300">
-                  Include <strong>Extended {activeService.warrantyDays}-Day Master Warranty Protection</strong> (+₹99)
+                  Include <strong>Extended {activeService.warrantyDays}-Day Master Warranty Protection</strong> 
                 </span>
               </label>
 
@@ -453,7 +451,7 @@ export default function ServicePriceEstimator({
                   className="w-4 h-4 rounded text-[#c5a059] focus:ring-[#c5a059] accent-[#c5a059] bg-zinc-900 border-zinc-700"
                 />
                 <span className="text-xs text-zinc-300">
-                  Priority <strong>Instant Emergency Fast-Track Dispatch</strong> (+₹249)
+                  Priority <strong>Instant Emergency Fast-Track Dispatch</strong> 
                 </span>
               </label>
             </div>
@@ -465,7 +463,7 @@ export default function ServicePriceEstimator({
           <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
             <div>
               <span className="text-[10px] font-mono uppercase tracking-widest text-[#c5a059] font-bold">
-                ESTIMATE SUMMARY
+                BOOKING SUMMARY
               </span>
               <h3 className="text-lg font-bold text-white leading-tight mt-0.5">
                 {activeService.name}
@@ -476,61 +474,7 @@ export default function ServicePriceEstimator({
             </span>
           </div>
 
-          {/* Itemized Calculation Lines */}
-          <div className="py-4 space-y-2.5 text-xs text-zinc-300 font-mono">
-            <div className="flex justify-between">
-              <span className="text-zinc-400">Base Doorstep Visit & Inspection:</span>
-              <span className="text-white">₹{baseInspection}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-zinc-400">Master Technician Labor ({quantity}x):</span>
-              <span className="text-white">₹{calculatedLabor}</span>
-            </div>
-
-            {calculatedParts > 0 && (
-              <div className="flex justify-between">
-                <span className="text-zinc-400">Estimated Genuine Spare Parts / Consumables:</span>
-                <span className="text-white">₹{calculatedParts}</span>
-              </div>
-            )}
-
-            {includeMaterialWarranty && (
-              <div className="flex justify-between text-emerald-400">
-                <span>Extended {activeService.warrantyDays}-Day Revisit Guarantee:</span>
-                <span>+₹99</span>
-              </div>
-            )}
-
-            {isUrgentEmergency && (
-              <div className="flex justify-between text-amber-400">
-                <span>Emergency Priority Dispatch:</span>
-                <span>+₹249</span>
-              </div>
-            )}
-
-            <div className="flex justify-between text-emerald-400">
-              <span>First-Time Citizen Coupon Applied:</span>
-              <span>-₹{promoSavings}</span>
-            </div>
-          </div>
-
-          {/* Total Highlight Bar */}
-          <div className="p-4 rounded-2xl bg-[#081226] border border-[#c5a059]/50 my-4 flex items-center justify-between">
-            <div>
-              <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">
-                Total Estimated Payable
-              </span>
-              <span className="text-2xl sm:text-3xl font-black text-[#e9c176] font-mono tracking-tight">
-                ₹{finalEstimate}
-              </span>
-            </div>
-
-            <div className="text-right text-[10px] text-zinc-400 font-mono">
-              <span className="text-emerald-400 font-bold block">✓ Pay After Service</span>
-              <span>Online UPI / Cash</span>
-            </div>
-          </div>
+          <div className="py-4 text-sm leading-6 text-zinc-300">Your selected service requirements will be reviewed by the PunchX team. The final quotation will be shared with you for approval before the booking is authorised.</div>
 
           {/* Action Trigger */}
           <button
@@ -538,12 +482,12 @@ export default function ServicePriceEstimator({
             onClick={handleBookNow}
             className="w-full py-3.5 px-4 rounded-2xl bg-[#c5a059] hover:bg-[#e9c176] text-black font-extrabold text-sm tracking-wide transition-all shadow-xl shadow-[#c5a059]/25 flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
           >
-            <span>Book This Service at ₹{finalEstimate}</span>
+            <span>Continue booking</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
           <p className="text-[10px] text-zinc-400 text-center mt-3 leading-relaxed">
-            *Final price may adjust slightly based on on-site inspection of specialized spare parts. No payment required upfront.
+            No public prices are displayed. Final quotation is confirmed before the booking is authorised.
           </p>
         </div>
       </div>

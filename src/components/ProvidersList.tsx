@@ -1,193 +1,188 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, MapPin, Search, ShieldCheck, ShoppingCart, Star, X, Package, Info } from 'lucide-react';
-import { motion } from 'motion/react';
-import { AppScreen, Worker } from '../types';
-import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
+import React, { useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, ChevronRight, Search, ShoppingCart, ShieldCheck, X } from 'lucide-react';
+import { AppScreen } from '../types';
+import { PUNCHX_50_CATEGORIES } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
-import { serviceImageFallback } from '../data/serviceVisuals';
 import { getProductsForCategory, PriceProduct } from '../data/expandedPriceCatalogue';
-import { DEMO_PROFESSIONALS } from '../data/demoProfessionals';
-import { buildPunchXCustomerAreaLabels, isPotentialServiceAreaMatch } from '../lib/location';
-import { fetchApprovedProfessionals } from '../services/professionalDirectory';
-import CategorySponsoredAds from './CategorySponsoredAds';
 
 interface ProvidersListProps {
   onTransition: (target: AppScreen) => void;
   selectedCategory: string;
   onSelectCategory?: (category: string) => void;
-  onSelectWorker: (worker: Worker) => void;
-  authMethod: 'phone' | 'gmail';
-  authTarget: string;
-  showNotification: (msg: string) => void;
-  citizenName: string;
-  setCitizenName: (name: string) => void;
-  citizenAddress: string;
-  setCitizenAddress: (addr: string) => void;
+  showNotification: (message: string) => void;
 }
 
-type CartItem = { id: string; serviceId: string; serviceName: string; category: string; subcategory: string; description: string; price: number; duration?: string; image?: string; bookingTiming?: 'instant'|'later'; itemType?: 'service'|'product'; quantity?: number; priceMin?: number; priceMax?: number };
-const DEMO_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_PROFESSIONALS === 'true';
-const norm = (value?: string) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-const readCart = (): CartItem[] => { try { const v = JSON.parse(localStorage.getItem('punchx_cart') || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+type CartItem = {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  category: string;
+  subcategory: string;
+  description: string;
+  price: number;
+  duration?: string;
+  image?: string;
+  bookingTiming: 'later';
+  quantity?: number;
+  itemType?: 'service'|'product';
+};
 
-export default function ProvidersList({ onTransition, selectedCategory, onSelectCategory, onSelectWorker, showNotification }: ProvidersListProps) {
+const FEATURED_IDS = ['electrician','plumber','cleaner-housekeeper','ac-technician','pest-control-worker','beautician','carpenter','painter','cook','home-care-physiotherapy'];
+const readCart = (): CartItem[] => {
+  try {
+    const value = JSON.parse(localStorage.getItem('punchx_cart') || '[]');
+    return Array.isArray(value) ? value : [];
+  } catch { return []; }
+};
+
+export default function ProvidersList({ onTransition, selectedCategory, onSelectCategory, showNotification }: ProvidersListProps) {
   const initial = getCatalogCategory(selectedCategory || '');
-  const [step, setStep] = useState<'categories' | 'subcategories' | 'services'>(initial ? 'subcategories' : 'categories');
-  const [category, setCategory] = useState<ServiceCategory | null>(initial || null);
-  const [subcategory, setSubcategory] = useState<ServicesSubcategory | null>(null);
-  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [step, setStep] = useState<'categories'|'subcategories'|'services'>(initial ? 'subcategories' : 'categories');
+  const [category, setCategory] = useState<ServiceCategory|null>(initial || null);
+  const [subcategory, setSubcategory] = useState<ServicesSubcategory|null>(null);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>(readCart);
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [matchingWorkers, setMatchingWorkers] = useState<Worker[]>([]);
-  const [checking, setChecking] = useState(false);
-  const [availabilityMessage, setAvailabilityMessage] = useState('');
-  const [available, setAvailable] = useState(false);
-  const [bookingTiming, setBookingTiming] = useState<'instant'|'later'>('instant');
-  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
-  const [geo] = useState<{lat:number;lng:number;area?:string;city?:string;district?:string;state?:string;postalCode?:string;sector?:string;address?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
-  const customerAreaLabels = useMemo(() => {
-    let saved:any={};try{saved=JSON.parse(localStorage.getItem('punchx_residential_address')||'{}');}catch{}
-    return buildPunchXCustomerAreaLabels({area:geo?.area,city:geo?.city,locality:saved.villageArea,sector:geo?.sector,district:saved.district||geo?.district,state:saved.state||geo?.state,pinCode:saved.pinCode||geo?.postalCode,address:saved.fullAddress||geo?.address});
-  }, [geo]);
-
-  useEffect(() => {
-    let active = true;
-    void fetchApprovedProfessionals().then(approved => {
-      if (!active) return;
-      setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...approved] : approved);
-    }).catch(() => {
-      if (active) setWorkers(DEMO_ENABLED ? DEMO_PROFESSIONALS : []);
-    });
-    return () => { active = false; };
-  }, []);
-
-  const categories = useMemo(() => { const q=norm(search); return PUNCHX_50_CATEGORIES.filter(c => !q || norm(`${c.name} ${c.shortDesc} ${c.keywords.join(' ')}`).includes(q)); }, [search]);
-  const subs = useMemo(() => { if(!category)return[]; const q=norm(search); return category.subcategories.filter(s => !q || norm(`${s.name} ${s.description} ${s.items.map(i=>i.name).join(' ')}`).includes(q)); }, [category,search]);
-  const services = useMemo(() => { if(!subcategory)return[]; const q=norm(search); return subcategory.items.filter(i => !q || norm(`${i.name} ${i.description}`).includes(q)); }, [subcategory,search]);
-
-  // Products and materials are offered only after the customer reaches the exact-service screen.
+  const [addedServiceIds, setAddedServiceIds] = useState<string[]>([]);
   const products = category ? getProductsForCategory(category) : [];
-  const addProductToCart = (product: PriceProduct) => {
-    if (!category) return;
-    const quantity = Math.max(1, Math.min(99, productQuantities[product.id] || 1));
-    if (product.quoteRequired) {
-      try {
-        localStorage.setItem('punchx_catalogue_quote_request', JSON.stringify({
-          categoryId: category.id, categoryName: category.name, productId: product.id,
-          productName: product.name, unit: product.unit, minPrice: product.minPrice,
-          maxPrice: product.maxPrice, specification: product.specification, quantity,
-          quoteRequired: true, createdAt: new Date().toISOString()
-        }));
-      } catch { /* Quote request remains informational if storage is unavailable. */ }
-      showNotification('Quote request noted. Confirm the exact model, quantity and final supplier price before purchase.');
-      return;
-    }
-    const lineMin = product.minPrice * quantity;
-    const lineMax = product.maxPrice * quantity;
+
+  const categories = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return PUNCHX_50_CATEGORIES.filter(item => FEATURED_IDS.includes(item.id) && (!q || `${item.name} ${item.shortDesc} ${item.keywords.join(' ')}`.toLowerCase().includes(q)));
+  }, [search]);
+
+  const subcategories = useMemo(() => {
+    if (!category) return [];
+    const q = search.trim().toLowerCase();
+    return category.subcategories.filter(item => !q || `${item.name} ${item.description} ${item.items.map(work=>work.name).join(' ')}`.toLowerCase().includes(q));
+  }, [category, search]);
+
+  const services = useMemo(() => {
+    if (!subcategory) return [];
+    const q = search.trim().toLowerCase();
+    return subcategory.items.filter(item => !q || `${item.name} ${item.description}`.toLowerCase().includes(q));
+  }, [subcategory, search]);
+
+  const chooseCategory = (value: ServiceCategory) => {
+    setCategory(value); setSubcategory(null); setSearch(''); setStep('subcategories');
+    onSelectCategory?.(value.name);
+  };
+
+  const chooseSubcategory = (value: ServicesSubcategory) => {
+    setSubcategory(value); setSearch(''); setStep('services');
+  };
+
+  const addToRequest = (service: ServiceItem) => {
+    if (!category || !subcategory) return;
     const item: CartItem = {
-      id: `${product.id}-${Date.now()}`, serviceId: product.id,
-      serviceName: `${product.name} × ${quantity}`, category: category.name,
-      subcategory: 'Products & materials',
-      description: `${product.specification}. Indicative unit price ₹${product.minPrice}–₹${product.maxPrice}; confirm stock and final supplier price before purchase.`,
-      price: Math.round((lineMin + lineMax) / 2), priceMin: lineMin, priceMax: lineMax,
-      quantity, itemType: 'product'
+      id: `${service.id}-${Date.now()}`,
+      serviceId: service.id,
+      serviceName: service.name,
+      category: category.name,
+      subcategory: subcategory.name,
+      description: service.description,
+      price: 0,
+      duration: service.duration,
+      image: service.image,
+      bookingTiming: 'later'
     };
     const next = [...cart, item];
-    setCart(next);
-    try { localStorage.setItem('punchx_cart', JSON.stringify(next)); }
-    catch { showNotification('Could not save this product to your cart. Please check device storage and retry.'); return; }
-    showNotification(`✓ ${product.name} added to cart.`);
-  };
-
-
-  const chooseCategory = (value: ServiceCategory) => { setCategory(value); setSubcategory(null); setSelectedService(null); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage(''); setSearch(''); setStep('subcategories'); onSelectCategory?.(value.name); };
-  const chooseSubcategory = (value: ServicesSubcategory) => { setSubcategory(value); setSelectedService(null); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage(''); setSearch(''); setStep('services'); };
-
-  const checkAvailability = async (service: ServiceItem) => {
-    setSelectedService(service); setChecking(true); setAvailable(false); setMatchingWorkers([]); setAvailabilityMessage('Checking available professionals in your service area…');
     try {
-      const freshWorkers = await fetchApprovedProfessionals();
-      setWorkers(DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers);
-      const sourceWorkers = DEMO_ENABLED ? [...DEMO_PROFESSIONALS, ...freshWorkers] : freshWorkers;
-      const found = sourceWorkers.filter(worker => {
-        if (worker.available === false || !category) return false;
-        if (!isCategoryMatching(worker.categories || worker.category, category.name) && !isCategoryMatching(worker.categories || worker.category, category.id)) return false;
-        if (bookingTiming === 'instant' && worker.isOnline !== true) return false;
-        const workerAreas = (worker as any).serviceAreas || (worker as any).geofenceAreas || [worker.area, worker.sector].filter(Boolean);
-        return isPotentialServiceAreaMatch(customerAreaLabels, workerAreas);
-      });
-      setMatchingWorkers(found); setAvailable(found.length > 0); setAvailabilityMessage(found.length ? `${found.length} professional${found.length===1?'':'s'} available` : 'No registered professional is currently available in your service zone.');
-    } catch (error) {
-      setAvailabilityMessage('Professional availability could not be checked right now.');
-    } finally {
-      setChecking(false);
+      localStorage.setItem('punchx_cart', JSON.stringify(next));
+      setCart(next);
+      setAddedServiceIds(current => [...current, service.id]);
+      showNotification(`${service.name} added to your request.`);
+    } catch {
+      showNotification('Could not save this service. Please check device storage and try again.');
     }
   };
 
-  const addToCart = () => {
-    if (!category || !subcategory || !selectedService || !available) return;
-    const item: CartItem = { id:`${selectedService.id}-${Date.now()}`, serviceId:selectedService.id, serviceName:selectedService.name, category:category.name, subcategory:subcategory.name, description:selectedService.description, price:selectedService.price, duration:selectedService.duration, image:selectedService.image, bookingTiming };
-    const next=[...cart,item]; setCart(next); localStorage.setItem('punchx_cart',JSON.stringify(next)); showNotification(`✓ ${selectedService.name} added to cart.`);
+  const addProductToRequest = (product: PriceProduct) => {
+    if (!category) return;
+    const item: CartItem = {
+      id: `${product.id}-${Date.now()}`,
+      serviceId: product.id,
+      serviceName: product.name,
+      category: category.name,
+      subcategory: 'Products & materials',
+      description: `${product.specification}. Exact model, stock, quantity and final supplier price will be confirmed before purchase.`,
+      price: 0,
+      bookingTiming: 'later',
+      quantity: 1,
+      itemType: 'product'
+    };
+    const next = [...cart, item];
+    try {
+      localStorage.setItem('punchx_cart', JSON.stringify(next));
+      setCart(next);
+      showNotification(`${product.name} added to your request. Final price will be confirmed before purchase.`);
+    } catch {
+      showNotification('Could not save this product. Please check device storage and try again.');
+    }
   };
 
-  const back = () => { if(step==='categories'){ if(window.history.state?.screen==='providers'&&window.history.length>1)window.history.back();else onTransition('home'); } else if(step==='subcategories'){setStep('categories');setCategory(null);} else {setStep('subcategories');setSelectedService(null);setAvailable(false);setMatchingWorkers([]);} setSearch(''); };
+  const back = () => {
+    if (step === 'services') { setStep('subcategories'); setSearch(''); return; }
+    if (step === 'subcategories') { setStep('categories'); setCategory(null); setSearch(''); return; }
+    if (window.history.state?.screen === 'providers' && window.history.length > 1) window.history.back();
+    else onTransition('landing');
+  };
 
-  return <div id="punchx-provider-discovery" className="min-h-screen bg-[#f7faff] pb-32 text-[#0f172a]">
-    <header className="sticky top-0 z-40 border-b border-[#dbeafe] bg-white/95 backdrop-blur-xl"><div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-2.5 sm:px-6"><button onClick={back} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-white"><ArrowLeft className="h-5 w-5"/></button><div className="min-w-0 flex-1"><div className="truncate text-lg font-black">{category?.name||'PUNCHX Services'}</div><div className="flex items-center gap-1 text-[10px] text-[#64748b]"><MapPin className="h-3 w-3 text-[#2563eb]"/>{geo?.area||'Service area'} · named localities only</div></div><div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-[#eef6ff]"><Search className="h-4 w-4 text-[#2563eb]"/></div></div></header>
-    <main id="punchx-provider-discovery" className="punchx-citizen-main mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-7 sm:py-8 lg:px-10"><div className="mb-3 flex items-center gap-2 rounded-2xl border border-[#dbeafe] bg-white px-3 py-3 shadow-sm"><Search className="h-4 w-4 text-[#64748b]"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={step==='categories'?'Search the 10 service categories':`Search ${category?.name||'services'}`} className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"/>{search&&<button onClick={()=>setSearch('')}><X className="h-4 w-4"/></button>}</div>
-      {step==='categories'&&<><div className="mb-4 rounded-3xl bg-gradient-to-br from-[#0f2b55] via-[#173e78] to-[#2563eb] p-5 text-white shadow-xl"><div className="text-[10px] font-black uppercase tracking-[.18em] text-[#bfdbfe]">Complete catalogue</div><h1 className="mt-1 text-3xl font-black">All 10 service categories</h1><p className="mt-1 text-xs text-white/75">Main service → facility → exact work → availability → cart.</p></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{categories.map(cat=>{const c=getCatalogCategory(cat.id);return <motion.button key={cat.id} onClick={()=>c&&chooseCategory(c)} whileHover={{y:-3}} className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white text-left shadow-sm"><img src={c?.image || serviceImageFallback(cat.name, cat.shortDesc)} alt={`${cat.name} service`} loading="lazy" decoding="async" onError={event => { const image = event.currentTarget; image.onerror = null; image.src = serviceImageFallback(cat.name, cat.shortDesc); }} className="aspect-[4/3] h-28 w-full object-cover bg-[#eef6ff]"/><div className="p-3"><div className="text-sm font-black">{cat.name}</div><div className="mt-1 line-clamp-2 text-[10px] leading-4 text-[#64748b]">{cat.shortDesc}</div><div className="mt-2 text-[10px] font-black text-[#2563eb]">Open services <ArrowRight className="inline h-3 w-3"/></div></div></motion.button>})}</div></>}
-      {step==='subcategories'&&category&&<><div className="mb-3 rounded-3xl bg-white p-5 ring-1 ring-[#dbeafe] shadow-sm"><div className="text-[10px] font-black uppercase tracking-[.16em] text-[#2563eb]">{category.name}</div><h1 className="mt-1 text-2xl font-black">Choose the facility</h1><p className="mt-1 text-xs text-[#64748b]">Fan, bulb, doorbell, switch & socket and every other facility available for this category.</p></div><CategorySponsoredAds categoryId={category.id} categoryName={category.name} /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{subs.map(sub=><motion.button key={sub.id} onClick={()=>chooseSubcategory(sub)} whileHover={{y:-2}} className="flex gap-3 rounded-2xl border border-[#dbeafe] bg-white p-3 text-left shadow-sm"><img src={sub.image} alt={sub.name} className="h-20 w-20 shrink-0 rounded-xl object-cover bg-[#eef6ff]"/><div className="min-w-0"><div className="font-black">{sub.name}</div><div className="mt-1 text-[11px] leading-4 text-[#64748b]">{sub.description}</div><div className="mt-2 text-[10px] font-black text-[#2563eb]">{sub.items.length} works <ChevronRight className="inline h-3 w-3"/></div></div></motion.button>)}</div></>}
-      {step==='services'&&category&&subcategory&&<>
-        <section className="mb-3 rounded-2xl border border-[#dbeafe] bg-white p-3 shadow-sm">
-          <div className="text-[10px] font-black uppercase tracking-[.16em] text-[#2563eb]">Booking type</div>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <button type="button" onClick={()=>{setBookingTiming('instant');setMatchingWorkers([]);setAvailable(false);}} className={`rounded-xl border p-3 text-left ${bookingTiming==='instant'?'border-[#2563eb] bg-[#eef6ff]':'border-[#dbeafe] bg-white'}`}>
-              <div className="text-xs font-black">Instant / SOS</div>
-              <div className="mt-1 text-[10px] text-[#64748b]">Show only professionals who are online now.</div>
-            </button>
-            <button type="button" onClick={()=>{setBookingTiming('later');setMatchingWorkers([]);setAvailable(false);}} className={`rounded-xl border p-3 text-left ${bookingTiming==='later'?'border-[#2563eb] bg-[#eef6ff]':'border-[#dbeafe] bg-white'}`}>
-              <div className="text-xs font-black">Book for later</div>
-              <div className="mt-1 text-[10px] text-[#64748b]">Show registered professionals inside your service zone.</div>
-            </button>
-          </div>
-        </section>
-        <div className="mb-3 flex items-center gap-1 text-xs text-[#64748b]"><span>{category.name}</span><ChevronRight className="h-3 w-3"/><span className="font-black text-[#0f172a]">{subcategory.name}</span></div><section className="mb-3 rounded-3xl bg-white p-4 ring-1 ring-[#dbeafe] shadow-sm"><div className="flex items-center justify-between gap-3"><div><h1 className="text-2xl font-black">{category.name}</h1></div><div className="rounded-xl bg-[#eaf3ff] px-3 py-2 text-right"><div className="text-[9px] font-black text-[#2563eb]">EARLIEST</div><div className="text-xs font-black">Wed, 8:00 AM</div></div></div><div className="mt-3 flex items-center gap-2 rounded-xl border border-[#dbeafe] bg-[#f8fbff] p-3"><ShieldCheck className="h-5 w-5 text-[#2563eb]"/><div><div className="text-xs font-black">Available PUNCHX professionals</div><div className="text-[10px] text-[#64748b]">Availability is checked only after an exact work is selected.</div></div></div></section><CategorySponsoredAds categoryId={category.id} categoryName={category.name} subcategoryName={subcategory.name} /><div className="overflow-hidden rounded-2xl border border-[#dbeafe] bg-white">{services.map(item=><article key={item.id} className="border-b border-[#e5eefb] p-4 last:border-b-0"><div className="flex gap-4"><div className="min-w-0 flex-1"><div className="flex items-start gap-2"><h3 className="text-base font-black leading-5">{item.name}</h3>{item.popular&&<span className="rounded-full bg-[#eaf3ff] px-2 py-1 text-[9px] font-black text-[#2563eb]">Popular</span>}</div><div className="mt-1 text-sm font-black">₹{item.price.toLocaleString('en-IN')}</div><div className="mt-1 text-[10px] text-[#64748b]">{item.duration}</div><p className="mt-2 text-[11px] leading-5 text-[#64748b]">{item.description}</p><button onClick={()=>checkAvailability(item)} className="mt-3 rounded-xl bg-[#2563eb] px-5 py-2.5 text-xs font-black text-white">{selectedService?.id===item.id&&checking?'Checking…':'Select work'}</button></div></div>{selectedService?.id===item.id&&<div className="mt-4 rounded-2xl border border-[#dbeafe] bg-[#f8fbff] p-3">{checking?<div className="flex items-center gap-2 text-sm font-bold text-[#2563eb]"><span className="h-4 w-4 animate-spin rounded-full border-2 border-[#93c5fd] border-t-[#2563eb]"/>Checking nearby professionals…</div>:available?<><div className="flex items-center justify-between gap-3"><div><div className="text-sm font-black text-[#0f7a4a]">{availabilityMessage}</div><div className="text-[10px] text-[#64748b]">Instant shows online professionals; later bookings can use any registered professional in the service zone.</div></div><CheckCircle2 className="h-6 w-6 text-[#16a34a]"/></div><div className="mt-3 flex gap-2 overflow-x-auto pb-1">{matchingWorkers.slice(0,4).map(worker=><button key={worker.id} onClick={()=>{onSelectWorker(worker);localStorage.setItem('punchx_cart_selected_worker',JSON.stringify(worker));}} className="min-w-[155px] rounded-xl border border-[#dbeafe] bg-white p-2 text-left"><div className="flex items-center gap-2"><img src={worker.avatar||'/placeholder.svg'} alt="" className="h-9 w-9 rounded-full object-cover bg-[#eef6ff]"/><div className="min-w-0"><div className="truncate text-xs font-black">{worker.name}</div><div className="text-[9px] text-[#64748b]">★ {worker.rating.toFixed(1)} · {bookingTiming==='instant'?'Online now':'Registered in zone'}</div></div></div></button>)}</div><button onClick={addToCart} className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-[#0f172a] py-3 text-xs font-black text-white"><ShoppingCart className="h-4 w-4"/> Add to cart · ₹{item.price.toLocaleString('en-IN')}</button></>:<div className="rounded-xl bg-[#fff7ed] p-3 text-sm font-black text-[#c2410c]">{availabilityMessage}</div>}</div>}</article>)}</div>        <section aria-labelledby="products-materials-heading" className="mt-5 rounded-3xl border border-[#dbeafe] bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#eef6ff] text-[#2563eb]"><Package className="h-5 w-5"/></div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[10px] font-black uppercase tracking-[.16em] text-[#2563eb]">Step 2 · After services</div>
-              <h2 id="products-materials-heading" className="mt-1 text-xl font-black">Products & materials</h2>
-              <p className="mt-1 text-xs leading-5 text-[#64748b]">Choose required parts or materials after reviewing service prices above. Ranges are indicative, not live stock or confirmed supplier quotes.</p>
-            </div>
-          </div>
-          {products.length > 0 ? <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {products.map(product => {
-              const qty = productQuantities[product.id] || 1;
-              return <article key={product.id} className="rounded-2xl border border-[#e2e8f0] bg-[#fbfdff] p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-black leading-5">{product.name}</h3>
-                    <div className="mt-1 text-sm font-black text-[#0f172a]">₹{product.minPrice.toLocaleString('en-IN')}–₹{product.maxPrice.toLocaleString('en-IN')} <span className="text-[10px] font-semibold text-[#64748b]">/ {product.unit}</span></div>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-[#eef6ff] px-2 py-1 text-[9px] font-black text-[#315da8]">{product.confidence}</span>
-                </div>
-                <p className="mt-2 text-[11px] leading-5 text-[#64748b]">{product.specification}</p>
-                {product.quoteRequired && <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-[#fff7ed] p-2 text-[10px] leading-4 text-[#9a3412]"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0"/>Exact model, dimensions or supplier quote required before purchase.</div>}
-                <div className="mt-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 rounded-xl border border-[#dbeafe] bg-white p-1">
-                    <button type="button" aria-label={"Decrease " + product.name + " quantity"} disabled={qty<=1} onClick={()=>setProductQuantities(old=>({...old,[product.id]:Math.max(1,qty-1)}))} className="h-8 w-8 rounded-lg font-black disabled:opacity-30">−</button>
-                    <span className="min-w-5 text-center text-xs font-black">{qty}</span>
-                    <button type="button" aria-label={"Increase " + product.name + " quantity"} disabled={qty>=99} onClick={()=>setProductQuantities(old=>({...old,[product.id]:Math.min(99,qty+1)}))} className="h-8 w-8 rounded-lg font-black disabled:opacity-30">+</button>
-                  </div>
-                  <button type="button" onClick={()=>addProductToCart(product)} className={"rounded-xl px-3 py-2.5 text-[11px] font-black text-white " + (product.quoteRequired ? "bg-[#475569]" : "bg-[#2563eb]")}>{product.quoteRequired?'Request quote':'Add product'}</button>
-                </div>
-                {!product.quoteRequired && <div className="mt-2 text-[10px] text-[#64748b]">Estimated line range: ₹{(product.minPrice*qty).toLocaleString('en-IN')}–₹{(product.maxPrice*qty).toLocaleString('en-IN')}</div>}
-              </article>;
-            })}
-          </div> : <p className="mt-3 text-sm text-[#64748b]">No listed materials for this category yet. Ask your professional for an itemised quote.</p>}
-        </section></>}
+  return <div id="punchx-service-discovery" className="min-h-screen bg-[#f8f7f3] pb-32 text-[#191814]">
+    <header className="sticky top-0 z-40 border-b border-[#e8e1d4] bg-white/95 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-7">
+        <button type="button" onClick={back} aria-label="Go back" className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e8e1d4] bg-white hover:border-[#c5a66a]"><ArrowLeft className="h-5 w-5"/></button>
+        <div className="min-w-0 flex-1"><div className="truncate text-base font-black">{category?.name || 'Explore services'}</div><div className="text-[10px] font-semibold text-[#8b8579]">Choose the work you need. PUNCHX reviews every request.</div></div>
+        <span className="hidden items-center gap-1 rounded-full border border-[#e8e1d4] bg-[#fbfaf6] px-3 py-2 text-[10px] font-bold text-[#716b60] sm:inline-flex"><ShieldCheck className="h-3.5 w-3.5 text-[#94703a]"/> Admin-reviewed requests</span>
+      </div>
+    </header>
+
+    <main className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-7 lg:px-10">
+      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div><p className="text-[10px] font-black uppercase tracking-[.2em] text-[#94703a]">{step==='categories'?'PUNCHX catalogue':step==='subcategories'?'Choose a service area':'Select exact work'}</p>
+          <h1 className="mt-2 text-3xl font-black tracking-[-.04em] sm:text-4xl">{step==='categories'?'What do you need help with?':step==='subcategories'?'Choose the type of work.':'Tell us what needs to be done.'}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#77736b]">No public service rates or professional directory. Describe your requirement and our team will review serviceability and coordinate the next step.</p>
+        </div>
+        <div className="rounded-2xl border border-[#e8e1d4] bg-white px-4 py-3 text-xs font-bold text-[#716b60]">{cart.length} item{cart.length===1?'':'s'} in your request</div>
+      </div>
+
+      <label className="mb-6 flex items-center gap-3 rounded-2xl border border-[#e8e1d4] bg-white px-4 py-3 shadow-sm">
+        <Search className="h-5 w-5 shrink-0 text-[#94703a]"/>
+        <span className="sr-only">Search services</span>
+        <input value={search} onChange={event=>setSearch(event.target.value)} placeholder={step==='categories'?'Search service categories':step==='subcategories'? `Search ${category?.name||'services'}`:'Search exact work'} className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-[#aaa397]"/>
+        {search&&<button type="button" onClick={()=>setSearch('')} aria-label="Clear search"><X className="h-4 w-4 text-[#77736b]"/></button>}
+      </label>
+
+      {step==='categories'&&<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+        {categories.map(item=>{const value=getCatalogCategory(item.id);return value?<button key={item.id} type="button" onClick={()=>chooseCategory(value)} className="group overflow-hidden rounded-2xl border border-[#e8e1d4] bg-white text-left shadow-sm transition hover:-translate-y-1 hover:border-[#c5a66a] hover:shadow-lg">
+          <img src={item.imageUrl} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover transition duration-500 group-hover:scale-[1.03]"/>
+          <div className="p-4"><h2 className="text-sm font-black">{item.name}</h2><p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#77736b]">{item.shortDesc}</p><span className="mt-3 inline-flex items-center gap-1 text-[11px] font-black text-[#94703a]">Explore <ArrowRight className="h-3.5 w-3.5"/></span></div>
+        </button>:null;})}
+      </div>}
+
+      {step==='subcategories'&&category&&<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {subcategories.map(item=><button key={item.id} type="button" onClick={()=>chooseSubcategory(item)} className="flex items-center gap-4 rounded-2xl border border-[#e8e1d4] bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-[#c5a66a] hover:shadow-md">
+          <img src={item.image} alt="" loading="lazy" className="h-20 w-20 shrink-0 rounded-xl object-cover bg-[#f1ede4]"/>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-black">{item.name}</span><span className="mt-1 block text-xs leading-5 text-[#77736b]">{item.description}</span><span className="mt-2 block text-[10px] font-black text-[#94703a]">{item.items.length} work options</span></span><ChevronRight className="h-4 w-4 shrink-0 text-[#94703a]"/>
+        </button>)}
+      </div>}
+
+      {step==='services'&&category&&subcategory&&<><div className="overflow-hidden rounded-2xl border border-[#e8e1d4] bg-white shadow-sm">
+        <div className="border-b border-[#eee8dc] bg-[#fbfaf6] p-4"><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#94703a]">{category.name}</p><h2 className="mt-1 text-lg font-black">{subcategory.name}</h2><p className="mt-1 text-xs text-[#77736b]">Select one or more work items to include in your request.</p></div>
+        {services.map(service=><article key={service.id} className="flex flex-col gap-4 border-b border-[#eee8dc] p-4 last:border-b-0 sm:flex-row sm:items-center">
+          <img src={service.image} alt="" loading="lazy" className="h-20 w-20 rounded-xl object-cover bg-[#f1ede4]"/>
+          <div className="min-w-0 flex-1"><div className="font-black">{service.name}</div><p className="mt-1 text-xs leading-5 text-[#77736b]">{service.description}</p><p className="mt-2 text-[10px] font-semibold text-[#8b8579]">Estimated duration: {service.duration || 'Confirmed after review'}</p></div>
+          <button type="button" onClick={()=>addToRequest(service)} className={`shrink-0 rounded-xl px-4 py-3 text-xs font-black transition ${addedServiceIds.includes(service.id)?'border border-[#c5a66a] bg-[#f6f0e4] text-[#75572c]':'bg-[#171714] text-white hover:bg-[#343128]'}`}>{addedServiceIds.includes(service.id)?'Add another':'Add to request'} <ArrowRight className="ml-1 inline h-4 w-4 text-[#d7bd82]"/></button>
+        </article>)}
+      </div>
+      {products.length>0&&<section className="mt-6 rounded-2xl border border-[#e8e1d4] bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f5f0e5] text-[#94703a]"><Package className="h-5 w-5"/></span><div><h3 className="font-black">Products & materials</h3><p className="mt-1 text-[11px] text-[#77736b]">Add optional items to your request. No public prices are shown.</p></div></div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{products.map(product=><article key={product.id} className="rounded-xl border border-[#eee8dc] bg-[#fbfaf6] p-3"><h4 className="text-sm font-black">{product.name}</h4><p className="mt-1 text-[10px] font-semibold text-[#94703a]">Unit: {product.unit}</p><p className="mt-2 text-xs leading-5 text-[#77736b]">{product.specification}</p>{product.quoteRequired&&<p className="mt-2 rounded-lg bg-[#f5f0e5] p-2 text-[10px] text-[#75572c]">Exact model and supplier quote required.</p>}<button type="button" onClick={()=>addProductToRequest(product)} className="mt-3 w-full rounded-lg bg-[#171714] px-3 py-2.5 text-[11px] font-black text-white hover:bg-[#343128]">Add product to request <ArrowRight className="ml-1 inline h-3.5 w-3.5 text-[#d7bd82]"/></button></article>)}</div>
+      </section>}
+      </>}
+
+      {((step==='categories'&&!categories.length)||(step==='subcategories'&&!subcategories.length)||(step==='services'&&!services.length&&!products.length))&&<div className="rounded-2xl border border-dashed border-[#d8cfbd] bg-white p-8 text-center text-sm text-[#77736b]">No matching options found. Try a broader search.</div>}
     </main>
-    {cart.length>0&&<div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#dbeafe] bg-white/95 p-3 shadow-[0_-8px_30px_rgba(37,99,235,.12)] backdrop-blur-xl"><div className="mx-auto flex max-w-3xl items-center gap-3"><div className="flex min-w-0 flex-1 items-center gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eaf3ff] text-[#2563eb]"><ShoppingCart className="h-5 w-5"/></div><div className="min-w-0"><div className="truncate text-sm font-black">{cart.length} booking{cart.length===1?'':'s'} in cart</div><div className="truncate text-[10px] text-[#64748b]">₹{cart.reduce((sum,item)=>sum+item.price,0).toLocaleString('en-IN')} service value</div></div></div><button onClick={()=>onTransition('booking')} className="rounded-xl bg-[#2563eb] px-5 py-3 text-xs font-black text-white">View cart <ArrowRight className="ml-1 inline h-4 w-4"/></button></div></div>}
+
+    {cart.length>0&&<div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e8e1d4] bg-white/95 p-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(30,27,19,.08)] backdrop-blur-xl"><div className="mx-auto flex max-w-4xl items-center gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f6f0e4] text-[#94703a]"><ShoppingCart className="h-5 w-5"/></div><div className="min-w-0 flex-1"><div className="text-sm font-black">{cart.length} request item{cart.length===1?'':'s'}</div><div className="text-[10px] text-[#77736b]">Quotation is shared after review</div></div><button type="button" onClick={()=>onTransition('booking')} className="rounded-xl bg-[#c5a66a] px-5 py-3 text-xs font-black text-[#171510] hover:bg-[#dfc58b]">Review request <ArrowRight className="ml-1 inline h-4 w-4"/></button></div></div>}
   </div>;
 }
