@@ -54,7 +54,7 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
     try{
       const headers=await authHeaders();
       const profile=(()=>{try{return JSON.parse(localStorage.getItem('punchx_namoid_profile')||'{}');}catch{return{};}})();
-      const workerId=selectedWorker?.uid||pending.workerId||selectedWorker?.id||null;
+      const workerId=null;
       const response=await fetch('/api/orders',{
         method:'POST',
         headers:{...headers,'Content-Type':'application/json'},
@@ -78,10 +78,10 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
           serviceAvailabilityChecked:Boolean(pending.serviceAvailabilityChecked),
           serviceAvailable:Boolean(pending.serviceAvailable),
           date:pending.date,time:pending.time,workerId,
-          workerName:pending.workerName||selectedWorker?.name||null,
+          workerName:null,
           workerIsDemo:Boolean(pending.workerIsDemo),
           isPersonalSelection:Boolean(pending.isPersonalSelection),
-          dispatchMode:pending.isPersonalSelection?'PERSONAL_SELECT':'AUTO_MATCH',
+          dispatchMode:'ADMIN_REVIEW',
           bookingTiming:pending.bookingTiming||'later',
           bookingType:pending.bookingTiming==='instant'?'INSTANT':'SCHEDULED',
           paymentMethod:'WHATSAPP_COORDINATED',paymentStatus:'pending',
@@ -137,55 +137,55 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
 
   if(order){
     return <main id="punchx-payment-flow" className="min-h-screen bg-[#f7f6f2] px-4 py-10 text-[#171714] sm:px-6">
-      <section className="mx-auto max-w-lg rounded-3xl border border-[#dbeafe] bg-white p-6 text-center shadow-xl">
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#eef6ff]">
-          {accepted?<CheckCircle2 className="h-11 w-11 text-emerald-600"/>:rejected?<XCircle className="h-11 w-11 text-red-600"/>:<Clock3 className="h-11 w-11 text-[#2563eb]"/>}
+      <section className="mx-auto max-w-lg rounded-3xl border border-[#e8e1d4] bg-white p-6 text-center shadow-xl">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#f5f0e5]">
+          {accepted?<CheckCircle2 className="h-11 w-11 text-emerald-600"/>:rejected?<XCircle className="h-11 w-11 text-red-600"/>:<Clock3 className="h-11 w-11 text-[#94703a]"/>}
         </div>
-        <p className="mt-5 text-[10px] font-black uppercase tracking-[.18em] text-[#2563eb]">PUNCHX booking request</p>
+        <p className="mt-5 text-[10px] font-black uppercase tracking-[.18em] text-[#94703a]">PUNCHX booking request</p>
         <h1 className="mt-2 text-2xl font-black">{accepted?'Your order has been accepted':rejected?'Order request not accepted':'Request submitted successfully'}</h1>
-        <p className="mt-2 text-sm leading-6 text-[#64748b]">
+        <p className="mt-2 text-sm leading-6 text-[#77736b]">
           {accepted?'The PUNCHX team has accepted your request. Continue to our official WhatsApp Business to confirm the appointment and coordinate payment.':
            rejected?'The PUNCHX team could not accept this request. Please contact our team if you need help.':
            'Your order details have been sent to the PUNCHX Admin Panel. Please wait while our team reviews service availability and professional assignment.'}
         </p>
-        <div className="mt-5 rounded-2xl bg-[#f8fbff] p-4 text-left">
-          <div className="text-[9px] font-black uppercase text-[#64748b]">Order ID</div>
-          <div className="mt-1 break-all text-base font-black text-[#2563eb]">{order.id}</div>
+        <div className="mt-5 rounded-2xl bg-[#fbfaf6] p-4 text-left">
+          <div className="text-[9px] font-black uppercase text-[#77736b]">Order ID</div>
+          <div className="mt-1 break-all text-base font-black text-[#94703a]">{order.id}</div>
           <div className="mt-4 text-sm font-black">{order.serviceName||pending.serviceName}</div>
-          <div className="mt-1 text-xs text-[#64748b]">{order.date||pending.date} · {order.time||pending.time}</div>
-          <div className="mt-1 break-words text-xs text-[#64748b]">{order.address||order.customerAddress||pending.address}</div>
-          <div className="mt-4 flex items-center justify-between border-t border-[#e5eefb] pt-3">
-            <span className="text-xs text-[#64748b]">Order status</span>
+          <div className="mt-1 text-xs text-[#77736b]">{order.date||pending.date} · {order.time||pending.time}</div>
+          <div className="mt-1 break-words text-xs text-[#77736b]">{order.address||order.customerAddress||pending.address}</div>
+          <div className="mt-4 flex items-center justify-between border-t border-[#eee8dc] pt-3">
+            <span className="text-xs text-[#77736b]">Order status</span>
             <span className={`rounded-full px-3 py-1 text-[10px] font-black ${accepted?'bg-emerald-100 text-emerald-800':rejected?'bg-red-100 text-red-800':'bg-amber-100 text-amber-800'}`}>{status.replaceAll('_',' ')}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-[#64748b]">Payment</span>
+            <span className="text-xs text-[#77736b]">Payment</span>
             <span className="text-xs font-bold">Not collected yet</span>
           </div>
         </div>
         {accepted&&<button onClick={openWhatsApp} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#15945a] py-4 text-sm font-black text-white"><MessageCircle className="h-5 w-5"/> Continue to PUNCHX WhatsApp</button>}
-        {waiting&&<p className="mt-4 text-xs text-[#64748b]">{checking?'Checking for an admin update…':'This page will update automatically when the team reviews your request.'}</p>}
+        {waiting&&<p className="mt-4 text-xs text-[#77736b]">{checking?'Checking for an admin update…':'This page will update automatically when the team reviews your request.'}</p>}
         {rejected&&order.adminReviewNotes&&<p className="mt-3 rounded-xl bg-red-50 p-3 text-left text-xs text-red-700">{order.adminReviewNotes}</p>}
-        <button onClick={()=>onTransition('home')} className="mt-4 w-full rounded-2xl border border-[#dbeafe] py-3 text-sm font-bold text-[#2563eb]">Back to PUNCHX home</button>
+        <button onClick={()=>onTransition('home')} className="mt-4 w-full rounded-2xl border border-[#e8e1d4] py-3 text-sm font-bold text-[#94703a]">Back to PUNCHX home</button>
       </section>
     </main>;
   }
 
-  return <main className="min-h-screen bg-[#f7faff] px-4 py-8 text-[#0f172a]">
-    <section className="mx-auto max-w-lg rounded-3xl border border-[#dbeafe] bg-white p-6 shadow-xl">
-      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#2563eb]"><ShieldCheck className="h-4 w-4"/> Admin-reviewed booking</div>
+  return <main className="min-h-screen bg-[#f8f7f3] px-4 py-8 text-[#191814]">
+    <section className="mx-auto max-w-lg rounded-3xl border border-[#e8e1d4] bg-white p-6 shadow-xl">
+      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#94703a]"><ShieldCheck className="h-4 w-4"/> Admin-reviewed booking</div>
       <h1 className="mt-3 text-2xl font-black">Submit your service request</h1>
-      <p className="mt-2 text-sm leading-6 text-[#64748b]">Your booking details will first go to the PUNCHX Admin Panel. No payment is taken at this stage. If accepted, you will receive a confirmation prompt and continue through our official WhatsApp Business.</p>
-      <div className="mt-5 rounded-2xl bg-[#f8fbff] p-4">
+      <p className="mt-2 text-sm leading-6 text-[#77736b]">Your booking details will first go to the PUNCHX Admin Panel. No payment is taken at this stage. If accepted, you will receive a confirmation prompt and continue through our official WhatsApp Business.</p>
+      <div className="mt-5 rounded-2xl bg-[#fbfaf6] p-4">
         <div className="text-sm font-black">{pending.serviceName||'Selected PUNCHX service'}</div>
-        <div className="mt-1 text-xs text-[#64748b]">{pending.date||'Date'} · {pending.time||'Time'}</div>
-        <div className="mt-1 break-words text-xs text-[#64748b]">{pending.address||'Service address'}</div>
-        <div className="mt-4 border-t border-[#e5eefb] pt-3 text-sm leading-6 text-[#64748b]">No prices are displayed at this stage. PUNCHX will share the final quotation for your approval before payment.</div>
-        <p className="mt-2 text-[10px] leading-4 text-[#64748b]">Labour, materials, applicable charges and payment details are confirmed by PUNCHX before payment.</p>
+        <div className="mt-1 text-xs text-[#77736b]">{pending.date||'Date'} · {pending.time||'Time'}</div>
+        <div className="mt-1 break-words text-xs text-[#77736b]">{pending.address||'Service address'}</div>
+        <div className="mt-4 border-t border-[#eee8dc] pt-3 text-sm leading-6 text-[#77736b]">No prices are displayed at this stage. PUNCHX will share the final quotation for your approval before payment.</div>
+        <p className="mt-2 text-[10px] leading-4 text-[#77736b]">Labour, materials, applicable charges and payment details are confirmed by PUNCHX before payment.</p>
       </div>
       {error&&<p role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700">{error}</p>}
-      <button onClick={submitRequest} disabled={submitting} className="mt-5 w-full rounded-2xl bg-[#2563eb] py-4 text-sm font-black text-white disabled:opacity-50">{submitting?'Submitting request…':'Submit order for admin approval'}</button>
-      <button onClick={()=>onTransition('booking')} className="mt-3 w-full rounded-2xl border border-[#dbeafe] py-3 text-sm font-bold text-[#2563eb]">Back to booking details</button>
+      <button onClick={submitRequest} disabled={submitting} className="mt-5 w-full rounded-2xl bg-[#94703a] py-4 text-sm font-black text-white disabled:opacity-50">{submitting?'Submitting request…':'Submit order for admin approval'}</button>
+      <button onClick={()=>onTransition('booking')} className="mt-3 w-full rounded-2xl border border-[#e8e1d4] py-3 text-sm font-bold text-[#94703a]">Back to booking details</button>
     </section>
   </main>;
 }
