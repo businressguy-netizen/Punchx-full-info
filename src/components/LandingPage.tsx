@@ -1,233 +1,53 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import type { AppScreen } from '../types';
-import { PUNCHX_50_CATEGORIES } from '../data/categories';
+import React,{useMemo,useState} from 'react';
+import {ArrowRight,BadgeCheck,CalendarCheck,CheckCircle2,ChevronDown,Droplet,Hammer,House,Menu,Paintbrush,Search,ShieldCheck,Sparkles,Utensils,Wind,Wrench,X,Zap,Bug,Scissors,HeartHandshake} from 'lucide-react';
+import {PUNCHX_50_CATEGORIES} from '../data/categories';
+import PUNCHX_LOGO from '../assets/logo';
+import {AppScreen} from '../types';
 
-interface Category {
-  id: string;
-  name: string;
-  imageUrl: string;
-  price: number;
-  keywords: string[];
-}
-
-interface Location {
-  id: string;
-  name: string;
-  type: 'city' | 'pincode';
-}
-
-interface LandingPageProps {
-  onTransition: (target: AppScreen) => void;
-  onSelectCategory: (category: string) => void;
-  showNotification: (message: string) => void;
-}
-
-const categories: Category[] = PUNCHX_50_CATEGORIES.map((category) => ({
-  id: category.id,
-  name: category.name,
-  imageUrl: category.imageUrl,
-  price: category.basePrice,
-  keywords: category.keywords,
-}));
-
-const locations: Location[] = [
-  { id: 'kolkata', name: 'Kolkata', type: 'city' },
-  { id: 'howrah', name: 'Howrah', type: 'city' },
-  { id: 'new-town', name: 'New Town', type: 'city' },
-  { id: 'salt-lake', name: 'Salt Lake', type: 'city' },
-  { id: 'nabadwip', name: 'Nabadwip', type: 'city' },
-  { id: 'delhi', name: 'Delhi NCR', type: 'city' },
-  { id: 'mumbai', name: 'Mumbai', type: 'city' },
-  { id: 'bangalore', name: 'Bangalore', type: 'city' },
-];
-
-const normalize = (value: string): string => value.toLowerCase().trim().replace(/\s+/g, ' ');
-
-export default function LandingPage({ onTransition, onSelectCategory, showNotification }: LandingPageProps) {
-  const [query, setQuery] = useState('');
-  const [location, setLocation] = useState('');
-  const [locationModal, setLocationModal] = useState(false);
-  const [authModal, setAuthModal] = useState(false);
-  const [mobileMenu, setMobileMenu] = useState(false);
-
-  const filteredCategories = useMemo(() => {
-    const q = normalize(query);
-    if (!q) return categories;
-    return categories.filter((category) => normalize(`${category.name} ${category.keywords.join(' ')}`).includes(q));
-  }, [query]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        setLocationModal(false);
-        setAuthModal(false);
-        setMobileMenu(false);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  const locationName = locations.find((item) => item.id === location)?.name;
-
-  const findProfessionals = (): void => {
-    if (!query && !location) {
-      showNotification('📍 Select a location or enter a service to continue.');
-      return;
-    }
-    if (query) {
-      const match = filteredCategories[0];
-      if (match) onSelectCategory(match.name);
-    }
-    onTransition('providers');
-  };
-
-  const selectCategory = (category: Category): void => {
-    onSelectCategory(category.name);
-    setQuery(category.name);
-    showNotification(`✓ ${category.name} selected. Find a local professional next.`);
-    onTransition('providers');
-  };
-
-  const openPartner = (): void => {
-    setMobileMenu(false);
-    onTransition('worker-signup');
-  };
-
-  return (
-    <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8" aria-label="Primary navigation">
-          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex items-center gap-2" aria-label="PunchX home">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500 text-lg font-black text-white">P</span>
-            <span className="text-xl font-black tracking-tight text-slate-950">PUNCH<span className="text-orange-500">X</span></span>
-          </button>
-
-          <div className="hidden items-center gap-6 md:flex">
-            <a href="#services" className="text-sm font-semibold text-slate-600 hover:text-orange-600">Services</a>
-            <a href="#how-it-works" className="text-sm font-semibold text-slate-600 hover:text-orange-600">How It Works</a>
-            <a href="#partner" className="text-sm font-semibold text-slate-600 hover:text-orange-600">Partner</a>
-            <button id="location-selector-btn" type="button" onClick={() => setLocationModal(true)} className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold hover:border-orange-300 hover:bg-orange-50">
-              📍 {locationName ?? 'Select City / Pincode'}
-            </button>
-            <button id="worker-register-btn" type="button" onClick={openPartner} className="text-sm font-bold text-orange-600 hover:text-orange-700">Earn as a Pro</button>
-            <button id="auth-btn" type="button" onClick={() => setAuthModal(true)} className="rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Login / Sign Up</button>
-          </div>
-
-          <button id="mobile-menu-btn" type="button" onClick={() => setMobileMenu((value) => !value)} className="rounded-lg border border-slate-200 p-2 md:hidden" aria-label="Toggle navigation" aria-expanded={mobileMenu}>
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-          </button>
-        </nav>
-
-        {mobileMenu && (
-          <div id="mobile-menu" className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
-            <div className="space-y-2">
-              <a href="#services" onClick={() => setMobileMenu(false)} className="block rounded-lg px-3 py-3 font-semibold hover:bg-orange-50">Services</a>
-              <a href="#how-it-works" onClick={() => setMobileMenu(false)} className="block rounded-lg px-3 py-3 font-semibold hover:bg-orange-50">How It Works</a>
-              <a href="#partner" onClick={() => setMobileMenu(false)} className="block rounded-lg px-3 py-3 font-semibold hover:bg-orange-50">Partner</a>
-              <button type="button" onClick={() => { setMobileMenu(false); setLocationModal(true); }} className="block w-full rounded-lg px-3 py-3 text-left font-semibold hover:bg-orange-50">📍 {locationName ?? 'Select City / Pincode'}</button>
-              <button type="button" onClick={openPartner} className="block w-full rounded-lg px-3 py-3 text-left font-bold text-orange-600 hover:bg-orange-50">Earn as a Pro</button>
-              <button type="button" onClick={() => { setMobileMenu(false); setAuthModal(true); }} className="w-full rounded-xl bg-slate-950 px-4 py-3 font-bold text-white">Login / Sign Up</button>
-            </div>
-          </div>
-        )}
-      </header>
-
-      <main>
-        <section className="relative overflow-hidden bg-orange-50/60">
-          <div className="absolute -right-40 -top-40 h-96 w-96 rounded-full bg-orange-200/50 blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 h-96 w-96 rounded-full bg-orange-100 blur-3xl" />
-          <div className="relative mx-auto max-w-7xl px-4 pb-20 pt-16 sm:px-6 lg:px-8 lg:pb-28">
-            <div className="mx-auto max-w-4xl text-center">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white px-4 py-2 text-xs font-bold text-orange-700 shadow-sm"><span className="h-2 w-2 rounded-full bg-green-500" />Local services with clear booking details.</div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">Find Local Service <span className="text-orange-500">Professionals Near You</span></h1>
-              <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">Explore local service options and review available booking details before confirming.</p>
-
-              <div className="mx-auto mt-10 max-w-4xl rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_12px_40px_rgba(15,23,42,0.08)]">
-                <form onSubmit={(event) => { event.preventDefault(); findProfessionals(); }} className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
-                  <label htmlFor="hero-location-select" className="sr-only">Select location</label>
-                  <select id="hero-location-select" value={location} onChange={(event) => setLocation(event.target.value)} className="h-14 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100">
-                    <option value="">Select City</option>
-                    {locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  </select>
-                  <label htmlFor="service-search-input" className="sr-only">Search service</label>
-                  <input id="service-search-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search service (e.g., Fan Repair, Tap Leakage...)" className="h-14 rounded-xl border border-slate-200 px-4 text-sm outline-none placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100" />
-                  <button id="search-btn" type="submit" className="h-14 rounded-xl bg-orange-500 px-6 text-sm font-black text-white shadow-lg shadow-orange-500/20 hover:bg-orange-600">Find Professionals</button>
-                </form>
-              </div>
-
-              <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs font-semibold text-slate-500"><span>✓ Local service categories</span><span>✓ Booking details</span><span>✓ Payment methods shown in the booking flow</span></div>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b border-slate-100 bg-white">
-          <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:grid-cols-3 sm:px-6 lg:px-8">
-            {[
-              ['✓', 'Local Professionals', 'Review available professional details before booking'],
-              ['✓', 'Booking details', 'Request a service and review the quotation before confirming'],
-              ['🛡️', 'Service support', '[DISPUTE AND REFUND PROCESS: confirm with founders]'],
-            ].map(([icon, title, text]) => (
-              <article key={title} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 text-xl">{icon}</div>
-                <h2 className="font-bold text-slate-950">{title}</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="services" className="bg-white py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-10"><p className="text-sm font-black uppercase tracking-wider text-orange-500">Popular Services</p><h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">What do you need help with?</h2><p className="mt-3 max-w-2xl text-slate-600">Choose a service category or search for a specific job.</p></div>
-            <div id="category-grid" className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-              {filteredCategories.map((category) => (
-                <button key={category.id} type="button" data-category={category.id} onClick={() => selectCategory(category)} className="category-card rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-xl">
-                  <div className="mb-4 h-28 overflow-hidden rounded-xl bg-orange-50"><img src={category.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"/></div>
-                  <h3 className="font-bold text-slate-950">{category.name}</h3>
-                  <p className="mt-2 text-xs font-semibold text-slate-500">Request this service</p>
-                </button>
-              ))}
-            </div>
-            {filteredCategories.length === 0 && <p className="mt-8 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-600">No matching service category found. Try electrician, plumber, AC repair, cleaning or painting.</p>}
-          </div>
-        </section>
-
-        <section id="how-it-works" className="bg-slate-950 py-20 text-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center"><p className="text-sm font-black uppercase tracking-wider text-orange-400">A clear service journey</p><h2 className="mt-3 text-3xl font-black sm:text-4xl">How PunchX Works</h2><p className="mt-4 text-slate-400">From finding a professional to completing the job, PunchX keeps the service journey simple and transparent.</p></div>
-            <div className="mt-14 grid gap-6 md:grid-cols-4">
-              {[
-                ['01', 'Select Service & Location', 'Choose the work you need and provide your service location.'],
-                ['02', 'Instant Professional Match', 'Discover suitable local professionals available for your job.'],
-                ['03', 'Transparent Execution & Digital Invoice', 'Track the service and receive a digital record of the work.'],
-                ['04', 'Payment & review', 'Use the payment options shown for your booking and share feedback where available.'],
-              ].map(([step, title, text]) => <article key={step} className="rounded-2xl border border-white/10 bg-white/5 p-6"><span className="text-sm font-black text-orange-400">{step}</span><h3 className="mt-4 font-bold">{title}</h3><p className="mt-3 text-sm leading-6 text-slate-400">{text}</p></article>)}
-            </div>
-          </div>
-        </section>
-
-        <section id="partner" className="bg-orange-50 py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><div className="overflow-hidden rounded-3xl bg-orange-500 p-8 text-white shadow-xl sm:p-12"><div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]"><div><span className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-bold">FOR SERVICE PROFESSIONALS</span><h2 className="mt-5 max-w-3xl text-3xl font-black sm:text-4xl">Are you a skilled electrician, plumber, or technician?</h2><p className="mt-5 max-w-2xl leading-7 text-orange-50">Partner with PunchX to explore customer bookings and digital work opportunities. Wallet, commission and payout terms: [CONFIRM WITH FOUNDERS].</p></div><button id="partner-signup-btn" type="button" onClick={openPartner} className="whitespace-nowrap rounded-xl bg-white px-6 py-4 text-sm font-black text-orange-600 shadow-lg hover:bg-orange-50">Register as a Service Partner</button></div></div></div>
-        </section>
-
-        <section id="faq" className="bg-white py-20">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8"><div className="text-center"><p className="text-sm font-black uppercase tracking-wider text-orange-500">FAQ</p><h2 className="mt-3 text-3xl font-black text-slate-950 sm:text-4xl">Frequently Asked Questions</h2></div><div className="mt-10 space-y-3">
-            {[
-              ['How does PunchX verify professionals?', '[VERIFICATION STEPS: confirm with founders]. PunchX will describe the process here after the steps are confirmed.'],
-              ['Can I see pricing before booking?', '[SERVICE PRICE RANGES AND FEES: confirm with founders]. Review the final price and applicable fees shown in the booking flow.'],
-              ['What happens if there is a service issue?', '[SUPPORT, CANCELLATION AND DISPUTE PROCESS: confirm with founders]. Contact punchxservice@gmail.com while the process is being finalized.'],
-              ['How can I become a PunchX service partner?', 'Use the professional registration option. [ONBOARDING AND VERIFICATION STEPS: confirm with founders].'],
-            ].map(([question, answer]) => <details key={question} className="group rounded-2xl border border-slate-200 bg-white p-5"><summary className="cursor-pointer list-none font-bold text-slate-950"><span className="flex items-center justify-between gap-4">{question}<span className="text-xl text-orange-500">+</span></span></summary><p className="mt-4 text-sm leading-7 text-slate-600">{answer}</p></details>)}
-          </div></div>
-        </section>
-      </main>
-
-      <footer className="border-t border-slate-200 bg-slate-950 text-white"><div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8"><div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4"><div><div className="text-2xl font-black tracking-tight">PUNCH<span className="text-orange-500">X</span></div><p className="mt-4 max-w-xs text-sm leading-6 text-slate-400">Connecting people with trusted local professionals.</p></div><div><h2 className="font-bold">Services</h2><ul className="mt-4 space-y-3 text-sm text-slate-400">{categories.map((category) => <li key={category.id}><button type="button" onClick={() => selectCategory(category)} className="hover:text-white">{category.name}</button></li>)}</ul></div><div><h2 className="font-bold">Company & Legal</h2><ul className="mt-4 space-y-3 text-sm text-slate-400"><li><a href="#about" className="hover:text-white">About Us</a></li><li><button type="button" onClick={openPartner} className="hover:text-white">Become a Partner</button></li><li><a href="#contact" className="hover:text-white">Contact & Support</a></li><li><button type="button" onClick={() => onTransition('privacy-policy')} className="hover:text-white">Privacy Policy</button></li><li><button type="button" onClick={() => onTransition('terms-and-conditions')} className="hover:text-white">Terms & Conditions</button></li><li><button type="button" onClick={() => showNotification('Refund/Cancellation Policy available soon')} className="hover:text-white">Refund / Cancellation Policy</button></li><li><button type="button" onClick={() => showNotification('Cookie Policy available soon')} className="hover:text-white">Cookie Policy</button></li></ul></div><div><h2 className="font-bold">Popular Searches</h2><p className="mt-4 text-sm leading-7 text-slate-400">Electrician near me, plumber near me, AC repair, appliance repair, home cleaning, carpenter, painting services, local professionals, local professionals and home services.</p></div></div><div className="mt-12 border-t border-white/10 pt-6 text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center gap-4"><span>© 2026 PunchX. All rights reserved.</span></div></div></footer>
-
-      {locationModal && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setLocationModal(false); }}><div role="dialog" aria-modal="true" aria-labelledby="location-modal-title" className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-3xl bg-white p-5 sm:p-6 shadow-2xl pb-[max(16px,env(safe-area-inset-bottom))]"><div className="flex items-start justify-between"><div><p className="text-sm font-bold text-orange-500">SERVICE LOCATION</p><h2 id="location-modal-title" className="mt-1 text-2xl font-black">Where do you need a professional?</h2></div><button type="button" onClick={() => setLocationModal(false)} className="rounded-xl p-2 text-xl text-slate-500 hover:bg-slate-100" aria-label="Close location selector">×</button></div><div className="mt-6 space-y-4"><select value={location} onChange={(event) => setLocation(event.target.value)} className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-orange-500"><option value="">Choose a city</option>{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><input inputMode="numeric" maxLength={6} placeholder="Or enter 6-digit Pincode" className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-orange-500" /><button type="button" onClick={() => { setLocationModal(false); showNotification(`📍 Location selected: ${locationName ?? 'Pincode'}`); }} className="w-full rounded-xl bg-orange-500 px-5 py-3 font-black text-white hover:bg-orange-600">Continue</button></div></div></div>}
-
-      {authModal && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-3 sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setAuthModal(false); }}><div role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" className="w-full max-w-md max-h-[92dvh] overflow-y-auto rounded-3xl bg-white p-5 sm:p-7 shadow-2xl pb-[max(16px,env(safe-area-inset-bottom))]"><div className="flex items-start justify-between"><div><p className="text-sm font-bold text-orange-500">PUNCHX ACCOUNT</p><h2 id="auth-modal-title" className="mt-1 text-2xl font-black text-slate-950">Login / Sign Up</h2></div><button type="button" onClick={() => setAuthModal(false)} className="rounded-xl p-2 text-xl text-slate-500 hover:bg-slate-100" aria-label="Close authentication modal">×</button></div><p className="mt-5 text-sm leading-6 text-slate-600">Continue to PunchX to book services, manage bookings, or access your service partner account.</p><button type="button" onClick={() => { setAuthModal(false); onTransition('panel-select'); }} className="mt-6 w-full rounded-xl bg-slate-950 px-5 py-3 font-black text-white hover:bg-slate-800">Continue</button></div></div>}
-    </div>
-  );
+type Role='customer'|'worker';
+interface Props{onEnterWorkspace:(role:Role)=>void;onBookCategory:(category:string)=>void;onTransition:(target:AppScreen)=>void;showNotification:(message:string)=>void;}
+const IDS=['electrician','plumber','cleaner-housekeeper','ac-technician','pest-control-worker','beautician','carpenter','painter','cook','home-care-physiotherapy'];
+const ICONS:Record<string,React.ComponentType<{className?:string}>>={electrician:Zap,plumber:Droplet,'cleaner-housekeeper':Sparkles,'ac-technician':Wind,'pest-control-worker':Bug,beautician:Scissors,carpenter:Hammer,painter:Paintbrush,cook:Utensils,'home-care-physiotherapy':HeartHandshake};
+const CATEGORIES=PUNCHX_50_CATEGORIES.filter(c=>IDS.includes(c.id));
+export default function LandingPage({onEnterWorkspace,onBookCategory,onTransition,showNotification}:Props){
+ const [query,setQuery]=useState('');const [menuOpen,setMenuOpen]=useState(false);
+ const filtered=useMemo(()=>{const q=query.trim().toLowerCase();return q?CATEGORIES.filter(c=>[c.name,c.shortDesc,...c.keywords].join(' ').toLowerCase().includes(q)):CATEGORIES;},[query]);
+ const submit=(e:React.FormEvent<HTMLFormElement>)=>{e.preventDefault();if(!filtered.length){showNotification('No matching service found. Try electrician, plumbing, cleaning or AC repair.');return;}onBookCategory(filtered[0].name);};
+ const links=<><a href="#services" onClick={()=>setMenuOpen(false)} className="hover:text-[#e2c98e]">Services</a><a href="#how-it-works" onClick={()=>setMenuOpen(false)} className="hover:text-[#e2c98e]">How it works</a><a href="#professionals" onClick={()=>setMenuOpen(false)} className="hover:text-[#e2c98e]">For professionals</a><a href="#faq" onClick={()=>setMenuOpen(false)} className="hover:text-[#e2c98e]">FAQs</a></>;
+ return <div id="punchx-public-landing" className="min-h-screen overflow-x-clip bg-[#f8f7f3] text-[#191814]">
+  <header className="sticky top-0 z-50 border-b border-[#c5a66a]/20 bg-[#11110f]/95 text-white shadow-lg backdrop-blur-xl">
+   <nav aria-label="Main navigation" className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-7 lg:px-10">
+    <button type="button" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})} aria-label="PUNCHX home" className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-[#c5a66a]/35 bg-black p-1"><img src={PUNCHX_LOGO} alt="PUNCHX logo" className="h-full w-full object-contain"/></span><span><b className="block text-[19px] tracking-[.08em]">PUNCHX</b><small className="block text-[9px] font-bold uppercase tracking-[.18em] text-[#c9b27e]">Local services, connected</small></span></button>
+    <div className="hidden items-center gap-7 text-sm font-semibold text-white/75 lg:flex">{links}</div>
+    <div className="hidden items-center gap-3 lg:flex"><button type="button" onClick={()=>onTransition('panel-select')} className="rounded-xl px-4 py-2.5 text-sm font-bold text-white/80 hover:bg-white/10">Sign in</button><button type="button" onClick={()=>onEnterWorkspace('customer')} className="rounded-xl bg-[#c5a66a] px-5 py-3 text-sm font-black text-[#171510] transition hover:-translate-y-0.5 hover:bg-[#dfc58b]">Book a service <ArrowRight className="ml-1 inline h-4 w-4"/></button></div>
+    <button type="button" onClick={()=>setMenuOpen(v=>!v)} aria-label="Toggle navigation" aria-expanded={menuOpen} className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 lg:hidden">{menuOpen?<X/>:<Menu/>}</button>
+   </nav>
+   {menuOpen&&<div className="border-t border-white/10 bg-[#171713] px-5 py-4 text-sm font-semibold text-white/80 lg:hidden"><div className="grid gap-4">{links}<button type="button" onClick={()=>{setMenuOpen(false);onTransition('panel-select');}} className="rounded-xl border border-white/15 px-4 py-3 text-left">Sign in</button><button type="button" onClick={()=>{setMenuOpen(false);onEnterWorkspace('customer');}} className="rounded-xl bg-[#c5a66a] px-4 py-3 text-left font-black text-[#171510]">Book a service</button></div></div>}
+  </header>
+  <main>
+   <section className="relative isolate overflow-hidden bg-[#11110f] text-white">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_78%_18%,rgba(197,166,106,.22),transparent_35%),radial-gradient(ellipse_at_8%_90%,rgba(197,166,106,.10),transparent_35%)]"/>
+    <div className="mx-auto grid max-w-[1440px] items-center gap-12 px-4 py-16 sm:px-7 sm:py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-10 lg:py-24">
+     <div><div className="inline-flex items-center gap-2 rounded-full border border-[#c5a66a]/35 bg-white/[.05] px-4 py-2 text-[10px] font-extrabold uppercase tracking-[.2em] text-[#e4cd98]"><ShieldCheck className="h-4 w-4"/> A managed local service marketplace</div>
+      <h1 className="mt-7 max-w-3xl text-[clamp(2.7rem,6vw,5.4rem)] font-black leading-[1.02] tracking-[-.055em]">Trusted local help.<span className="mt-2 block text-[#d7bd82]">One simple request.</span></h1>
+      <p className="mt-7 max-w-xl text-base leading-8 text-white/65 sm:text-lg">Connect with independent local professionals for the services your home needs. PUNCHX brings the request, coordination and service updates into one clear journey.</p>
+      <form onSubmit={submit} className="mt-9 flex max-w-2xl flex-col gap-2 rounded-2xl border border-white/10 bg-white/[.07] p-2 shadow-2xl backdrop-blur sm:flex-row"><label htmlFor="punchx-public-service-search" className="sr-only">Search a home service</label><div className="flex min-w-0 flex-1 items-center gap-3 px-3"><Search className="h-5 w-5 shrink-0 text-[#d7bd82]"/><input id="punchx-public-service-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="What do you need help with?" className="h-12 min-w-0 flex-1 border-0 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-white/40 focus:ring-0"/></div><button type="submit" className="h-12 rounded-xl bg-[#c5a66a] px-6 text-sm font-black text-[#171510] hover:bg-[#dfc58b]">Explore services <ArrowRight className="ml-1 inline h-4 w-4"/></button></form>
+      <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold text-white/50"><span><CheckCircle2 className="mr-1 inline h-3.5 w-3.5 text-[#d7bd82]"/> No public price lists</span><span><CheckCircle2 className="mr-1 inline h-3.5 w-3.5 text-[#d7bd82]"/> Request reviewed by PUNCHX</span><span><CheckCircle2 className="mr-1 inline h-3.5 w-3.5 text-[#d7bd82]"/> Clear next steps</span></div>
+      <div className="mt-9 flex flex-wrap gap-3"><button type="button" onClick={()=>onEnterWorkspace('customer')} className="rounded-xl bg-[#f4eee0] px-6 py-3.5 text-sm font-black text-[#171510] transition hover:-translate-y-0.5 hover:bg-white">Continue as customer <ArrowRight className="ml-1 inline h-4 w-4"/></button><a href="#how-it-works" className="rounded-xl border border-white/15 px-6 py-3.5 text-sm font-bold text-white/80 hover:border-[#c5a66a]/60 hover:text-white">See how it works</a></div>
+     </div>
+     <div className="relative mx-auto w-full max-w-[590px]"><div className="absolute -inset-5 rounded-[36px] border border-[#c5a66a]/20"/><div className="relative rounded-[30px] border border-[#c5a66a]/35 bg-[#1d1c17] p-5 shadow-[0_35px_90px_rgba(0,0,0,.4)] sm:p-7">
+      <div className="flex items-center justify-between border-b border-white/10 pb-5"><div><p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-[#d7bd82]">The PUNCHX process</p><h2 className="mt-2 text-xl font-black sm:text-2xl">From request to resolution</h2></div><span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#c5a66a]/30 bg-[#c5a66a]/10 text-[#e1c68e]"><House/></span></div>
+      <div className="mt-6 space-y-3">{[['01','Choose the service','Describe the work and your location'],['02','PUNCHX reviews the request','Service area and request details are checked'],['03','Professional coordination','An independent professional is coordinated if serviceable'],['04','Quotation and service','Review the itemised quotation before work begins']].map(([n,t,d],i)=><div key={n} className={i===1?'flex items-center gap-4 rounded-2xl border border-[#c5a66a]/30 bg-[#c5a66a]/[.08] p-4':'flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[.045] p-4'}><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#c5a66a]/30 text-sm font-black text-[#e1c68e]">{n}</span><div><b className="text-sm">{t}</b><p className="mt-1 text-xs text-white/45">{d}</p></div></div>)}</div><p className="mt-5 text-[11px] leading-5 text-white/35">Availability and timing are confirmed after request review. Submitting a request does not guarantee acceptance.</p>
+     </div></div>
+   </section>
+   <section className="border-b border-[#e8e2d6] bg-white"><div className="mx-auto grid max-w-[1440px] gap-4 px-4 py-8 sm:grid-cols-3 sm:px-7 lg:px-10">{[[ShieldCheck,'Team-reviewed requests','Requests are reviewed before a professional is coordinated.'],[BadgeCheck,'Independent professionals','PUNCHX connects customers with independent service professionals.'],[CalendarCheck,'Clear booking steps','Share your preferred timing and receive the next steps after review.']].map(([I,t,d])=>{const Icon=I as React.ComponentType<{className?:string}>;return <article key={String(t)} className="flex gap-3 rounded-2xl bg-[#f8f7f3] p-5"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#171714] text-[#d7bd82]"><Icon className="h-5 w-5"/></span><div><h2 className="text-sm font-black">{String(t)}</h2><p className="mt-1 text-xs leading-5 text-[#77736b]">{String(d)}</p></div></article>;})}</div></section>
+   <section id="services" className="scroll-mt-24 bg-[#f8f7f3] py-16 sm:py-20"><div className="mx-auto max-w-[1440px] px-4 sm:px-7 lg:px-10"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-[10px] font-black uppercase tracking-[.22em] text-[#96733c]">Explore PUNCHX</p><h2 className="mt-3 text-3xl font-black tracking-[-.04em] sm:text-4xl">Services for everyday needs.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-[#77736b]">Choose a category to start a request. Exact work and serviceability are reviewed before confirmation.</p></div><div className="rounded-full border border-[#e5dece] bg-white px-4 py-2 text-xs font-bold text-[#716b60]">10 core service categories</div></div>
+    <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">{filtered.map(c=>{const Icon=ICONS[c.id]||Wrench;return <button key={c.id} type="button" onClick={()=>onBookCategory(c.name)} className="group overflow-hidden rounded-2xl border border-[#e7e1d5] bg-white text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:border-[#c5a66a]/70 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b89452]"><div className="relative aspect-[5/3] overflow-hidden bg-[#e8e2d6]"><img src={c.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover transition duration-700 group-hover:scale-105"/><div className="absolute inset-0 bg-gradient-to-t from-[#11110f]/65 via-transparent to-transparent"/><span className="absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-xl border border-white/25 bg-[#11110f]/80 text-[#e1c68e]"><Icon className="h-4 w-4"/></span></div><div className="p-4"><h3 className="min-h-10 text-sm font-black leading-5">{c.name}</h3><p className="mt-2 line-clamp-2 text-[11px] leading-5 text-[#77736b]">{c.shortDesc}</p><span className="mt-4 inline-flex items-center gap-1 text-[11px] font-black text-[#94703a]">Request this service <ArrowRight className="h-3.5 w-3.5"/></span></div></button>;})}</div>{!filtered.length&&<p className="mt-6 rounded-2xl border border-dashed border-[#d8cfbd] bg-white p-6 text-center text-sm text-[#77736b]">No matching category found. Try a broader service name.</p>}</div></section>
+   <section id="how-it-works" className="scroll-mt-24 bg-[#171714] py-16 text-white sm:py-20"><div className="mx-auto max-w-[1440px] px-4 sm:px-7 lg:px-10"><p className="text-[10px] font-black uppercase tracking-[.22em] text-[#d7bd82]">Simple by design</p><h2 className="mt-3 max-w-2xl text-3xl font-black tracking-[-.04em] sm:text-4xl">A clearer way to request home services.</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-white/55">PUNCHX coordinates the request journey while customers and independent professionals remain separate parties.</p><div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{[['01','Choose your service','Select the category, describe the issue and provide the visit address.'],['02','Submit your request','Share your preferred date and time. No payment is collected at this stage.'],['03','PUNCHX reviews','The team checks the request and service area, then coordinates a suitable independent professional if available.'],['04','Confirm the quotation','Review the itemised scope and charges before the service begins.']].map(([n,t,d])=><article key={n} className="rounded-2xl border border-white/10 bg-white/[.045] p-5 transition hover:border-[#c5a66a]/45 hover:bg-white/[.07]"><span className="text-xs font-black tracking-[.18em] text-[#d7bd82]">{n}</span><h3 className="mt-5 font-black">{t}</h3><p className="mt-3 text-xs leading-6 text-white/50">{d}</p></article>)}</div></div></section>
+   <section id="professionals" className="scroll-mt-24 bg-white py-16 sm:py-20"><div className="mx-auto grid max-w-[1440px] items-center gap-10 px-4 sm:px-7 lg:grid-cols-[1fr_.8fr] lg:px-10"><div><p className="text-[10px] font-black uppercase tracking-[.22em] text-[#96733c]">For independent professionals</p><h2 className="mt-3 max-w-2xl text-3xl font-black tracking-[-.04em] sm:text-4xl">Bring your skills to the PUNCHX network.</h2><p className="mt-4 max-w-2xl text-sm leading-7 text-[#77736b]">Register your services, coverage areas and experience. Applications are reviewed before professional workspace access is approved.</p><button type="button" onClick={()=>onEnterWorkspace('worker')} className="mt-7 rounded-xl bg-[#171714] px-6 py-3.5 text-sm font-black text-white hover:-translate-y-0.5 hover:bg-[#343128]">Register as a professional <ArrowRight className="ml-1 inline h-4 w-4 text-[#d7bd82]"/></button></div><div className="rounded-[26px] border border-[#e8e1d4] bg-[#f8f7f3] p-6 sm:p-8"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#171714] text-[#d7bd82]"><Wrench/></span><div><h3 className="font-black">Your independent work</h3><p className="mt-1 text-xs text-[#77736b]">PUNCHX connects; professionals deliver the service.</p></div></div><div className="mt-6 space-y-3 text-sm text-[#5f5a50]"><p><CheckCircle2 className="mr-2 inline h-4 w-4 text-[#987540]"/> Add your service categories and skills.</p><p><CheckCircle2 className="mr-2 inline h-4 w-4 text-[#987540]"/> Share the localities you serve.</p><p><CheckCircle2 className="mr-2 inline h-4 w-4 text-[#987540]"/> Complete profile and verification review.</p><p><CheckCircle2 className="mr-2 inline h-4 w-4 text-[#987540]"/> Manage eligible requests from your workspace.</p></div></div></div></section>
+   <section className="bg-[#f8f7f3] py-16 sm:py-20"><div className="mx-auto grid max-w-[1440px] gap-8 px-4 sm:px-7 lg:grid-cols-[.8fr_1.2fr] lg:px-10"><div><p className="text-[10px] font-black uppercase tracking-[.22em] text-[#96733c]">Marketplace, not employer</p><h2 className="mt-3 text-3xl font-black tracking-[-.04em]">An independent connection layer.</h2></div><div className="rounded-2xl border border-[#e5dece] bg-white p-6 sm:p-8"><p className="text-base leading-8 text-[#5f5a50]">PUNCHX is a technology-enabled marketplace that connects customers with independent local service professionals. Professionals are not presented as PUNCHX employees, and the platform does not claim to employ, train or distribute its own workforce.</p></div></div></section>
+   <section id="faq" className="scroll-mt-24 bg-white py-16 sm:py-20"><div className="mx-auto max-w-4xl px-4 sm:px-7"><div className="text-center"><p className="text-[10px] font-black uppercase tracking-[.22em] text-[#96733c]">Helpful answers</p><h2 className="mt-3 text-3xl font-black tracking-[-.04em] sm:text-4xl">Frequently asked questions</h2></div><div className="mt-9 space-y-3">{[['How does a service request work?','Choose a service, enter the issue and address, and submit your preferred visit time. The PUNCHX team reviews serviceability and coordinates the next step.'],['Can I choose a specific professional?','PUNCHX coordinates an independent professional after the request is reviewed. The public booking journey does not offer a professional-selection directory.'],['Are service prices displayed on the website?','No public catalogue prices are displayed. The itemised quotation and applicable charges are shared for your approval before work begins.'],['Are professionals PUNCHX employees?','PUNCHX is a marketplace connection layer. Independent professionals provide the services; they are not represented as PUNCHX employees.'],['What if my area is not serviceable?','The team checks the submitted location and confirms whether the requested service can be coordinated. Submitting a request does not guarantee acceptance.']].map(([q,a])=><details key={q} className="group rounded-2xl border border-[#e9e3d8] bg-[#fffefa] p-5 open:border-[#c5a66a]/50"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-black">{q}<ChevronDown className="h-4 w-4 shrink-0 text-[#94703a] transition group-open:rotate-180"/></summary><p className="mt-4 max-w-3xl text-sm leading-7 text-[#77736b]">{a}</p></details>)}</div></div></section>
+  </main>
+  <footer className="bg-[#11110f] text-white"><div className="mx-auto max-w-[1440px] px-4 py-12 sm:px-7 lg:px-10"><div className="grid gap-10 md:grid-cols-[1.2fr_.8fr_.8fr]"><div><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-[#c5a66a]/30 bg-black p-1"><img src={PUNCHX_LOGO} alt="PUNCHX" className="h-full w-full object-contain"/></span><b className="text-xl tracking-[.08em]">PUNCHX</b></div><p className="mt-4 max-w-md text-sm leading-7 text-white/50">Connecting people with trusted local professionals.</p><div className="mt-5 flex flex-wrap gap-3 text-xs font-semibold"><a href="mailto:punchxservice@gmail.com" className="rounded-lg border border-white/15 px-3 py-2 text-white/75 hover:border-[#c5a66a]/60 hover:text-white">Email support</a><a href="https://wa.me/917001139809" target="_blank" rel="noopener noreferrer" className="rounded-lg border border-white/15 px-3 py-2 text-white/75 hover:border-[#c5a66a]/60 hover:text-white">WhatsApp support</a></div></div><div><h2 className="text-sm font-black">Explore</h2><div className="mt-4 flex flex-col gap-3 text-sm text-white/55"><a href="#services" className="hover:text-[#e1c68e]">Services</a><a href="#how-it-works" className="hover:text-[#e1c68e]">How it works</a><a href="#professionals" className="hover:text-[#e1c68e]">For professionals</a><button type="button" onClick={()=>onTransition('founder')} className="text-left hover:text-[#e1c68e]">Founding team</button></div></div><div><h2 className="text-sm font-black">Company</h2><div className="mt-4 flex flex-col gap-3 text-sm text-white/55"><button type="button" onClick={()=>onTransition('privacy-policy')} className="text-left hover:text-[#e1c68e]">Privacy policy</button><button type="button" onClick={()=>onTransition('terms-and-conditions')} className="text-left hover:text-[#e1c68e]">Terms & conditions</button><button type="button" onClick={()=>onTransition('panel-select')} className="text-left hover:text-[#e1c68e]">Account sign in</button></div></div></div><div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-[11px] text-white/35 sm:flex-row sm:items-center sm:justify-between"><span>© {new Date().getFullYear()} PUNCHX. All rights reserved.</span><span>Connecting customers with independent local professionals.</span></div></div></footer>
+ </div>;
 }
