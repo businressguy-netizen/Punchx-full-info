@@ -59,6 +59,7 @@ export default function ConfirmBooking({ onTransition, bookingTime, setBookingTi
       setBookingTime(time);
       saveJSON('punchx_residential_address',address);
       localStorage.setItem('punchx_residential_address_label',addressText);
+      localStorage.removeItem('punchx_cart_selected_worker');
       saveJSON('punchx_pending_booking',{
         cart,
         bookingTiming:cart[0]?.bookingTiming||'later',
