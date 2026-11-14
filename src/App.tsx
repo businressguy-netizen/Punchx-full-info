@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './lib/authContext';
 import { auth } from './lib/firebase';
 
 const Splash = lazy(() => import('./components/Splash'));
+const LandingPage = lazy(() => import('./components/LandingPage'));
 const Auth = lazy(() => import('./components/Auth'));
 const OtpVerify = lazy(() => import('./components/OtpVerify'));
 const NamoIDAuthShell = lazy(() => import('./components/NamoIDAuthShell'));
@@ -45,6 +46,7 @@ function AppMain() {
     // Idle prefetching for critical next screens to make transitions instant
     const prefetchKeyRoutes = () => {
       import('./components/Home');
+      import('./components/LandingPage');
       import('./components/PanelSelect');
       import('./components/ProvidersList');
     };
@@ -68,7 +70,7 @@ function AppMain() {
   const dedicatedAppRole: 'customer' | 'worker' | null = punchxAppMode === 'professional' ? 'worker' : punchxAppMode === 'citizen' ? 'customer' : null;
 
   const screenRoutes: Partial<Record<AppScreen, string>> = {
-    splash: '/', 'panel-select': '/panel-select', auth: '/login',
+    splash: '/splash', landing: '/', 'panel-select': '/panel-select', auth: '/login',
     'auth-callback': '/auth/callback', otp: '/verify-otp', 'customer-setup': '/customer/setup',
     'worker-setup': '/worker/setup', 'worker-signup': '/worker-signup',
     'worker-otp-pass': '/worker/verify', 'worker-pending-approval': '/worker/pending',
@@ -85,7 +87,7 @@ function AppMain() {
     const aliases: Record<string, AppScreen> = {
       '/price-catalogue': 'catalogue', '/pricing': 'catalogue', '/privacy': 'privacy-policy',
       '/terms': 'terms-and-conditions', '/terms-of-service': 'terms-and-conditions',
-      '/leadership': 'founder', '/founders': 'founder', '/specialists': 'providers', '/services': 'providers', '/landing': 'splash',
+      '/leadership': 'founder', '/founders': 'founder', '/specialists': 'providers', '/services': 'providers', '/landing': 'landing', '/splash': 'splash',
       '/worker-signup': 'worker-signup', '/login': 'auth', '/verify-otp': 'otp',
     };
     if (aliases[path]) return aliases[path];
@@ -120,15 +122,15 @@ function AppMain() {
       }
       // Unknown URLs use a deliberate, loop-free fallback instead of leaving
       // the screen and browser URL out of sync.
-      window.history.replaceState({ screen: 'splash' }, '', '/');
-      setCurrentScreen('splash');
+      window.history.replaceState({ screen: 'landing' }, '', '/');
+      setCurrentScreen('landing');
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   useEffect(() => {
-    const handleLogoutEvent = () => setCurrentScreen(dedicatedAppRole ? 'auth' : 'panel-select');
+    const handleLogoutEvent = () => setCurrentScreen(dedicatedAppRole ? 'auth' : 'landing');
     window.addEventListener('punchx_logout', handleLogoutEvent);
     return () => window.removeEventListener('punchx_logout', handleLogoutEvent);
   }, []);
@@ -340,8 +342,19 @@ function AppMain() {
         }
       } else {
         setActivePanelRole('customer');
-        window.history.replaceState({ screen: 'home' }, '', screenRoutes.home || '/');
-        setCurrentScreen('home');
+        let pendingPublicCategory = '';
+        try {
+          pendingPublicCategory = localStorage.getItem('punchx_pending_public_category') || '';
+          if (pendingPublicCategory) localStorage.removeItem('punchx_pending_public_category');
+        } catch {}
+        if (pendingPublicCategory) {
+          setSelectedCategory(pendingPublicCategory);
+          window.history.replaceState({ screen: 'providers' }, '', screenRoutes.providers || '/providers');
+          setCurrentScreen('providers');
+        } else {
+          window.history.replaceState({ screen: 'home' }, '', screenRoutes.home || '/home');
+          setCurrentScreen('home');
+        }
       }
     }
   }, [currentUser, userProfile, isLoadingProfile, currentScreen, activePanelRole, workerApplication]);
@@ -418,6 +431,26 @@ function AppMain() {
     } catch (navError) { console.error('Navigation transition error:', navError); showToast('⚠️ Navigation error occurred. Please try again.'); }
   };
 
+  const handleEnterWorkspace = (role: 'customer' | 'worker') => {
+    setActivePanelRole(role);
+    try { localStorage.setItem('punchx_auth_role', role); } catch {}
+    if (!currentUser) { handleTransition('auth'); return; }
+    if (role === 'customer') { handleTransition('home'); return; }
+    const approvedWorker = userProfile?.role === 'worker' && userProfile?.status === 'APPROVED' && (() => {
+      try { return localStorage.getItem('punchx_worker_approved') === 'true'; } catch { return false; }
+    })();
+    handleTransition(approvedWorker ? 'worker-dashboard' : 'worker-signup');
+  };
+
+  const handlePublicCategory = (category: string) => {
+    setSelectedCategory(category);
+    if (currentUser) { handleTransition('providers'); return; }
+    try { localStorage.setItem('punchx_pending_public_category', category); } catch {}
+    setActivePanelRole('customer');
+    try { localStorage.setItem('punchx_auth_role', 'customer'); } catch {}
+    handleTransition('auth');
+  };
+
   useEffect(() => {
     try {
       const existing = localStorage.getItem('punchx_order_history');
@@ -465,6 +498,7 @@ function AppMain() {
               className="flex-grow flex flex-col w-full h-full"
             >
               {currentScreen === 'auth-callback' && <NamoIDAuthShell>{authContent}</NamoIDAuthShell>}
+          {currentScreen === 'landing' && <LandingPage onEnterWorkspace={handleEnterWorkspace} onBookCategory={handlePublicCategory} onTransition={handleTransition} showNotification={showToast} />}
           {currentScreen === 'splash' && <Splash onTransition={handleTransition} />}
           {currentScreen === 'panel-select' && (
             <PanelSelect 
@@ -510,7 +544,7 @@ function AppMain() {
           {currentScreen === 'catalogue' && <InteractivePriceCatalogue onTransition={handleTransition} onSelectCategory={setSelectedCategory} showNotification={showToast} />}
           {currentScreen === 'home' && <HomeDashboard onTransition={handleTransition} onSelectWorker={setSelectedWorker} onSelectCategory={setSelectedCategory} hasActiveBooking={false} promoApplied={promoApplied} hasClaimedBonus={hasClaimedBonus} hasUsedBonus={hasUsedBonus} onClaimPromo={onClaimPromo} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} onOpenNotificationCenter={() => setIsNotificationCenterOpen(true)} isProfileDrawerOpen={isGlobalProfileOpen} setIsProfileDrawerOpen={setIsGlobalProfileOpen} />}
           {currentScreen === 'providers' && <ProvidersList onTransition={handleTransition} selectedCategory={selectedCategory} onSelectWorker={setSelectedWorker} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
-          {currentScreen === 'provider-details' && <ProviderDetails onTransition={handleTransition} selectedWorker={selectedWorker} showNotification={showToast} />}
+          {currentScreen === 'provider-details' && <ProviderDetails onTransition={handleTransition}  showNotification={showToast} />}
           {currentScreen === 'booking' && <ConfirmBooking onTransition={handleTransition} selectedCategory={selectedCategory} selectedWorker={selectedWorker} promoApplied={promoApplied} issueDescription={issueDescription} setIssueDescription={setIssueDescription} bookingTime={bookingTime} setBookingTime={setBookingTime} bookingDate={bookingDate} setBookingDate={setBookingDate} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
           {currentScreen === 'payment' && <ChoosePayment onTransition={handleTransition} selectedWorker={selectedWorker} promoApplied={promoApplied} hasUsedBonus={hasUsedBonus} onApplyPromo={handleApplyPromoCode} showNotification={showToast} />}
           {currentScreen === 'tracking' && <LiveTracking onTransition={handleTransition} bookingTime={bookingTime} />}
