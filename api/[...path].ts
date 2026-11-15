@@ -1,20 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-import adminCatchAll from './admin/[...slug].js';
-import adminHealth from './admin/health.js';
-import adminIndex from './admin/index.js';
-import authSession from './auth/session.js';
-import gemini from './gemini.js';
-import geofenceCheck from './geofence/check.js';
-import locationServices from './location-services.js';
-import distanceMatrix from './maps/distance-matrix.js';
-import geocode from './maps/geocode.js';
-import mapsRoutes from './maps/routes.js';
-import namoidProxy from './namoid-proxy.js';
-import namoidToken from './namoid-token.js';
-import userProfile from './users/profile.js';
-import workerLocationCustomers from './worker-location-customers.js';
-import workerAvailability from './workers/availability.js';
+import adminCatchAll from './_lib/handlers/admin/[...slug].js';
+import adminHealth from './_lib/handlers/admin/health.js';
+import adminIndex from './_lib/handlers/admin/index.js';
+import authSession from './_lib/handlers/auth/session.js';
+import gemini from './_lib/handlers/gemini.js';
+import geofenceCheck from './_lib/handlers/geofence/check.js';
+import locationServices from './_lib/handlers/location-services.js';
+import distanceMatrix from './_lib/handlers/maps/distance-matrix.js';
+import geocode from './_lib/handlers/maps/geocode.js';
+import mapsRoutes from './_lib/handlers/maps/routes.js';
+import namoidProxy from './_lib/handlers/namoid-proxy.js';
+import namoidToken from './_lib/handlers/namoid-token.js';
+import userProfile from './_lib/handlers/users/profile.js';
+import workerLocationCustomers from './_lib/handlers/worker-location-customers.js';
+import workerAvailability from './_lib/handlers/workers/availability.js';
 
 type Handler = (req: VercelRequest, res: VercelResponse) => unknown;
 
@@ -47,9 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   pathname = pathname.replace(/\/+$/, '') || '/api';
 
   const exactHandler = exactRoutes[pathname];
-  if (exactHandler) {
-    return exactHandler(req, res);
-  }
+  if (exactHandler) return exactHandler(req, res);
 
   if (pathname.startsWith('/api/admin/')) {
     const slug = pathname.slice('/api/admin/'.length).split('/').filter(Boolean);
