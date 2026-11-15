@@ -130,6 +130,22 @@ export default function WebsiteFooter({ onTransition, onSelectCategory, showNoti
                 className="h-auto max-w-full"
               />
             </a>
+            <a
+              href="https://launchstag.com/p/punch-x"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="PUNCH X featured on Launchstag"
+              className="inline-flex max-w-full items-center transition-opacity hover:opacity-80"
+            >
+              <img
+                src="https://launchstag.com/badge-light.svg"
+                alt="Featured on Launchstag"
+                width="198"
+                height="62"
+                loading="lazy"
+                className="h-auto max-w-full"
+              />
+            </a>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <button onClick={() => onTransition('founder')} className="hover:text-white">Founding team</button>
