@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getPunchxFirestore, requireFirebaseUid } from '../_lib/firebaseAdmin';
+import { getPunchxFirestore, requireFirebaseUid } from '../../firebaseAdmin.js';
 
 const EDITABLE_FIELDS = [
   'name', 'email', 'phone', 'photoURL', 'dob', 'birthdate', 'address',

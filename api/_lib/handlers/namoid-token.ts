@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHash } from 'node:crypto';
 import { getAuth } from 'firebase-admin/auth';
-import { getPunchxFirestore } from './_lib/firebaseAdmin';
+import { getPunchxFirestore } from '../firebaseAdmin.js';
 
 const NAMOID_USERINFO_URL = 'https://punch-x-747dd7.id.namoid.in/v1/oauth/userinfo';
 

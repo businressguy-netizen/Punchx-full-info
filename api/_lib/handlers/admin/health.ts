@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { dbAdapter } from '../../src/backend/db/index.js';
+import { dbAdapter } from '../../../../src/backend/db/index.js';
 
 const ALLOWED_ORIGINS = [
   'https://www.punchxapp.co.in',

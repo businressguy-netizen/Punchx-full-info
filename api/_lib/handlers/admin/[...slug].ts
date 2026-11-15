@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
 import cors from 'cors';
-import { adminRouter } from '../../src/backend/routes/adminBridgeRoutes.js';
+import { adminRouter } from '../../../../src/backend/routes/adminBridgeRoutes.js';
 
 const ALLOWED_ORIGINS = [
   'https://www.punchxapp.co.in',

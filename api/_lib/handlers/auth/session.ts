@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { FieldValue } from 'firebase-admin/firestore';
-import { getPunchxFirestore, requireFirebaseUid } from '../_lib/firebaseAdmin';
+import { getPunchxFirestore, requireFirebaseUid } from '../../firebaseAdmin.js';
 
 const PROFILE_FIELDS = [
   'name', 'email', 'phone', 'photoURL', 'dob', 'birthdate', 'address',

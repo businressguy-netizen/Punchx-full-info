@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getPunchxFirestore, requireFirebaseUid } from '../_lib/firebaseAdmin';
+import { getPunchxFirestore, requireFirebaseUid } from '../../firebaseAdmin.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'PATCH' && req.method !== 'POST') {
