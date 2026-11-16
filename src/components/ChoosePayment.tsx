@@ -2,11 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Clock3, MessageCircle, ShieldCheck, XCircle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { calculatePunchXPricing, formatINR } from '../config/punchxCommerce';
-import { AppScreen, Worker } from '../types';
+import { AppScreen } from '../types';
 
 interface ChoosePaymentProps {
   onTransition:(target:AppScreen)=>void;
-  selectedWorker:Worker|null;
   promoApplied:boolean;
   hasUsedBonus?:boolean;
   onOrderFinalized?:()=>void;
@@ -20,12 +19,12 @@ type PendingBooking={
   workerIsDemo?:boolean;isPersonalSelection?:boolean;bookingTiming?:'instant'|'later';
   note?:string;residentialAddress?:Record<string,unknown>;addressCoordinates?:{lat:number;lng:number};
   geofenceArea?:string;geofenceCity?:string;serviceAreaMatch?:string|null;
-  serviceAvailabilityChecked?:boolean;serviceAvailable?:boolean;
+  serviceAvailabilityChecked?:boolean;serviceAvailable?:boolean|null;
 };
 const load=():PendingBooking=>{try{return JSON.parse(localStorage.getItem('punchx_pending_booking')||'{}');}catch{return{};}};
 const WHATSAPP_URL='https://wa.me/917001139809';
 
-export default function ChoosePayment({onTransition,selectedWorker,onOrderFinalized,showNotification}:ChoosePaymentProps){
+export default function ChoosePayment({onTransition,onOrderFinalized,showNotification}:ChoosePaymentProps){
   const [pending]=useState<PendingBooking>(load);
   const [submitting,setSubmitting]=useState(false);
   const [order,setOrder]=useState<any>(null);
@@ -54,7 +53,6 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
     try{
       const headers=await authHeaders();
       const profile=(()=>{try{return JSON.parse(localStorage.getItem('punchx_namoid_profile')||'{}');}catch{return{};}})();
-      const workerId=selectedWorker?.uid||pending.workerId||selectedWorker?.id||null;
       const response=await fetch('/api/orders',{
         method:'POST',
         headers:{...headers,'Content-Type':'application/json'},
@@ -76,12 +74,12 @@ export default function ChoosePayment({onTransition,selectedWorker,onOrderFinali
           geofenceArea:pending.geofenceArea||'',geofenceCity:pending.geofenceCity||'',
           serviceAreaMatch:pending.serviceAreaMatch||null,
           serviceAvailabilityChecked:Boolean(pending.serviceAvailabilityChecked),
-          serviceAvailable:Boolean(pending.serviceAvailable),
-          date:pending.date,time:pending.time,workerId,
-          workerName:pending.workerName||selectedWorker?.name||null,
-          workerIsDemo:Boolean(pending.workerIsDemo),
-          isPersonalSelection:Boolean(pending.isPersonalSelection),
-          dispatchMode:pending.isPersonalSelection?'PERSONAL_SELECT':'AUTO_MATCH',
+          serviceAvailable:pending.serviceAvailable ?? null,
+          date:pending.date,time:pending.time,workerId:null,
+          workerName:null,
+          workerIsDemo:false,
+          isPersonalSelection:false,
+          dispatchMode:'ADMIN_ASSIGNMENT',
           bookingTiming:pending.bookingTiming||'later',
           bookingType:pending.bookingTiming==='instant'?'INSTANT':'SCHEDULED',
           paymentMethod:'WHATSAPP_COORDINATED',paymentStatus:'pending',

@@ -16,6 +16,8 @@ const app = read('../src/App.tsx');
 const locationSetup = read('../src/components/WorkerLocationSetup.tsx');
 const otpPass = read('../src/components/WorkerOtpPass.tsx');
 const providersUi = read('../src/components/ProvidersList.tsx');
+const confirmBookingUi = read('../src/components/ConfirmBooking.tsx');
+const paymentUi = read('../src/components/ChoosePayment.tsx');
 
 test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
   assert.match(adminRoutes, /verifyIdToken\(/);
@@ -173,4 +175,14 @@ test('professional availability cannot promote a pending applicant', () => {
 test('citizen service catalogue never displays or lets customers select professionals', () => {
   assert.match(providersUi, /You will not need to choose a professional/);
   assert.doesNotMatch(providersUi, /DEMO_PROFESSIONALS|fetchApprovedProfessionals|matchingWorkers\.map|onSelectWorker\(/);
+});
+
+test('citizen booking submits an admin-assignment request without selecting a worker', () => {
+  assert.match(confirmBookingUi, /Professional assignment/);
+  assert.match(confirmBookingUi, /workerId:null/);
+  assert.match(confirmBookingUi, /serviceAvailabilityChecked:false/);
+  assert.doesNotMatch(confirmBookingUi, /fetchApprovedProfessionals|DEMO_PROFESSIONALS|customWorker|selectedWorker|chooseWorker/);
+  assert.match(paymentUi, /dispatchMode:'ADMIN_ASSIGNMENT'/);
+  assert.match(paymentUi, /workerId:null/);
+  assert.doesNotMatch(paymentUi, /selectedWorker|PERSONAL_SELECT/);
 });
