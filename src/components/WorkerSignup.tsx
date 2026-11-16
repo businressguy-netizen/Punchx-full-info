@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppScreen, WorkerApplication } from '../types';
 import PUNCHX_LOGO from '../assets/logo';
-import { auth } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { requestAndAutoUpdateLocation } from '../lib/location';
 import { 
   Wrench, UserCheck, Calendar, MapPin, Briefcase, Award, Phone, Mail, 
