@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, ChevronRight, ClipboardList, LayoutDashboard, LogOut, MessageSquare, RefreshCw, Search, ShieldCheck, Users, UserRoundCheck } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
@@ -21,6 +21,8 @@ export default function AdminCommandCenter({ showNotification }: { showNotificat
   const [selectedWorkers, setSelectedWorkers] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [lastUpdated, setLastUpdated] = useState('');
+  const notificationRef = useRef(showNotification);
+  notificationRef.current = showNotification;
 
   const request = useCallback(async (path: string, options: RequestInit = {}) => {
     const user = auth.currentUser;
@@ -52,11 +54,11 @@ export default function AdminCommandCenter({ showNotification }: { showNotificat
       setComplaints(complaintData.complaints || []);
       setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
     } catch (error) {
-      showNotification(error instanceof Error ? error.message : 'Could not load command centre data.');
+      notificationRef.current(error instanceof Error ? error.message : 'Could not load command centre data.');
     } finally {
       setLoading(false);
     }
-  }, [request, showNotification]);
+  }, [request]);
 
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => {
