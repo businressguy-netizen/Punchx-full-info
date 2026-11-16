@@ -82,7 +82,7 @@ adminRouter.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader(
       'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, Accept, X-Requested-With, x-admin-key, X-Admin-Key'
+      'Content-Type, Authorization, Accept, X-Requested-With'
     );
   }
 
