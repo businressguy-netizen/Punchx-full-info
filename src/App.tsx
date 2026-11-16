@@ -86,7 +86,7 @@ function AppMain() {
       '/price-catalogue': 'catalogue', '/pricing': 'catalogue', '/privacy': 'privacy-policy',
       '/terms': 'terms-and-conditions', '/terms-of-service': 'terms-and-conditions',
       '/leadership': 'founder', '/founders': 'founder', '/specialists': 'providers', '/services': 'providers', '/landing': 'splash',
-      '/worker-signup': 'worker-signup', '/login': 'auth', '/verify-otp': 'otp',
+      '/worker-signup': 'worker-signup', '/login': 'auth', '/verify-otp': 'otp', '/admin': 'admin-dashboard',
     };
     if (aliases[path]) return aliases[path];
     const entry = Object.entries(screenRoutes).find(([, route]) => route === path);
@@ -310,6 +310,14 @@ function AppMain() {
       const loginScreen: AppScreen = dedicatedAppRole ? 'auth' : 'panel-select';
       window.history.replaceState({ screen: loginScreen }, '', screenRoutes[loginScreen] || '/');
       setCurrentScreen(loginScreen);
+    }
+
+    if (!isLoadingProfile && currentScreen === 'admin-dashboard' && userProfile?.role !== 'admin') {
+      showToast('🔒 Administrator privileges are required to open the command centre.');
+      const loginScreen: AppScreen = currentUser ? 'panel-select' : 'auth';
+      window.history.replaceState({ screen: loginScreen }, '', screenRoutes[loginScreen] || '/');
+      setCurrentScreen(loginScreen);
+      return;
     }
 
     // Strict Guard for Worker Dashboard: Admin review bypassed for testing
