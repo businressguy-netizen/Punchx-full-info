@@ -8,6 +8,8 @@ const adminUi = read('../src/components/AdminCommandCenter.tsx');
 const health = read('../api/admin/health.ts');
 const firestoreRules = read('../firestore.rules');
 const adminPortal = read('../src/components/AdminBridgePortal.tsx');
+const server = read('../server.ts');
+const authContext = read('../src/lib/authContext.tsx');
 
 test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
   assert.match(adminRoutes, /verifyIdToken\(/);
@@ -55,4 +57,20 @@ test('admin refresh callback is stable when notification props change', () => {
   assert.match(adminUi, /useEffect\(\(\) => \{ notificationRef\.current = showNotification; \}, \[showNotification\]\)/);
   assert.match(adminUi, /\}, \[request\]\);/);
   assert.doesNotMatch(adminUi, /\}, \[request, showNotification\]\);/);
+});
+
+test('professional applications require authentication and start pending', () => {
+  const start = server.indexOf('app.post("/api/worker-applications", requireFirebaseUser');
+  const end = server.indexOf('// Public professional discovery:', start);
+  assert.ok(start >= 0 && end > start);
+  const route = server.slice(start, end);
+  assert.match(route, /status: "PENDING"/);
+  assert.doesNotMatch(route, /status: "APPROVED"|role: "worker"/);
+  assert.doesNotMatch(route, /appData\.uid|applicant_\$\{Date\.now\(\)\}/);
+});
+
+test('client profile data cannot self-approve a professional', () => {
+  assert.match(authContext, /existingData\.role === 'worker' && existingData\.status === 'APPROVED'/);
+  assert.doesNotMatch(authContext, /hasWorkerDetails|rawStoredRole === 'worker'/);
+  assert.doesNotMatch(authContext, /setDoc\(userDocRef, \{ role: 'worker', status: 'APPROVED' \}/);
 });
