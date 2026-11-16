@@ -205,12 +205,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
             }
             return updatedProfile;
           } else {
-            const rawStoredRole = localStorage.getItem('punchx_auth_role');
-            const initialProfile: UserProfile = { ...fallbackProfile };
-            if (rawStoredRole === 'worker') {
-              initialProfile.role = 'worker';
-              initialProfile.status = 'PENDING';
-            }
+            // New client-created profiles always begin as citizens.
+            // Professional status is represented by the separate pending application record.
+            const initialProfile: UserProfile = { ...fallbackProfile, role: 'citizen' };
 
             try {
               await Promise.race([
@@ -225,9 +222,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
 
             setUserProfile(initialProfile);
             localStorage.setItem('punchx_namoid_profile', JSON.stringify(initialProfile));
-            if (initialProfile.role === 'worker') {
-              localStorage.setItem('punchx_auth_role', 'worker');
-            }
             return initialProfile;
           }
         } catch (fsErr) {

@@ -71,7 +71,8 @@ test('professional applications require authentication and start pending', () =>
 
 test('client profile data cannot self-approve a professional', () => {
   assert.match(authContext, /existingData\.role === 'worker' && existingData\.status === 'APPROVED'/);
-  assert.doesNotMatch(authContext, /hasWorkerDetails|rawStoredRole === 'worker'/);
+  assert.doesNotMatch(authContext, /hasWorkerDetails/);
+  assert.match(authContext, /initialProfile: UserProfile = \{ \.\.\.fallbackProfile, role: 'citizen' \}/);
   assert.doesNotMatch(authContext, /setDoc\(userDocRef, \{ role: 'worker', status: 'APPROVED' \}/);
 });
 
@@ -82,4 +83,10 @@ test('login session ignores client-requested professional role', () => {
   assert.doesNotMatch(route, /requestedRole|req\.body\?\.role/);
   assert.match(route, /existing\.role === "worker" && existing\.status === "APPROVED"/);
   assert.match(route, /: "citizen"/);
+});
+
+test('Firestore clients cannot create a worker-role user profile', () => {
+  const users = firestoreRules.slice(firestoreRules.indexOf('match /users/{userId}'), firestoreRules.indexOf('match /workerApplications/{appId}'));
+  assert.match(users, /request\.resource\.data\.role == 'citizen'/);
+  assert.doesNotMatch(users, /request\.resource\.data\.role in \['citizen', 'worker'\]/);
 });

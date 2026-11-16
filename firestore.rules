@@ -277,7 +277,7 @@ service cloud.firestore {
       // New client-created profiles cannot make themselves admin.
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId
-        && request.resource.data.role in ['citizen', 'worker'];
+        && request.resource.data.role == 'citizen';
 
       // Users can update their own profile.
       // Admins can update profiles.
