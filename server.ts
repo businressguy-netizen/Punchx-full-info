@@ -259,7 +259,6 @@ async function startServer() {
       const email = String(authUser.email || req.body?.email || "").trim().slice(0, 320);
       const phone = String(authUser.phone_number || req.body?.phone || "").trim().slice(0, 40);
       const displayName = String(req.body?.name || authUser.name || authUser.email?.split("@")[0] || "PunchX Member").trim().slice(0, 160);
-      const requestedRole = req.body?.role === "worker" ? "worker" : "citizen";
       const submittedProfile = req.body?.profile && typeof req.body.profile === "object" ? req.body.profile : {};
       const profileFields = ["name", "email", "phone", "photoURL", "dob", "birthdate", "address", "streetAddress", "landmark", "area", "sector", "city", "isProfileCompleted", "workerSkill", "workerCategories", "workerExperience", "visitingFee", "applicationId", "location", "geofenceArea", "geofenceAreas", "serviceAreas"];
       const safeProfile: Record<string, any> = {};
@@ -276,8 +275,7 @@ async function startServer() {
         const existing = existingSnap.exists ? existingSnap.data() || {} : {};
         const createdAt = existing.createdAt || FieldValue.serverTimestamp();
         const nextRole = existing.role === "admin" ? "admin"
-          : (existing.role === "worker" && existing.status === "APPROVED" ? "worker"
-          : (existing.role || requestedRole));
+          : (existing.role === "worker" && existing.status === "APPROVED" ? "worker" : "citizen");
         const loginCount = Number(existing.loginCount || 0) + 1;
 
         transaction.set(userRef, {

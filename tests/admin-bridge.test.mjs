@@ -74,3 +74,12 @@ test('client profile data cannot self-approve a professional', () => {
   assert.doesNotMatch(authContext, /hasWorkerDetails|rawStoredRole === 'worker'/);
   assert.doesNotMatch(authContext, /setDoc\(userDocRef, \{ role: 'worker', status: 'APPROVED' \}/);
 });
+
+test('login session ignores client-requested professional role', () => {
+  const start = server.indexOf('app.post("/api/auth/session", requireFirebaseUser');
+  const end = server.indexOf('// ─── USER PROFILE CRUD APIS ───', start);
+  const route = server.slice(start, end);
+  assert.doesNotMatch(route, /requestedRole|req\.body\?\.role/);
+  assert.match(route, /existing\.role === "worker" && existing\.status === "APPROVED"/);
+  assert.match(route, /: "citizen"/);
+});
