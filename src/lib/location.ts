@@ -550,19 +550,34 @@ export async function fetchRegisteredCustomersForWorkerLocation(params: {
   lng?: number;
 }): Promise<WorkerLocationCustomersResponse | null> {
   try {
-    const res = await fetch('/api/worker-location-customers', {
+    // This helper now resolves the professional's service location only.
+    // Customer records are never exposed through a location lookup.
+    const response = await fetch('/api/location-services', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params)
+      body: JSON.stringify(params),
+      cache: 'no-store'
     });
-    if (res.ok) {
-      const data = await res.json();
-      return data;
-    }
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data?.success) return null;
+    return {
+      success: true,
+      address: data.address || params.address || '',
+      area: data.area || '',
+      city: data.city || '',
+      sector: data.sector || '',
+      landmark: data.landmark || params.landmark || '',
+      lat: Number(data.lat) || Number(params.lat) || 0,
+      lng: Number(data.lng) || Number(params.lng) || 0,
+      totalRegisteredCustomersInLocation: 0,
+      coverageMessage: data.coverageStatus || 'Location resolved. Customer requests are not available in this lookup.',
+      registeredCustomers: []
+    };
   } catch (err) {
     console.warn("fetchRegisteredCustomersForWorkerLocation error:", err);
+    return null;
   }
-  return null;
 }
 
 // Google Maps Platform Public Config
