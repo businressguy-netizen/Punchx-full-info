@@ -159,3 +159,12 @@ test('worker customer directory never exposes fabricated customer identities', (
   assert.match(route, /registeredCustomers: \[\]/);
   assert.doesNotMatch(route, /Priya Narayanan|Vikramaditya Rao|CUST-IN-|\+91 9[0-9]{4} •••••|totalPreviousBookings/);
 });
+
+test('professional availability cannot promote a pending applicant', () => {
+  const start = server.indexOf('app.patch("/api/workers/availability", requireFirebaseUser');
+  const end = server.indexOf('app.post("/api/worker-applications"', start);
+  const route = server.slice(start, end);
+  assert.match(route, /currentData\?\.role === "worker" && currentData\?\.status === "APPROVED"/);
+  assert.match(route, /workerApp\?\.uid === uid && workerApp\?\.status === "APPROVED"/);
+  assert.doesNotMatch(route, /hasWorkerProfileSignals/);
+});

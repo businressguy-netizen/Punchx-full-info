@@ -1167,12 +1167,10 @@ async function startServer() {
           || ((contact.phone || contact.email) ? await dbAdapter.getWorkerApplicationByContact(contact) : null);
       }
 
-      const hasWorkerProfileSignals = Boolean(
-        currentData?.applicationId || currentData?.workerSkill || currentData?.workerCategories
-        || adapterProfile?.applicationId || adapterProfile?.workerSkill || adapterProfile?.workerCategories
-      );
-      if (currentData?.role !== "worker" && adapterProfile?.role !== "worker" && !workerApp && !hasWorkerProfileSignals) {
-        return res.status(403).json({ success: false, error: "This account is not registered as a PunchX professional. Complete worker registration and sign in again." });
+      const approvedProfile = currentData?.role === "worker" && currentData?.status === "APPROVED";
+      const approvedApplication = workerApp?.uid === uid && workerApp?.status === "APPROVED";
+      if (!approvedProfile || !approvedApplication) {
+        return res.status(403).json({ success: false, error: "Only an administrator-approved PUNCHX professional can change availability." });
       }
 
       const updatedAt = new Date().toISOString();
