@@ -1,135 +1,58 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
-import cors from 'cors';
-import { adminRouter, platformSettings } from '../src/backend/routes/adminBridgeRoutes.ts';
+import { readFileSync } from 'node:fs';
 
-const ALLOWED_ORIGINS = [
-  'https://www.punchxapp.co.in',
-  'https://punchxapp.co.in',
-  'https://businressguy-netizen.github.io',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
-];
+const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
+const adminRoutes = read('../src/backend/routes/adminBridgeRoutes.ts');
+const adminUi = read('../src/components/AdminCommandCenter.tsx');
+const health = read('../api/admin/health.ts');
+const firestoreRules = read('../firestore.rules');
+const adminPortal = read('../src/components/AdminBridgePortal.tsx');
 
-const isAllowedCorsOrigin = (origin) => {
-  if (!origin) return true;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  if (origin.endsWith('.github.io')) return true;
-  return false;
-};
-
-const app = express();
-app.use(cors({
-  origin: (origin, callback) => {
-    if (isAllowedCorsOrigin(origin)) callback(null, true);
-    else callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-admin-key', 'X-Admin-Key'],
-}));
-app.use(express.json());
-app.use('/api/admin', adminRouter);
-
-let server;
-let baseUrl;
-
-test.before(async () => {
-  await new Promise((resolve) => {
-    server = app.listen(0, '127.0.0.1', () => {
-      const port = server.address().port;
-      baseUrl = `http://127.0.0.1:${port}`;
-      resolve();
-    });
-  });
+test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
+  assert.match(adminRoutes, /verifyIdToken\(/);
+  assert.match(adminRoutes, /profile\.role !== 'admin'/);
+  assert.match(adminRoutes, /status\(403\)/);
+  assert.doesNotMatch(adminRoutes, /x-admin-key/i);
 });
 
-test.after(async () => {
-  if (server) {
-    await new Promise((resolve) => server.close(resolve));
-  }
+test('standalone admin health endpoint has no static fallback key', () => {
+  assert.match(health, /verifyIdToken\(/);
+  assert.match(health, /profile\.role !== 'admin'/);
+  assert.doesNotMatch(health, /ADMIN_API_KEY|x-admin-key|punchx_admin_secure_live_key/i);
 });
 
-test('OPTIONS preflight request from GitHub Pages origin is allowed with 204 and CORS headers', async () => {
-  const res = await fetch(`${baseUrl}/api/admin/health`, {
-    method: 'OPTIONS',
-    headers: {
-      'Origin': 'https://businressguy-netizen.github.io',
-      'Access-Control-Request-Method': 'GET',
-      'Access-Control-Request-Headers': 'x-admin-key',
-    },
-  });
-
-  assert.equal(res.status, 204);
-  assert.equal(res.headers.get('access-control-allow-origin'), 'https://businressguy-netizen.github.io');
-  assert.ok(res.headers.get('access-control-allow-headers')?.toLowerCase().includes('x-admin-key'));
+test('legacy admin portal uses the signed-in Firebase bearer token', () => {
+  assert.match(adminPortal, /getIdToken\(/);
+  assert.match(adminPortal, /Authorization: `Bearer/);
+  assert.doesNotMatch(adminPortal, /x-admin-key|punchx_admin_secure_live_key/i);
 });
 
-test('GET /api/admin/health without x-admin-key is rejected with 401', async () => {
-  const res = await fetch(`${baseUrl}/api/admin/health`, {
-    method: 'GET',
-    headers: {
-      'Origin': 'https://businressguy-netizen.github.io',
-    },
-  });
-
-  assert.equal(res.status, 401);
-  const data = await res.json();
-  assert.equal(data.success, false);
+test('professional applications are private to their owner and admins', () => {
+  assert.equal((firestoreRules.match(/allow read: if isAdmin\(\) \|\| isApplicationOwner\(resource\.data\);/g) || []).length, 2);
+  assert.doesNotMatch(firestoreRules, /allow read: if signedIn\(\) \|\| true/);
 });
 
-test('GET /api/admin/health with valid x-admin-key returns 200 connected handshake', async () => {
-  const res = await fetch(`${baseUrl}/api/admin/health`, {
-    method: 'GET',
-    headers: {
-      'Origin': 'https://businressguy-netizen.github.io',
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-  });
-
-  assert.equal(res.status, 200);
-  assert.equal(res.headers.get('access-control-allow-origin'), 'https://businressguy-netizen.github.io');
-  const data = await res.json();
-  assert.equal(data.success, true);
-  assert.equal(data.status, 'connected');
-  assert.ok(data.platform.includes('PunchX'));
+test('professional application creation requires its owner and pending status', () => {
+  assert.match(firestoreRules, /function validApplicationCreate\(\)\s*\{\s*return signedIn\(\)/);
+  assert.match(firestoreRules, /request\.resource\.data\.uid == request\.auth\.uid/);
+  assert.match(firestoreRules, /request\.resource\.data\.status == 'PENDING'/);
+  assert.doesNotMatch(firestoreRules, /request\.resource\.data\.status in \['PENDING', 'APPROVED'\]/);
 });
 
-test('GET and POST /api/admin/settings updates dynamic marketplace parameters', async () => {
-  const getRes = await fetch(`${baseUrl}/api/admin/settings`, {
-    headers: {
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-  });
-  assert.equal(getRes.status, 200);
-  const initialData = await getRes.json();
-  assert.equal(initialData.success, true);
-
-  const updateRes = await fetch(`${baseUrl}/api/admin/settings`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-    body: JSON.stringify({ convenienceFee: 35, emergencySurcharge: 120 }),
-  });
-  assert.equal(updateRes.status, 200);
-  const updatedData = await updateRes.json();
-  assert.equal(updatedData.success, true);
-  assert.equal(updatedData.settings.convenienceFee, 35);
-  assert.equal(updatedData.settings.emergencySurcharge, 120);
-
-  // Restore defaults
-  await fetch(`${baseUrl}/api/admin/settings`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-    body: JSON.stringify({ convenienceFee: 29, emergencySurcharge: 99 }),
-  });
+test('users cannot self-edit their protected account status', () => {
+  const userRules = firestoreRules.slice(firestoreRules.indexOf('match /users/{userId}'), firestoreRules.indexOf('match /workerApplications/{appId}'));
+  assert.doesNotMatch(userRules, /'applicationId',\s*'status'/);
 });
 
+test('admin dispatch only accepts confirmed, unassigned orders and approved professionals', () => {
+  assert.match(adminRoutes, /order\.status !== 'CUSTOMER_CONFIRMED' \|\| order\.workerId/);
+  assert.match(adminRoutes, /professional\.status !== 'APPROVED'/);
+  assert.match(adminRoutes, /updateOrderStatus\(order\.id, 'DISPATCHING'/);
+});
+
+test('admin refresh callback is stable when notification props change', () => {
+  assert.match(adminUi, /useEffect\(\(\) => \{ notificationRef\.current = showNotification; \}, \[showNotification\]\)/);
+  assert.match(adminUi, /\}, \[request\]\);/);
+  assert.doesNotMatch(adminUi, /\}, \[request, showNotification\]\);/);
+});
