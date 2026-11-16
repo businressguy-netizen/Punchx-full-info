@@ -55,6 +55,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
   const [termsAccepted, setTermsAccepted] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pre-fill existing user details if available
   useEffect(() => {
@@ -283,7 +284,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
         appliedAt: new Date().toISOString()
       };
 
-      const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\\/$/, '');
+      const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
       const response = await fetch(`${backendBase}/api/worker-applications`, {
         method: 'POST',
         headers: {

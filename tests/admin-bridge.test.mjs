@@ -10,6 +10,9 @@ const firestoreRules = read('../firestore.rules');
 const adminPortal = read('../src/components/AdminBridgePortal.tsx');
 const server = read('../server.ts');
 const authContext = read('../src/lib/authContext.tsx');
+const signup = read('../src/components/WorkerSignup.tsx');
+const pending = read('../src/components/WorkerPendingApproval.tsx');
+const app = read('../src/App.tsx');
 
 test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
   assert.match(adminRoutes, /verifyIdToken\(/);
