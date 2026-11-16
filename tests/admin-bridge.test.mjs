@@ -110,7 +110,8 @@ test('professional signup cannot mark itself approved or bypass the server save'
   assert.match(signup, /status: 'PENDING'/);
   assert.match(signup, /Authorization: `Bearer \$\{idToken\}`/);
   assert.match(signup, /onTransition\('worker-pending-approval'\)/);
-  assert.doesNotMatch(signup, /status: 'APPROVED'|localStorage\\.setItem\\('punchx_worker_approved'/);
+  assert.doesNotMatch(signup, /status: 'APPROVED'/);
+  assert.equal(signup.includes("localStorage.setItem('punchx_worker_approved', 'true')"), false);
 });
 
 test('professional pending screen cannot approve itself or read local approval cache', () => {
@@ -131,7 +132,8 @@ test('worker dashboard route requires the server-approved profile role and statu
 test('legacy professional location setup cannot self-approve or enter dashboard', () => {
   assert.match(locationSetup, /status: 'PENDING'/);
   assert.match(locationSetup, /onTransition\('worker-pending-approval'\)/);
-  assert.doesNotMatch(locationSetup, /status: 'APPROVED'|role: 'worker'|localStorage\\.setItem\\('punchx_worker_approved'/);
+  assert.doesNotMatch(locationSetup, /status: 'APPROVED'|role: 'worker'/);
+  assert.equal(locationSetup.includes("localStorage.setItem('punchx_worker_approved', 'true')"), false);
 });
 
 test('legacy OTP step never simulates verification or approval', () => {
