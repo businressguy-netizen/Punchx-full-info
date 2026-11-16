@@ -90,3 +90,32 @@ test('Firestore clients cannot create a worker-role user profile', () => {
   assert.match(users, /request\.resource\.data\.role == 'citizen'/);
   assert.doesNotMatch(users, /request\.resource\.data\.role in \['citizen', 'worker'\]/);
 });
+
+test('worker status endpoint requires Firebase authentication and returns stored application status', () => {
+  const start = server.indexOf('app.get("/api/workers/status", requireFirebaseUser');
+  const end = server.indexOf('// Authoritative worker availability endpoint.', start);
+  const route = server.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(route, /workerApp\.status === "APPROVED"/);
+  assert.match(route, /workerApp\.status === "REJECTED"/);
+  assert.doesNotMatch(route, /const status = "APPROVED"|APP-AUTO-APPROVED|getWorkerApplicationByContact|Buffer\.from\(parts\[1\]/);
+});
+
+test('professional signup cannot mark itself approved or bypass the server save', () => {
+  assert.match(signup, /status: 'PENDING'/);
+  assert.match(signup, /Authorization: `Bearer \$\{idToken\}`/);
+  assert.match(signup, /onTransition\('worker-pending-approval'\)/);
+  assert.doesNotMatch(signup, /status: 'APPROVED'|punchx_worker_approved|setDoc\(doc\(db, 'users'/);
+});
+
+test('professional pending screen cannot approve itself or read local approval cache', () => {
+  assert.match(pending, /if \(appStatus !== 'APPROVED'\)/);
+  assert.match(pending, /disabled=\{appStatus !== 'APPROVED'\}/);
+  assert.match(pending, /fetch\('\/api\/workers\/status'/);
+  assert.doesNotMatch(pending, /punchx_worker_approved|Admin Review Bypassed|setAppStatus\('APPROVED'\)|onSnapshot\(/);
+});
+
+test('worker dashboard route requires the server-approved profile role and status', () => {
+  assert.match(app, /currentScreen === 'worker-dashboard'[\s\S]*?userProfile\?\.role !== 'worker'[\s\S]*?userProfile\?\.status !== 'APPROVED'/);
+  assert.doesNotMatch(app, /workerDashboardHasOnboardingAccess|punchx_worker_approved/);
+});

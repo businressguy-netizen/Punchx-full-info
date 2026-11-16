@@ -1076,72 +1076,39 @@ async function startServer() {
 
   // ─── WORKER APPLICATIONS APIS ───
   // Query worker registration & verification status for authenticated user
-  app.get("/api/workers/status", async (req, res) => {
+  app.get("/api/workers/status", requireFirebaseUser, async (req, res) => {
     try {
-      let uid = (req as any).user?.uid;
-      let email = (req as any).user?.email;
-      let phone = (req as any).user?.phone_number;
-
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split("Bearer ")[1];
-        if (token) {
-          try {
-            if (getApps().length > 0) {
-              const decoded = await getAuth().verifyIdToken(token);
-              uid = decoded.uid;
-              email = decoded.email || email;
-              phone = decoded.phone_number || phone;
-            } else {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
-                uid = payload.uid || payload.sub || uid;
-                email = payload.email || email;
-                phone = payload.phone_number || phone;
-              }
-            }
-          } catch {}
-        }
-      }
-
-      if (!uid) {
-        return res.json({
-          success: true,
-          registered: false,
-          status: "NOT_REGISTERED",
-          message: "No user authenticated"
-        });
-      }
+      const uid = String((req as any).user?.uid || "");
+      if (!uid) return res.status(401).json({ success: false, error: "Authentication required." });
 
       const userProfile = await dbAdapter.getUser(uid);
-      const workerApp = await dbAdapter.getWorkerApplicationByUid(uid)
-        || ((userProfile?.phone || phone)
-            ? await dbAdapter.getWorkerApplicationByContact({ 
-                phone: userProfile?.phone || phone,
-                email: userProfile?.email || email
-              })
-            : null);
+      let workerApp = await dbAdapter.getWorkerApplicationByUid(uid);
+      if (!workerApp && userProfile?.applicationId) {
+        workerApp = await dbAdapter.getWorkerApplication(String(userProfile.applicationId));
+        if (workerApp?.uid !== uid) workerApp = null;
+      }
 
-      if (!workerApp && (!userProfile || (userProfile.role !== "worker" && !userProfile.workerSkill))) {
+      if (!workerApp) {
         return res.json({
           success: true,
           registered: false,
           status: "NOT_REGISTERED",
-          message: "No specialist registration found for this account"
+          message: "No professional application is registered for this account."
         });
       }
 
-      const status = "APPROVED";
+      const status = workerApp.status === "APPROVED" || workerApp.status === "REJECTED"
+        ? workerApp.status
+        : "PENDING";
       return res.json({
         success: true,
         registered: true,
-        status: "APPROVED",
-        applicationId: workerApp?.id || "APP-AUTO-APPROVED",
-        appliedAt: workerApp?.appliedAt || new Date().toISOString(),
-        role: "worker",
-        categories: workerApp?.categories || userProfile?.workerCategories || ["Electrician"],
-        skill: workerApp?.skill || userProfile?.workerSkill || "Electrician"
+        status,
+        applicationId: workerApp.id,
+        appliedAt: workerApp.appliedAt || null,
+        role: status === "APPROVED" && userProfile?.role === "worker" ? "worker" : "citizen",
+        categories: workerApp.categories || [],
+        skill: workerApp.skill || ""
       });
     } catch (err: any) {
       logger.error("Worker status query error:", err);
@@ -1296,6 +1263,7 @@ async function startServer() {
         phone: appData.phone,
         photoURL: appData.photoURL || "",
         role: preservedRole,
+        status: "PENDING",
         applicationId: created.id,
         workerSkill: created.skill,
         skill: created.skill,

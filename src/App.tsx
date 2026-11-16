@@ -300,16 +300,12 @@ function AppMain() {
 
   useEffect(() => {
     const protectedScreens: AppScreen[] = ['home', 'customer-setup', 'worker-dashboard', 'admin-dashboard', 'tracking', 'booking', 'payment', 'providers', 'provider-details'];
-    // Keep worker onboarding in order before dashboard access: signup -> OTP/password
-    // verification -> location/service setup -> worker dashboard.
-    let workerOnboardingApproved = false;
-    try { workerOnboardingApproved = localStorage.getItem('punchx_worker_approved') === 'true'; } catch {}
-    const workerDashboardHasOnboardingAccess = currentScreen === 'worker-dashboard' && workerOnboardingApproved;
-    if (!isLoadingProfile && !currentUser && protectedScreens.includes(currentScreen) && !workerDashboardHasOnboardingAccess) {
+    if (!isLoadingProfile && !currentUser && protectedScreens.includes(currentScreen)) {
       showToast('🔒 Active session required. Redirecting to portal select...');
       const loginScreen: AppScreen = dedicatedAppRole ? 'auth' : 'panel-select';
       window.history.replaceState({ screen: loginScreen }, '', screenRoutes[loginScreen] || '/');
       setCurrentScreen(loginScreen);
+      return;
     }
 
     if (!isLoadingProfile && currentScreen === 'admin-dashboard' && userProfile?.role !== 'admin') {
@@ -320,9 +316,43 @@ function AppMain() {
       return;
     }
 
-    // Strict Guard for Worker Dashboard: Admin review bypassed for testing
+    if (!isLoadingProfile && currentScreen === 'worker-dashboard'
+      && (userProfile?.role !== 'worker' || userProfile?.status !== 'APPROVED')) {
+      showToast('Professional dashboard access is available only after admin approval.');
+      const destination: AppScreen = userProfile?.applicationId ? 'worker-pending-approval' : 'worker-signup';
+      window.history.replaceState({ screen: destination }, '', screenRoutes[destination] || '/worker/pending');
+      setCurrentScreen(destination);
+      return;
+    }
+
     if (!isLoadingProfile && currentScreen === 'worker-dashboard') {
       setActivePanelRole('worker');
+    }
+
+    if (!isLoadingProfile && currentUser && activePanelRole === 'worker'
+      && (currentScreen === 'auth' || currentScreen === 'otp' || currentScreen === 'panel-select')) {
+      if (userProfile?.role === 'worker' && userProfile?.status === 'APPROVED') {
+        setActivePanelRole('worker');
+        window.history.replaceState({ screen: 'worker-dashboard' }, '', screenRoutes['worker-dashboard'] || '/');
+        setCurrentScreen('worker-dashboard');
+      } else if (userProfile?.applicationId) {
+        window.history.replaceState({ screen: 'worker-pending-approval' }, '', screenRoutes['worker-pending-approval'] || '/worker/pending');
+        setCurrentScreen('worker-pending-approval');
+      } else {
+        window.history.replaceState({ screen: 'worker-signup' }, '', screenRoutes['worker-signup'] || '/worker-signup');
+        setCurrentScreen('worker-signup');
+      }
+    } else if (!isLoadingProfile && currentUser
+      && (currentScreen === 'auth' || currentScreen === 'otp' || currentScreen === 'panel-select')) {
+      if (userProfile?.role === 'admin') {
+        setActivePanelRole('admin');
+        window.history.replaceState({ screen: 'admin-dashboard' }, '', screenRoutes['admin-dashboard'] || '/');
+        setCurrentScreen('admin-dashboard');
+      } else {
+        setActivePanelRole('customer');
+        window.history.replaceState({ screen: 'home' }, '', screenRoutes.home || '/');
+        setCurrentScreen('home');
+      }
     }
 
     const onboardingScreens: AppScreen[] = ['worker-signup', 'worker-otp-pass', 'worker-setup', 'worker-pending-approval', 'customer-setup'];
