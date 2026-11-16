@@ -18,6 +18,7 @@ const otpPass = read('../src/components/WorkerOtpPass.tsx');
 const providersUi = read('../src/components/ProvidersList.tsx');
 const confirmBookingUi = read('../src/components/ConfirmBooking.tsx');
 const paymentUi = read('../src/components/ChoosePayment.tsx');
+const locationServicesApi = read('../api/location-services.ts');
 
 test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
   assert.match(adminRoutes, /verifyIdToken\(/);
@@ -185,4 +186,11 @@ test('citizen booking submits an admin-assignment request without selecting a wo
   assert.match(paymentUi, /dispatchMode:'ADMIN_ASSIGNMENT'/);
   assert.match(paymentUi, /workerId:null/);
   assert.doesNotMatch(paymentUi, /selectedWorker|PERSONAL_SELECT/);
+});
+
+test('location service lookup does not fabricate capacity, ratings, prices, or coverage', () => {
+  assert.doesNotMatch(locationServicesApi, /activeSpecialists: \d+|avgRating: [\d.]+|startingPrice: \d+|slaMinutes: \d+|Math\.max\(3/);
+  assert.match(locationServicesApi, /availabilityStatus: "Admin confirmation required"/);
+  assert.doesNotMatch(server, /city: city \|\| "Bengaluru"|12\.9716|77\.5946|100% Active & Certified Coverage/);
+  assert.match(server, /availabilityStatus: "Admin confirmation required"/);
 });

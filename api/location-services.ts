@@ -219,11 +219,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'AC Repair',
         category: 'AC Repair',
         icon: 'ac_unit',
-        activeSpecialists: 14,
-        avgRating: 4.9,
-        startingPrice: 199,
-        slaMinutes: 15,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'PCB diagnostics, gas charging, filter sanitization & cooling overhaul'
       },
       {
@@ -231,11 +227,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Electrical Systems',
         category: 'Electrical Systems',
         icon: 'electrical_services',
-        activeSpecialists: 19,
-        avgRating: 4.8,
-        startingPrice: 179,
-        slaMinutes: 12,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'Short-circuit repair, MCB panel installation, heavy cabling & UPS/Inverter'
       },
       {
@@ -243,11 +235,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Plumbing & Drainage',
         category: 'Plumbing & Drainage',
         icon: 'plumbing',
-        activeSpecialists: 16,
-        avgRating: 4.9,
-        startingPrice: 159,
-        slaMinutes: 18,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'High-pressure leaks, concealed line repairs, fixture replacement & drain unclog'
       },
       {
@@ -255,11 +243,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Deep Cleaning',
         category: 'Deep Cleaning & Sanitization',
         icon: 'cleaning_services',
-        activeSpecialists: 11,
-        avgRating: 4.85,
-        startingPrice: 249,
-        slaMinutes: 25,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'Hospital-grade sanitization, kitchen chimney degrease & bathroom restoration'
       },
       {
@@ -267,11 +251,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Painting & Walls',
         category: 'Painting',
         icon: 'format_paint',
-        activeSpecialists: 8,
-        avgRating: 4.75,
-        startingPrice: 299,
-        slaMinutes: 30,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'Interior luxury emulsion, moisture barrier waterproofing & touch-ups'
       },
       {
@@ -279,11 +259,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Carpentry & Locks',
         category: 'Carpentry & Security Locks',
         icon: 'carpenter',
-        activeSpecialists: 10,
-        avgRating: 4.8,
-        startingPrice: 189,
-        slaMinutes: 20,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'Smart digital lock installation, bespoke woodwork, hinges & modular kitchen repair'
       },
       {
@@ -291,11 +267,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Pest Control',
         category: 'Pest Control',
         icon: 'pest_control',
-        activeSpecialists: 7,
-        avgRating: 4.9,
-        startingPrice: 219,
-        slaMinutes: 20,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'Odorless herbal pest eradication, anti-termite and gel bait treatments'
       },
       {
@@ -303,11 +275,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Appliance Maintenance',
         category: 'Appliance Maintenance',
         icon: 'build',
-        activeSpecialists: 12,
-        avgRating: 4.8,
-        startingPrice: 199,
-        slaMinutes: 15,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'Washing machines, microwave ovens, refrigerators & water purifiers'
       },
       {
@@ -315,26 +283,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: 'Moving & Logistics',
         category: 'Moving',
         icon: 'local_shipping',
-        activeSpecialists: 6,
-        avgRating: 4.7,
-        startingPrice: 499,
-        slaMinutes: 45,
-        available: geofence.configured && geofence.inside,
+        available: false,
         description: 'High-care furniture packaging, express tempo dispatch & cargo handling'
       }
     ];
 
     // Custom availability customization for zones if needed
-    const registeredServices = MASTER_SERVICES.map(srv => {
-      // Adjust specialist count dynamically according to sector hash
-      const hash = (sectorName.length + srv.name.length) % 5;
-      return {
-        ...srv,
-        activeSpecialists: Math.max(3, srv.activeSpecialists - hash),
-        sectorCoverage: sectorName,
-        landmarkNote: landmark ? `Near ${landmark}` : (geofence.configured && geofence.inside ? `Inside ${geofence.zoneName}` : "Coverage not confirmed")
-      };
-    });
+    const registeredServices = MASTER_SERVICES.map(srv => ({
+      ...srv,
+      activeSpecialists: null,
+      avgRating: null,
+      startingPrice: null,
+      slaMinutes: null,
+      available: false,
+      availabilityStatus: "Admin confirmation required",
+      sectorCoverage: sectorName,
+      landmarkNote: landmark ? `Near ${landmark}` : "Professional availability is confirmed after admin review"
+    }));
 
     return res.json({
       success: true,
