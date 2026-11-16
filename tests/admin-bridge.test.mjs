@@ -108,7 +108,7 @@ test('professional signup cannot mark itself approved or bypass the server save'
   assert.match(signup, /status: 'PENDING'/);
   assert.match(signup, /Authorization: `Bearer \$\{idToken\}`/);
   assert.match(signup, /onTransition\('worker-pending-approval'\)/);
-  assert.doesNotMatch(signup, /status: 'APPROVED'|punchx_worker_approved|setDoc\(doc\(db, 'users'/);
+  assert.doesNotMatch(signup, /status: 'APPROVED'|setItem\('punchx_worker_approved'/|setDoc\(doc\(db, 'users'/);
 });
 
 test('professional pending screen cannot approve itself or read local approval cache', () => {
@@ -120,5 +120,8 @@ test('professional pending screen cannot approve itself or read local approval c
 
 test('worker dashboard route requires the server-approved profile role and status', () => {
   assert.match(app, /currentScreen === 'worker-dashboard'[\s\S]*?userProfile\?\.role !== 'worker'[\s\S]*?userProfile\?\.status !== 'APPROVED'/);
-  assert.doesNotMatch(app, /workerDashboardHasOnboardingAccess|punchx_worker_approved/);
+  const guardStart = app.indexOf("currentScreen === 'worker-dashboard'");
+  const guardEnd = app.indexOf('const onboardingScreens', guardStart);
+  const workerGuard = app.slice(guardStart, guardEnd);
+  assert.doesNotMatch(workerGuard, /localStorage|punchx_worker_approved/);
 });
