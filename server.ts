@@ -1258,44 +1258,32 @@ async function startServer() {
     }
   });
 
-  app.post("/api/worker-applications", async (req, res) => {
+  app.post("/api/worker-applications", requireFirebaseUser, async (req, res) => {
     try {
-      let uid = (req as any).user?.uid;
-      const authHeader = req.headers.authorization;
-      if (!uid && authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split("Bearer ")[1];
-        if (token) {
-          try {
-            if (getApps().length > 0) {
-              const decoded = await getAuth().verifyIdToken(token);
-              uid = decoded.uid;
-            } else {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
-                uid = payload.uid || payload.sub;
-              }
-            }
-          } catch {}
-        }
-      }
+      const uid = String((req as any).user?.uid || "");
+      if (!uid) return res.status(401).json({ success: false, error: "Sign in before submitting a professional application." });
 
-      const appData = req.body;
-      uid = uid || appData.uid || `applicant_${Date.now()}`;
-
+      const appData = req.body && typeof req.body === "object" ? req.body : {};
       if (!appData.legalName || !appData.phone || !appData.email) {
         return res.status(400).json({ success: false, error: "Missing required registration details: legalName, phone, and email are required" });
       }
 
-      // Auto-approve worker application in Firebase
+      const existingUser = await dbAdapter.getUser(uid);
+      if (existingUser?.role === "worker" && existingUser.status === "APPROVED") {
+        return res.status(409).json({ success: false, error: "This account is already an approved PUNCHX professional." });
+      }
+
+      // All new applications remain pending until an authorised admin reviews them.
       const created = await dbAdapter.createWorkerApplication({
         ...appData,
         uid,
-        status: "APPROVED"
+        status: "PENDING",
+        termsAccepted: appData.termsAccepted === true,
       });
 
-      // Update user profile in Firebase to worker role and APPROVED status directly with all fields
+      const preservedRole = existingUser?.role === "admin" ? "admin" : "citizen";
       await dbAdapter.upsertUser({
+        ...(existingUser || {}),
         uid,
         name: appData.legalName,
         dob: appData.dob,
@@ -1309,8 +1297,7 @@ async function startServer() {
         email: appData.email,
         phone: appData.phone,
         photoURL: appData.photoURL || "",
-        role: "worker",
-        status: "APPROVED",
+        role: preservedRole,
         applicationId: created.id,
         workerSkill: created.skill,
         skill: created.skill,
@@ -1322,14 +1309,12 @@ async function startServer() {
         visitingFee: created.visitingFee,
         minimumVisitingFee: appData.minimumVisitingFee,
         maximumVisitingFee: appData.maximumVisitingFee,
-        termsAccepted: true,
-        appliedAt: appData.appliedAt || new Date().toISOString(),
-        isProfileCompleted: true,
-        createdAt: (await dbAdapter.getUser(uid))?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        termsAccepted: appData.termsAccepted === true,
+        appliedAt: created.appliedAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
 
-      logger.info(`Worker application submitted and saved to Firebase: ${created.id} by uid ${uid}`);
+      logger.info("Professional application submitted for admin review", { applicationId: created.id, uid });
       return res.status(201).json({ success: true, application: created });
     } catch (err: any) {
       logger.error("Worker application error:", err);
