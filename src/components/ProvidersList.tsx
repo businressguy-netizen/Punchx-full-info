@@ -39,11 +39,6 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
   const [bookingTiming, setBookingTiming] = useState<'instant'|'later'>('instant');
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [geo] = useState<{lat:number;lng:number;area?:string;city?:string;district?:string;state?:string;postalCode?:string;sector?:string;address?:string}|null>(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } });
-  const customerAreaLabels = useMemo(() => {
-    let saved:any={};try{saved=JSON.parse(localStorage.getItem('punchx_residential_address')||'{}');}catch{}
-    return buildPunchXCustomerAreaLabels({area:geo?.area,city:geo?.city,locality:saved.villageArea,sector:geo?.sector,district:saved.district||geo?.district,state:saved.state||geo?.state,pinCode:saved.pinCode||geo?.postalCode,address:saved.fullAddress||geo?.address});
-  }, [geo]);
-
 
 
   const categories = useMemo(() => { const q=norm(search); return PUNCHX_50_CATEGORIES.filter(c => !q || norm(`${c.name} ${c.shortDesc} ${c.keywords.join(' ')}`).includes(q)); }, [search]);
