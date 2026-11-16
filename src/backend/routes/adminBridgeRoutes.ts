@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
+import { getAuth } from 'firebase-admin/auth';
+import { ensureFirebaseAdmin } from '../../../api/_lib/firebaseAdmin.js';
 import { dbAdapter } from '../db/index.js';
 import { logger } from '../logger.js';
 import { UserProfile, WorkerApplication, OrderRecord, WarrantyClaim, ComplaintRecord } from '../../types.js';
@@ -41,49 +42,27 @@ export const platformSettings: DynamicPlatformSettings = {
 };
 
 // ─── Dual-Repository Security Authentication ───
-export const requireAdminApiKey = (req: Request, res: Response, next: NextFunction) => {
-  // Allow preflight OPTIONS requests to pass through without requiring auth header
-  if (req.method === 'OPTIONS') {
+export const requireAdminApiKey = async (req: Request, res: Response, next: NextFunction) => {
+  if (req.method === 'OPTIONS') return next();
+  const authorization = String(req.headers.authorization || '');
+  if (!authorization.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Admin sign-in required.' });
+  }
+  try {
+    ensureFirebaseAdmin();
+    const decoded = await getAuth().verifyIdToken(authorization.slice(7).trim());
+    const profile = await dbAdapter.getUser(decoded.uid);
+    if (!profile || profile.role !== 'admin') {
+      logger.security('Rejected non-admin access to admin bridge', { uid: decoded.uid, path: req.originalUrl });
+      return res.status(403).json({ success: false, error: 'Administrator access required.' });
+    }
+    (req as any).adminUid = decoded.uid;
     return next();
+  } catch (error) {
+    const status = (error as any)?.status === 401 ? 401 : 401;
+    logger.security('Admin bridge authentication failed', { path: req.originalUrl });
+    return res.status(status).json({ success: false, error: 'Your admin session is invalid or expired.' });
   }
-
-  const adminKey =
-    (req.headers['x-admin-key'] as string) ||
-    (req.headers['X-Admin-Key'] as string) ||
-    req.headers['authorization']?.replace('Bearer ', '').trim();
-
-  const expectedKey = process.env.ADMIN_API_KEY;
-  if (!expectedKey && process.env.NODE_ENV === 'production') {
-    logger.error('ADMIN_API_KEY environment variable is not configured on the production server');
-    return res.status(500).json({ success: false, error: 'Admin bridge authentication is not configured on server' });
-  }
-  const keyToCompare = expectedKey || 'punchx_admin_secure_live_key_2026_9941a8';
-
-  if (!adminKey) {
-    logger.security('Missing administrative key header', { ip: req.ip, path: req.originalUrl });
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized: Missing x-admin-key authentication header',
-    });
-  }
-
-  // Timing-safe constant-time comparison to prevent timing attacks
-  const keyBuf = Buffer.from(adminKey);
-  const expectedBuf = Buffer.from(keyToCompare);
-
-  const isValid =
-    keyBuf.length === expectedBuf.length &&
-    crypto.timingSafeEqual(keyBuf, expectedBuf);
-
-  if (!isValid) {
-    logger.security('Invalid administrative key attempt', { ip: req.ip, path: req.originalUrl });
-    return res.status(401).json({
-      success: false,
-      error: 'Unauthorized: Invalid admin key provided',
-    });
-  }
-
-  next();
 };
 
 // Ensure CORS headers on all admin bridge requests
@@ -91,7 +70,7 @@ adminRouter.use((req: Request, res: Response, next: NextFunction) => {
   const origin = (req.headers.origin as string) || '';
   const isAllowedOrigin =
     origin === 'https://businressguy-netizen.github.io' ||
-    origin.endsWith('.github.io') ||
+    
     origin === 'https://www.punchxapp.co.in' ||
     origin === 'https://punchxapp.co.in' ||
     origin.startsWith('http://localhost:') ||
@@ -349,6 +328,36 @@ adminRouter.patch('/orders/:id/status', async (req: Request, res: Response) => {
   } catch (err: any) {
     logger.error('Admin update order status error:', err);
     return res.status(500).json({ success: false, error: 'Failed to update order status' });
+  }
+});
+
+// ─── Admin-controlled professional assignment ───
+adminRouter.patch('/orders/:id/assign', async (req: Request, res: Response) => {
+  try {
+    const order = await dbAdapter.getOrder(req.params.id);
+    if (!order) return res.status(404).json({ success: false, error: 'Order not found' });
+    if (order.status !== 'CUSTOMER_CONFIRMED' || order.workerId) {
+      return res.status(409).json({ success: false, error: 'Only confirmed, unassigned orders can be dispatched.' });
+    }
+    const applicationId = String(req.body?.professionalApplicationId || '');
+    if (!applicationId) return res.status(400).json({ success: false, error: 'Select an approved professional.' });
+    const professional = await dbAdapter.getWorkerApplication(applicationId);
+    if (!professional || professional.status !== 'APPROVED' || !professional.uid) {
+      return res.status(400).json({ success: false, error: 'Selected professional is not approved.' });
+    }
+    const updated = await dbAdapter.updateOrderStatus(order.id, 'DISPATCHING', {
+      workerId: professional.uid,
+      workerName: professional.legalName || 'Assigned professional',
+      workerPhone: professional.phone || '',
+      assignedAt: new Date().toISOString(),
+      assignedBy: (req as any).adminUid || 'admin',
+    });
+    if (!updated) return res.status(500).json({ success: false, error: 'Order assignment could not be saved.' });
+    logger.info('Admin assigned order to approved professional', { orderId: order.id, professionalUid: professional.uid });
+    return res.json({ success: true, order: updated });
+  } catch (error) {
+    logger.error('Admin order assignment failed', error);
+    return res.status(500).json({ success: false, error: 'Could not assign this order.' });
   }
 });
 
