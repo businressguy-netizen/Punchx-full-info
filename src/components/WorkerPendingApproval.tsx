@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
 import { AppScreen, WorkerApplication } from '../types';
-import { Building2, Clock, CheckCircle2, RefreshCw, ArrowRight, AlertCircle } from 'lucide-react';
+import { Building2, Clock, CheckCircle2, RefreshCw, ArrowRight, ShieldCheck, UserCheck, Briefcase, MapPin, Phone } from 'lucide-react';
 import { auth } from '../lib/firebase';
 
 interface WorkerPendingApprovalProps {
