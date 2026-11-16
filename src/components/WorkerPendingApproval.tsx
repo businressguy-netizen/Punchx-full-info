@@ -1,12 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AppScreen, WorkerApplication } from '../types';
-import { 
-  Building2, Clock, CheckCircle2, ShieldAlert, UserCheck, 
-  MapPin, Briefcase, Award, Phone, Mail, RefreshCw, ArrowRight, Sparkles, AlertCircle, ShieldCheck
-} from 'lucide-react';
-import { db } from '../lib/firebase';
-import { doc, onSnapshot, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
+import { Building2, Clock, CheckCircle2, RefreshCw, ArrowRight, ShieldCheck, UserCheck, Briefcase, MapPin, Phone } from 'lucide-react';
+import { auth } from '../lib/firebase';
 
 interface WorkerPendingApprovalProps {
   onTransition: (target: AppScreen) => void;
@@ -22,133 +17,69 @@ export default function WorkerPendingApproval({
   setWorkerApplicationData
 }: WorkerPendingApprovalProps) {
   const [appStatus, setAppStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>(
-    workerApplication?.status || 'PENDING'
+    workerApplication?.status === 'APPROVED' || workerApplication?.status === 'REJECTED'
+      ? workerApplication.status : 'PENDING'
   );
   const [isChecking, setIsChecking] = useState(false);
 
-  // Real-time Firestore & LocalStorage listener for Admin Dashboard approval
-  useEffect(() => {
-    let unsubFirestoreDoc: (() => void) | null = null;
-    const activeAppId = workerApplication?.id;
-    const activePhone = workerApplication?.phone;
-    const activeEmail = workerApplication?.email;
-
-    // 1. Subscribe to Firestore workerApplications doc if appId exists
-    if (activeAppId) {
-      try {
-        unsubFirestoreDoc = onSnapshot(doc(db, 'workerApplications', activeAppId), (docSnap) => {
-          if (docSnap.exists()) {
-            const data = docSnap.data() as WorkerApplication;
-            if (data.status && data.status !== appStatus) {
-              setAppStatus(data.status);
-              setWorkerApplicationData(data);
-              if (data.status === 'APPROVED') {
-                showNotification('🎉 CONGRATULATIONS! Your application has been ACCEPTED & APPROVED by Company Dashboard Admin!');
-              }
-            }
-          }
-        }, (err) => {
-          console.warn("Firestore worker doc listener warning:", err);
-        });
-      } catch (e) {
-        console.warn("Firestore onSnapshot setup warning:", e);
-      }
+  const refreshStatus = useCallback(async (notify = false) => {
+    const user = auth.currentUser;
+    if (!user) {
+      if (notify) showNotification('Please sign in again to check your application status.');
+      return;
     }
-
-    // 2. Poll & event listener for localStorage sync (shared across tabs / Admin Dashboard)
-    const checkApprovalStatus = () => {
-      try {
-        const apps = JSON.parse(localStorage.getItem('punchx_worker_applications') || '[]');
-        const found = apps.find((a: WorkerApplication) => 
-          (activeAppId && a.id === activeAppId) || 
-          (activePhone && a.phone === activePhone) ||
-          (activeEmail && a.email === activeEmail)
-        );
-        if (found && found.status !== appStatus) {
-          setAppStatus(found.status);
-          setWorkerApplicationData(found);
-          if (found.status === 'APPROVED') {
-            showNotification('🎉 Application APPROVED by Company Dashboard Admin! Terminal access unlocked.');
-          }
-        }
-      } catch (e) {
-        console.warn("LocalStorage check warning:", e);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch('/api/workers/status', {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) throw new Error(result.error || 'Status check failed.');
+      if (!result.registered) {
+        setAppStatus('PENDING');
+        if (notify) showNotification('We could not find your application yet. Please contact PUNCHX support.');
+        return;
       }
-    };
-
-    const interval = setInterval(checkApprovalStatus, 1500);
-
-    const handleStorageEvent = (e: StorageEvent) => {
-      if (e.key === 'punchx_worker_applications' || e.key === 'punchx_worker_approved') {
-        checkApprovalStatus();
+      const status = result.status === 'APPROVED' || result.status === 'REJECTED' ? result.status : 'PENDING';
+      setAppStatus(status);
+      if (workerApplication) {
+        setWorkerApplicationData({
+          ...workerApplication,
+          id: result.applicationId || workerApplication.id,
+          status,
+          skill: result.skill || workerApplication.skill,
+          categories: result.categories || workerApplication.categories
+        });
       }
-    };
-    window.addEventListener('storage', handleStorageEvent);
-    window.addEventListener('punchx_worker_approved' as any, checkApprovalStatus);
+      if (notify) showNotification(status === 'APPROVED'
+        ? 'Your application has been approved. You can now enter the professional dashboard.'
+        : status === 'REJECTED'
+          ? 'Your application was rejected. Please contact PUNCHX support for details.'
+          : 'Your application is still pending admin review.');
+    } catch (error) {
+      if (notify) showNotification(error instanceof Error ? error.message : 'Could not check application status.');
+    }
+  }, [workerApplication, setWorkerApplicationData, showNotification]);
 
-    return () => {
-      if (unsubFirestoreDoc) unsubFirestoreDoc();
-      clearInterval(interval);
-      window.removeEventListener('storage', handleStorageEvent);
-      window.removeEventListener('punchx_worker_approved' as any, checkApprovalStatus);
-    };
-  }, [workerApplication, appStatus, setWorkerApplicationData, showNotification]);
+  useEffect(() => {
+    void refreshStatus();
+    const interval = window.setInterval(() => void refreshStatus(), 30000);
+    return () => window.clearInterval(interval);
+  }, [refreshStatus]);
 
-  // Manual Refresh Check Button
   const handleManualCheck = async () => {
     setIsChecking(true);
-    try {
-      // Check Firestore
-      if (workerApplication?.id) {
-        const docRef = doc(db, 'workerApplications', workerApplication.id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as WorkerApplication;
-          if (data.status) {
-            setAppStatus(data.status);
-            setWorkerApplicationData(data);
-            if (data.status === 'APPROVED') {
-              showNotification('🎉 Application status verified: APPROVED by Company Admin!');
-              setIsChecking(false);
-              return;
-            }
-          }
-        }
-      }
-
-      // Check LocalStorage
-      const apps = JSON.parse(localStorage.getItem('punchx_worker_applications') || '[]');
-      const found = apps.find((a: WorkerApplication) => a.id === workerApplication?.id || a.phone === workerApplication?.phone);
-      if (found) {
-        setAppStatus(found.status);
-        setWorkerApplicationData(found);
-        if (found.status === 'APPROVED') {
-          showNotification('🎉 Application APPROVED by Company Admin!');
-        } else {
-          showNotification('⏳ Status is still PENDING review on the Admin Dashboard.');
-        }
-      } else {
-        showNotification('⏳ Request is queued in Admin Dashboard for authorization review.');
-      }
-    } catch (err) {
-      console.warn("Manual check error:", err);
-      showNotification('⏳ Verification checked. Waiting for Admin Dashboard review.');
-    } finally {
-      setIsChecking(false);
-    }
+    await refreshStatus(true);
+    setIsChecking(false);
   };
 
   const handleEnterWorkerTerminal = () => {
-    setAppStatus('APPROVED');
-    try {
-      localStorage.setItem('punchx_worker_approved', 'true');
-      localStorage.setItem('punchx_worker_online_status', 'true');
-    } catch (e) {
-      console.warn(e);
+    if (appStatus !== 'APPROVED') {
+      showNotification('Your application must be approved by an administrator first.');
+      return;
     }
-
-    showNotification('🚀 Launching Worker Dashboard (Admin review bypassed)...');
-    onTransition('worker-dashboard');
+    window.location.assign('/worker/dashboard');
   };
 
   return (
@@ -269,9 +200,10 @@ export default function WorkerPendingApproval({
         <button
           id="enter-worker-terminal-btn"
           onClick={handleEnterWorkerTerminal}
-          className="w-full py-4 rounded-xl font-extrabold text-xs uppercase tracking-widest font-mono transition-all flex items-center justify-center gap-2 shadow-xl cursor-pointer bg-gradient-to-r from-emerald-500 to-teal-400 text-black border border-emerald-300 hover:brightness-110 active:scale-[0.98]"
+          disabled={appStatus !== 'APPROVED'}
+          className="w-full py-4 rounded-xl font-extrabold text-xs uppercase tracking-widest font-mono transition-all flex items-center justify-center gap-2 shadow-xl cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 bg-gradient-to-r from-emerald-500 to-teal-400 text-black border border-emerald-300 hover:brightness-110 active:scale-[0.98]"
         >
-          <span>Enter Worker Dashboard (Admin Review Bypassed)</span>
+          <span>Enter Professional Dashboard</span>
           <ArrowRight className="w-4 h-4" />
         </button>
 

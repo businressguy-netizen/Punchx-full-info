@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { getAuth } from 'firebase-admin/auth';
 import { dbAdapter } from '../../src/backend/db/index.js';
+import { ensureFirebaseAdmin } from '../_lib/firebaseAdmin.js';
 
 const ALLOWED_ORIGINS = [
   'https://www.punchxapp.co.in',
@@ -13,9 +15,7 @@ const ALLOWED_ORIGINS = [
 
 function isAllowedOrigin(origin?: string | null): boolean {
   if (!origin) return true;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  if (origin.endsWith('.github.io')) return true;
-  return false;
+  return ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.github.io');
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -23,51 +23,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (isAllowedOrigin(origin) && origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', 'https://businressguy-netizen.github.io');
+    res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, Accept, X-Requested-With, x-admin-key, X-Admin-Key'
-  );
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, X-Requested-With');
   res.setHeader('Access-Control-Max-Age', '86400');
+  res.setHeader('Cache-Control', 'no-store');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end();
-  }
-
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET, OPTIONS');
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  const adminKey =
-    (req.headers['x-admin-key'] as string) ||
-    (req.headers['X-Admin-Key'] as string) ||
-    req.headers['authorization']?.replace('Bearer ', '').trim();
-
-  const expectedKey = process.env.ADMIN_API_KEY || 'punchx_admin_secure_live_key_2026_9941a8';
-  if (!adminKey || adminKey !== expectedKey) {
-    return res.status(401).json({ success: false, error: 'Unauthorized: Invalid admin key' });
+  const authorization = String(req.headers.authorization || '');
+  if (!authorization.startsWith('Bearer ') || !authorization.slice(7).trim()) {
+    return res.status(401).json({ success: false, error: 'Admin sign-in required.' });
   }
 
-  let isHealthy = false;
   try {
-    isHealthy = await dbAdapter.isHealthy();
-  } catch {
-    isHealthy = false;
+    ensureFirebaseAdmin();
+    const decoded = await getAuth().verifyIdToken(authorization.slice(7).trim());
+    const profile = await dbAdapter.getUser(decoded.uid);
+    if (!profile || profile.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Administrator access required.' });
+    }
+
+    const dbHealthy = await dbAdapter.isHealthy();
+    return res.status(200).json({
+      success: true,
+      status: dbHealthy ? 'connected' : 'degraded',
+      platform: 'PunchX Core Production Backend (Vercel Serverless)',
+      version: '1.0.0',
+      dbProvider: dbAdapter.providerName,
+      dbHealthy,
+      uptime: Math.round(process.uptime()),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Your admin session is invalid or expired.' });
   }
-
-  return res.status(200).json({
-    success: true,
-    status: 'connected',
-    platform: 'PunchX Core Production Backend (Vercel Serverless)',
-    version: '1.0.0',
-    dbProvider: dbAdapter.providerName,
-    dbHealthy: isHealthy,
-    uptime: Math.round(process.uptime()),
-    timestamp: new Date().toISOString(),
-  });
 }
-

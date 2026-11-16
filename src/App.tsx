@@ -25,7 +25,7 @@ const ConfirmBooking = lazy(() => import('./components/ConfirmBooking'));
 const ChoosePayment = lazy(() => import('./components/ChoosePayment'));
 const LiveTracking = lazy(() => import('./components/LiveTracking'));
 const WorkerDashboard = lazy(() => import('./components/WorkerPartnerPanel'));
-const AdminOrderReview = lazy(() => import('./components/AdminOrderReview'));
+const AdminCommandCenter = lazy(() => import('./components/AdminCommandCenter'));
 
 const WorkerSignup = lazy(() => import('./components/WorkerSignup'));
 const WorkerOtpPass = lazy(() => import('./components/WorkerOtpPass'));
@@ -86,7 +86,7 @@ function AppMain() {
       '/price-catalogue': 'catalogue', '/pricing': 'catalogue', '/privacy': 'privacy-policy',
       '/terms': 'terms-and-conditions', '/terms-of-service': 'terms-and-conditions',
       '/leadership': 'founder', '/founders': 'founder', '/specialists': 'providers', '/services': 'providers', '/landing': 'splash',
-      '/worker-signup': 'worker-signup', '/login': 'auth', '/verify-otp': 'otp',
+      '/worker-signup': 'worker-signup', '/login': 'auth', '/verify-otp': 'otp', '/admin': 'admin-dashboard',
     };
     if (aliases[path]) return aliases[path];
     const entry = Object.entries(screenRoutes).find(([, route]) => route === path);
@@ -200,10 +200,16 @@ function AppMain() {
         if (now - lastGeofenceCheckAt >= 60000) {
           lastGeofenceCheckAt = now;
           try {
+            const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+            if (!idToken) return;
             const response = await fetch('/api/location-services', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ lat, lng, address: previous.address || userProfile?.address || '' })
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`
+              },
+              body: JSON.stringify({ lat, lng, address: previous.address || userProfile?.address || '' }),
+              cache: 'no-store'
             });
             const result = response.ok ? await response.json() : null;
             if (active && result?.geofence) {
@@ -300,21 +306,59 @@ function AppMain() {
 
   useEffect(() => {
     const protectedScreens: AppScreen[] = ['home', 'customer-setup', 'worker-dashboard', 'admin-dashboard', 'tracking', 'booking', 'payment', 'providers', 'provider-details'];
-    // Keep worker onboarding in order before dashboard access: signup -> OTP/password
-    // verification -> location/service setup -> worker dashboard.
-    let workerOnboardingApproved = false;
-    try { workerOnboardingApproved = localStorage.getItem('punchx_worker_approved') === 'true'; } catch {}
-    const workerDashboardHasOnboardingAccess = currentScreen === 'worker-dashboard' && workerOnboardingApproved;
-    if (!isLoadingProfile && !currentUser && protectedScreens.includes(currentScreen) && !workerDashboardHasOnboardingAccess) {
+    if (!isLoadingProfile && !currentUser && protectedScreens.includes(currentScreen)) {
       showToast('🔒 Active session required. Redirecting to portal select...');
       const loginScreen: AppScreen = dedicatedAppRole ? 'auth' : 'panel-select';
       window.history.replaceState({ screen: loginScreen }, '', screenRoutes[loginScreen] || '/');
       setCurrentScreen(loginScreen);
+      return;
     }
 
-    // Strict Guard for Worker Dashboard: Admin review bypassed for testing
+    if (!isLoadingProfile && currentScreen === 'admin-dashboard' && userProfile?.role !== 'admin') {
+      showToast('🔒 Administrator privileges are required to open the command centre.');
+      const loginScreen: AppScreen = currentUser ? 'panel-select' : 'auth';
+      window.history.replaceState({ screen: loginScreen }, '', screenRoutes[loginScreen] || '/');
+      setCurrentScreen(loginScreen);
+      return;
+    }
+
+    if (!isLoadingProfile && currentScreen === 'worker-dashboard'
+      && (userProfile?.role !== 'worker' || userProfile?.status !== 'APPROVED')) {
+      showToast('Professional dashboard access is available only after admin approval.');
+      const destination: AppScreen = userProfile?.applicationId ? 'worker-pending-approval' : 'worker-signup';
+      window.history.replaceState({ screen: destination }, '', screenRoutes[destination] || '/worker/pending');
+      setCurrentScreen(destination);
+      return;
+    }
+
     if (!isLoadingProfile && currentScreen === 'worker-dashboard') {
       setActivePanelRole('worker');
+    }
+
+    if (!isLoadingProfile && currentUser && activePanelRole === 'worker'
+      && (currentScreen === 'auth' || currentScreen === 'otp' || currentScreen === 'panel-select')) {
+      if (userProfile?.role === 'worker' && userProfile?.status === 'APPROVED') {
+        setActivePanelRole('worker');
+        window.history.replaceState({ screen: 'worker-dashboard' }, '', screenRoutes['worker-dashboard'] || '/');
+        setCurrentScreen('worker-dashboard');
+      } else if (userProfile?.applicationId) {
+        window.history.replaceState({ screen: 'worker-pending-approval' }, '', screenRoutes['worker-pending-approval'] || '/worker/pending');
+        setCurrentScreen('worker-pending-approval');
+      } else {
+        window.history.replaceState({ screen: 'worker-signup' }, '', screenRoutes['worker-signup'] || '/worker-signup');
+        setCurrentScreen('worker-signup');
+      }
+    } else if (!isLoadingProfile && currentUser
+      && (currentScreen === 'auth' || currentScreen === 'otp' || currentScreen === 'panel-select')) {
+      if (userProfile?.role === 'admin') {
+        setActivePanelRole('admin');
+        window.history.replaceState({ screen: 'admin-dashboard' }, '', screenRoutes['admin-dashboard'] || '/');
+        setCurrentScreen('admin-dashboard');
+      } else {
+        setActivePanelRole('customer');
+        window.history.replaceState({ screen: 'home' }, '', screenRoutes.home || '/');
+        setCurrentScreen('home');
+      }
     }
 
     const onboardingScreens: AppScreen[] = ['worker-signup', 'worker-otp-pass', 'worker-setup', 'worker-pending-approval', 'customer-setup'];
@@ -509,13 +553,13 @@ function AppMain() {
           {currentScreen === 'worker-setup' && <WorkerLocationSetup onTransition={handleTransition} showNotification={showToast} authMethod={authMethod} authTarget={authTarget} workerApplication={workerApplication} setWorkerApplicationData={setWorkerApplication} />}
           {currentScreen === 'catalogue' && <InteractivePriceCatalogue onTransition={handleTransition} onSelectCategory={setSelectedCategory} showNotification={showToast} />}
           {currentScreen === 'home' && <HomeDashboard onTransition={handleTransition} onSelectWorker={setSelectedWorker} onSelectCategory={setSelectedCategory} hasActiveBooking={false} promoApplied={promoApplied} hasClaimedBonus={hasClaimedBonus} hasUsedBonus={hasUsedBonus} onClaimPromo={onClaimPromo} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} onOpenNotificationCenter={() => setIsNotificationCenterOpen(true)} isProfileDrawerOpen={isGlobalProfileOpen} setIsProfileDrawerOpen={setIsGlobalProfileOpen} />}
-          {currentScreen === 'providers' && <ProvidersList onTransition={handleTransition} selectedCategory={selectedCategory} onSelectWorker={setSelectedWorker} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
+          {currentScreen === 'providers' && <ProvidersList onTransition={handleTransition} selectedCategory={selectedCategory} authMethod={authMethod} authTarget={authTarget} showNotification={showToast} citizenName={citizenName} setCitizenName={setCitizenName} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
           {currentScreen === 'provider-details' && <ProviderDetails onTransition={handleTransition} selectedWorker={selectedWorker} showNotification={showToast} />}
-          {currentScreen === 'booking' && <ConfirmBooking onTransition={handleTransition} selectedCategory={selectedCategory} selectedWorker={selectedWorker} promoApplied={promoApplied} issueDescription={issueDescription} setIssueDescription={setIssueDescription} bookingTime={bookingTime} setBookingTime={setBookingTime} bookingDate={bookingDate} setBookingDate={setBookingDate} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
-          {currentScreen === 'payment' && <ChoosePayment onTransition={handleTransition} selectedWorker={selectedWorker} promoApplied={promoApplied} hasUsedBonus={hasUsedBonus} onApplyPromo={handleApplyPromoCode} showNotification={showToast} />}
+          {currentScreen === 'booking' && <ConfirmBooking onTransition={handleTransition} selectedCategory={selectedCategory} promoApplied={promoApplied} issueDescription={issueDescription} setIssueDescription={setIssueDescription} bookingTime={bookingTime} setBookingTime={setBookingTime} bookingDate={bookingDate} setBookingDate={setBookingDate} citizenAddress={citizenAddress} setCitizenAddress={setCitizenAddress} />}
+          {currentScreen === 'payment' && <ChoosePayment onTransition={handleTransition} promoApplied={promoApplied} hasUsedBonus={hasUsedBonus} onApplyPromo={handleApplyPromoCode} showNotification={showToast} />}
           {currentScreen === 'tracking' && <LiveTracking onTransition={handleTransition} bookingTime={bookingTime} />}
           {currentScreen === 'worker-dashboard' && <WorkerDashboard onTransition={handleTransition} showNotification={showToast} />}
-          {currentScreen === 'admin-dashboard' && <AdminOrderReview showNotification={showToast} />}
+          {currentScreen === 'admin-dashboard' && <AdminCommandCenter showNotification={showToast} />}
 
           {currentScreen === 'privacy-policy' && <PrivacyPolicy onTransition={handleTransition} showNotification={showToast} />}
           {currentScreen === 'terms-and-conditions' && <TermsAndConditions onTransition={handleTransition} showNotification={showToast} />}

@@ -8,8 +8,7 @@ import {
   Zap, Droplets, SprayCan as SparkleIcon, Hammer, Phone, Star,
   Briefcase, Users, Clock, Shield, Lock, Radio, Grid, CheckCircle2
 } from 'lucide-react';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import { useAuth } from '../lib/authContext';
 import { 
   requestAndAutoUpdateLocation, 
@@ -36,7 +35,7 @@ export default function WorkerLocationSetup({
   workerApplication,
   setWorkerApplicationData
 }: WorkerLocationSetupProps) {
-  const { currentUser, updateUserProfile } = useAuth() as any;
+  const { currentUser } = useAuth() as any;
   const [legalName, setLegalName] = useState(
     workerApplication?.legalName ||
     (authMethod === 'gmail' && authTarget ? authTarget.split('@')[0] : '') ||
@@ -163,145 +162,64 @@ export default function WorkerLocationSetup({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
-
-    if (!legalName.trim()) {
-      setErrorMessage('Please enter your full legal name or partner name.');
-      return;
-    }
-    if (!address.trim()) {
-      setErrorMessage('Please enter your service hub / residential address.');
-      return;
-    }
-    if (address.trim().length < 5) {
-      setErrorMessage('Please provide a more specific address for accurate operational dispatch matching.');
-      return;
-    }
-
+    if (!legalName.trim()) { setErrorMessage('Please enter your full legal name or partner name.'); return; }
+    if (!address.trim() || address.trim().length < 5) { setErrorMessage('Please enter a complete service hub or residential address.'); return; }
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) { setErrorMessage('Please sign in again before saving your professional details.'); return; }
     setIsSubmitting(true);
     const finalFormattedAddress = landmark.trim()
       ? `${address.trim()}, Near ${landmark.trim()}${resolvedCity ? `, ${resolvedCity}` : ''}`
       : `${address.trim()}${resolvedCity ? `, ${resolvedCity}` : ''}`;
-
-    // Save to LocalStorage
     try {
-      localStorage.setItem('punchx_worker_name', legalName.trim());
-      localStorage.setItem('punchx_worker_dob', dob.trim());
-      localStorage.setItem('punchx_worker_address', finalFormattedAddress);
-      localStorage.setItem('punchx_worker_landmark', landmark.trim());
-      localStorage.setItem('punchx_worker_sector', resolvedSector);
-      localStorage.setItem('punchx_worker_skill', selectedCategories.join(', '));
-      localStorage.setItem('punchx_worker_categories', JSON.stringify(selectedCategories));
-      localStorage.setItem('punchx_worker_location', JSON.stringify({
-        ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
-        address: finalFormattedAddress,
-        area: resolvedArea,
-        city: resolvedCity,
-        sector: resolvedSector,
-        landmark: landmark.trim(),
-        timestamp: new Date().toISOString()
-      }));
-    } catch (err) {
-      console.warn("LocalStorage save error:", err);
-    }
-
-    // Save/Update in Firestore with PENDING status for Admin Approval
-    const activeUid = auth.currentUser?.uid || currentUser?.sub || currentUser?.id || currentUser?.user_id || '';
-    const generatedAppId = workerApplication?.id || `APP-${Date.now().toString().slice(-6)}`;
-    if (!activeUid) { setIsSubmitting(false); setErrorMessage('Your authenticated account ID is unavailable. Please sign in again.'); return; }
-
-    const appData: WorkerApplication = {
-      id: generatedAppId,
-      uid: activeUid,
-      legalName: legalName.trim(),
-      dob: dob.trim(),
-      address: finalFormattedAddress,
-      area: resolvedArea || undefined,
-      city: resolvedCity || undefined,
-      landmark: landmark.trim() || undefined,
-      sector: resolvedSector || undefined,
-      skill: selectedCategories.join(', '),
-      categories: selectedCategories,
-      experienceYears: workerApplication?.experienceYears || '',
-      phone: authMethod === 'phone' ? authTarget : (workerApplication?.phone || currentUser?.phone_number || ''),
-      email: authMethod === 'gmail' ? authTarget : (workerApplication?.email || currentUser?.email || ''),
-      visitingFee: workerApplication?.visitingFee,
-      termsAccepted: true,
-      status: 'APPROVED',
-      appliedAt: new Date().toISOString()
-    };
-
-    try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser || firebaseUser.uid !== activeUid) {
-        throw new Error('Your Firebase sign-in session is missing. Please sign in again.');
-      }
       const token = await firebaseUser.getIdToken();
-      const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
-      const applicationResponse = await fetch(`${backendBase}/api/worker-applications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(appData),
-      });
-      const applicationResult = await applicationResponse.json().catch(() => ({}));
-      if (!applicationResponse.ok || applicationResult.success !== true || !applicationResult.application) {
-        throw new Error(applicationResult.error || 'Firebase did not confirm the worker application save.');
-      }
-      const savedApplication = applicationResult.application as WorkerApplication;
-
-      await updateUserProfile({
-        name: legalName.trim(),
+      const appData: WorkerApplication = {
+        id: workerApplication?.id || `APP-${Date.now().toString().slice(-6)}`,
+        uid: firebaseUser.uid,
+        legalName: legalName.trim(),
         dob: dob.trim(),
         birthdate: dob.trim(),
         address: finalFormattedAddress,
         streetAddress: address.trim(),
-        landmark: landmark.trim(),
-        area: resolvedArea,
-        city: resolvedCity,
-        sector: resolvedSector,
-        workerSkill: selectedCategories.join(', '),
-        workerCategories: selectedCategories,
-        workerExperience: appData.experienceYears,
-        visitingFee: appData.visitingFee,
-        minimumVisitingFee: appData.minimumVisitingFee,
-        maximumVisitingFee: appData.maximumVisitingFee,
-        ...(coords ? { location: { lat: coords.lat, lng: coords.lng } } : {}),
-        phone: appData.phone,
-        email: appData.email,
-        role: 'worker',
-        status: 'APPROVED',
-        isProfileCompleted: true,
-        applicationId: savedApplication.id,
-        updatedAt: new Date().toISOString(),
-      } as any);
-
-      if (setWorkerApplicationData) setWorkerApplicationData(savedApplication);
-
-      // Save application document to Firestore workerApplications collection (by savedApplication.id and activeUid)
+        landmark: landmark.trim() || undefined,
+        area: resolvedArea || undefined,
+        city: resolvedCity || undefined,
+        sector: resolvedSector || undefined,
+        skill: selectedCategories.join(', '),
+        categories: selectedCategories,
+        experienceYears: workerApplication?.experienceYears || '',
+        phone: authMethod === 'phone' ? authTarget : (workerApplication?.phone || firebaseUser.phoneNumber || ''),
+        email: authMethod === 'gmail' ? authTarget : (workerApplication?.email || firebaseUser.email || ''),
+        visitingFee: workerApplication?.visitingFee,
+        termsAccepted: true,
+        status: 'PENDING',
+        appliedAt: workerApplication?.appliedAt || new Date().toISOString(),
+        ...(coords ? { location: { lat: coords.lat, lng: coords.lng } } : {})
+      };
+      const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+      const response = await fetch(`${backendBase}/api/worker-applications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(appData)
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success || !result.application) throw new Error(result.error || 'Your professional application could not be saved.');
+      const savedApplication = result.application as WorkerApplication;
+      setWorkerApplicationData?.(savedApplication);
       try {
-        await Promise.allSettled([
-          setDoc(doc(db, 'workerApplications', savedApplication.id), { ...appData, id: savedApplication.id, status: 'APPROVED' }, { merge: true }),
-          setDoc(doc(db, 'workerApplications', activeUid), { ...appData, id: savedApplication.id, status: 'APPROVED' }, { merge: true })
-        ]);
+        localStorage.setItem('punchx_worker_name', legalName.trim());
+        localStorage.setItem('punchx_worker_address', finalFormattedAddress);
+        localStorage.setItem('punchx_worker_app_id', savedApplication.id);
+        localStorage.removeItem('punchx_worker_approved');
+        localStorage.removeItem('punchx_worker_online_status');
       } catch {}
-
-      const existingApps = JSON.parse(localStorage.getItem('punchx_worker_applications') || '[]');
-      const filtered = existingApps.filter((a: WorkerApplication) => a.id !== savedApplication.id);
-      localStorage.setItem('punchx_worker_applications', JSON.stringify([savedApplication, ...filtered]));
-      localStorage.setItem('punchx_worker_app_id', savedApplication.id);
-      localStorage.setItem('punchx_worker_approved', 'true');
-      localStorage.setItem('punchx_worker_online_status', 'true');
+      showNotification('Your service area details have been submitted for admin review.');
+      onTransition('worker-pending-approval');
     } catch (dbErr) {
-      console.error("Firebase worker profile/application save failed:", dbErr);
+      setErrorMessage(dbErr instanceof Error ? dbErr.message : 'Your professional details could not be saved. Please retry.');
+    } finally {
       setIsSubmitting(false);
-      setErrorMessage(dbErr instanceof Error ? dbErr.message : 'Your professional details could not be saved to Firebase. Please retry.');
-      return;
     }
-
-    setIsSubmitting(false);
-    showNotification(`✓ Service Hub Location Registered! Your profile and application were saved to Firebase.`);
-    onTransition('worker-dashboard');
   };
-
   return (
     <main
       id="worker-location-setup-page"

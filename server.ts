@@ -259,7 +259,6 @@ async function startServer() {
       const email = String(authUser.email || req.body?.email || "").trim().slice(0, 320);
       const phone = String(authUser.phone_number || req.body?.phone || "").trim().slice(0, 40);
       const displayName = String(req.body?.name || authUser.name || authUser.email?.split("@")[0] || "PunchX Member").trim().slice(0, 160);
-      const requestedRole = req.body?.role === "worker" ? "worker" : "citizen";
       const submittedProfile = req.body?.profile && typeof req.body.profile === "object" ? req.body.profile : {};
       const profileFields = ["name", "email", "phone", "photoURL", "dob", "birthdate", "address", "streetAddress", "landmark", "area", "sector", "city", "isProfileCompleted", "workerSkill", "workerCategories", "workerExperience", "visitingFee", "applicationId", "location", "geofenceArea", "geofenceAreas", "serviceAreas"];
       const safeProfile: Record<string, any> = {};
@@ -276,8 +275,7 @@ async function startServer() {
         const existing = existingSnap.exists ? existingSnap.data() || {} : {};
         const createdAt = existing.createdAt || FieldValue.serverTimestamp();
         const nextRole = existing.role === "admin" ? "admin"
-          : (existing.role === "worker" && existing.status === "APPROVED" ? "worker"
-          : (existing.role || requestedRole));
+          : (existing.role === "worker" && existing.status === "APPROVED" ? "worker" : "citizen");
         const loginCount = Number(existing.loginCount || 0) + 1;
 
         transaction.set(userRef, {
@@ -1063,87 +1061,48 @@ async function startServer() {
 
   // ─── WORKER SIGNUP DYNAMIC DUAL OTP API (TASK SHEET SECTION 8 [P0]) ───
   // Replaces hardcoded 8842/9921 with dynamic server-generated challenge
-  app.post("/api/auth/worker-signup-otp", async (_req, res) => {
-    // OTP system removed - phone and email verification bypassed
-    return res.json({
-      success: true,
-      challengeId: `CHAL-${Date.now()}`,
-      message: "Phone and email verification bypassed (OTP system removed)",
-      debugCodes: {
-        phoneCode: "123456",
-        emailCode: "123456"
-      }
+  app.post("/api/auth/worker-signup-otp", (_req, res) => {
+    return res.status(410).json({
+      success: false,
+      error: "Phone and email OTP verification is not configured. Sign-in is required before submitting an application."
     });
   });
 
   // ─── WORKER APPLICATIONS APIS ───
   // Query worker registration & verification status for authenticated user
-  app.get("/api/workers/status", async (req, res) => {
+  app.get("/api/workers/status", requireFirebaseUser, async (req, res) => {
     try {
-      let uid = (req as any).user?.uid;
-      let email = (req as any).user?.email;
-      let phone = (req as any).user?.phone_number;
-
-      const authHeader = req.headers.authorization;
-      if (authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split("Bearer ")[1];
-        if (token) {
-          try {
-            if (getApps().length > 0) {
-              const decoded = await getAuth().verifyIdToken(token);
-              uid = decoded.uid;
-              email = decoded.email || email;
-              phone = decoded.phone_number || phone;
-            } else {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
-                uid = payload.uid || payload.sub || uid;
-                email = payload.email || email;
-                phone = payload.phone_number || phone;
-              }
-            }
-          } catch {}
-        }
-      }
-
-      if (!uid) {
-        return res.json({
-          success: true,
-          registered: false,
-          status: "NOT_REGISTERED",
-          message: "No user authenticated"
-        });
-      }
+      const uid = String((req as any).user?.uid || "");
+      if (!uid) return res.status(401).json({ success: false, error: "Authentication required." });
 
       const userProfile = await dbAdapter.getUser(uid);
-      const workerApp = await dbAdapter.getWorkerApplicationByUid(uid)
-        || ((userProfile?.phone || phone)
-            ? await dbAdapter.getWorkerApplicationByContact({ 
-                phone: userProfile?.phone || phone,
-                email: userProfile?.email || email
-              })
-            : null);
+      let workerApp = await dbAdapter.getWorkerApplicationByUid(uid);
+      if (!workerApp && userProfile?.applicationId) {
+        workerApp = await dbAdapter.getWorkerApplication(String(userProfile.applicationId));
+        if (workerApp?.uid !== uid) workerApp = null;
+      }
 
-      if (!workerApp && (!userProfile || (userProfile.role !== "worker" && !userProfile.workerSkill))) {
+      if (!workerApp) {
         return res.json({
           success: true,
           registered: false,
           status: "NOT_REGISTERED",
-          message: "No specialist registration found for this account"
+          message: "No professional application is registered for this account."
         });
       }
 
-      const status = "APPROVED";
+      const status = workerApp.status === "APPROVED" || workerApp.status === "REJECTED"
+        ? workerApp.status
+        : "PENDING";
       return res.json({
         success: true,
         registered: true,
-        status: "APPROVED",
-        applicationId: workerApp?.id || "APP-AUTO-APPROVED",
-        appliedAt: workerApp?.appliedAt || new Date().toISOString(),
-        role: "worker",
-        categories: workerApp?.categories || userProfile?.workerCategories || ["Electrician"],
-        skill: workerApp?.skill || userProfile?.workerSkill || "Electrician"
+        status,
+        applicationId: workerApp.id,
+        appliedAt: workerApp.appliedAt || null,
+        role: status === "APPROVED" && userProfile?.role === "worker" ? "worker" : "citizen",
+        categories: workerApp.categories || [],
+        skill: workerApp.skill || ""
       });
     } catch (err: any) {
       logger.error("Worker status query error:", err);
@@ -1208,12 +1167,10 @@ async function startServer() {
           || ((contact.phone || contact.email) ? await dbAdapter.getWorkerApplicationByContact(contact) : null);
       }
 
-      const hasWorkerProfileSignals = Boolean(
-        currentData?.applicationId || currentData?.workerSkill || currentData?.workerCategories
-        || adapterProfile?.applicationId || adapterProfile?.workerSkill || adapterProfile?.workerCategories
-      );
-      if (currentData?.role !== "worker" && adapterProfile?.role !== "worker" && !workerApp && !hasWorkerProfileSignals) {
-        return res.status(403).json({ success: false, error: "This account is not registered as a PunchX professional. Complete worker registration and sign in again." });
+      const approvedProfile = currentData?.role === "worker" && currentData?.status === "APPROVED";
+      const approvedApplication = workerApp?.uid === uid && workerApp?.status === "APPROVED";
+      if (!approvedProfile || !approvedApplication) {
+        return res.status(403).json({ success: false, error: "Only an administrator-approved PUNCHX professional can change availability." });
       }
 
       const updatedAt = new Date().toISOString();
@@ -1258,44 +1215,32 @@ async function startServer() {
     }
   });
 
-  app.post("/api/worker-applications", async (req, res) => {
+  app.post("/api/worker-applications", requireFirebaseUser, async (req, res) => {
     try {
-      let uid = (req as any).user?.uid;
-      const authHeader = req.headers.authorization;
-      if (!uid && authHeader && authHeader.startsWith("Bearer ")) {
-        const token = authHeader.split("Bearer ")[1];
-        if (token) {
-          try {
-            if (getApps().length > 0) {
-              const decoded = await getAuth().verifyIdToken(token);
-              uid = decoded.uid;
-            } else {
-              const parts = token.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf-8'));
-                uid = payload.uid || payload.sub;
-              }
-            }
-          } catch {}
-        }
-      }
+      const uid = String((req as any).user?.uid || "");
+      if (!uid) return res.status(401).json({ success: false, error: "Sign in before submitting a professional application." });
 
-      const appData = req.body;
-      uid = uid || appData.uid || `applicant_${Date.now()}`;
-
+      const appData = req.body && typeof req.body === "object" ? req.body : {};
       if (!appData.legalName || !appData.phone || !appData.email) {
         return res.status(400).json({ success: false, error: "Missing required registration details: legalName, phone, and email are required" });
       }
 
-      // Auto-approve worker application in Firebase
+      const existingUser = await dbAdapter.getUser(uid);
+      if (existingUser?.role === "worker" && existingUser.status === "APPROVED") {
+        return res.status(409).json({ success: false, error: "This account is already an approved PUNCHX professional." });
+      }
+
+      // All new applications remain pending until an authorised admin reviews them.
       const created = await dbAdapter.createWorkerApplication({
         ...appData,
         uid,
-        status: "APPROVED"
+        status: "PENDING",
+        termsAccepted: appData.termsAccepted === true,
       });
 
-      // Update user profile in Firebase to worker role and APPROVED status directly with all fields
+      const preservedRole = existingUser?.role === "admin" ? "admin" : "citizen";
       await dbAdapter.upsertUser({
+        ...(existingUser || {}),
         uid,
         name: appData.legalName,
         dob: appData.dob,
@@ -1309,8 +1254,8 @@ async function startServer() {
         email: appData.email,
         phone: appData.phone,
         photoURL: appData.photoURL || "",
-        role: "worker",
-        status: "APPROVED",
+        role: preservedRole,
+        status: "PENDING",
         applicationId: created.id,
         workerSkill: created.skill,
         skill: created.skill,
@@ -1322,14 +1267,12 @@ async function startServer() {
         visitingFee: created.visitingFee,
         minimumVisitingFee: appData.minimumVisitingFee,
         maximumVisitingFee: appData.maximumVisitingFee,
-        termsAccepted: true,
-        appliedAt: appData.appliedAt || new Date().toISOString(),
-        isProfileCompleted: true,
-        createdAt: (await dbAdapter.getUser(uid))?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        termsAccepted: appData.termsAccepted === true,
+        appliedAt: created.appliedAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
 
-      logger.info(`Worker application submitted and saved to Firebase: ${created.id} by uid ${uid}`);
+      logger.info("Professional application submitted for admin review", { applicationId: created.id, uid });
       return res.status(201).json({ success: true, application: created });
     } catch (err: any) {
       logger.error("Worker application error:", err);
@@ -1367,7 +1310,7 @@ async function startServer() {
           proBadge: "AUTHORIZED",
           price: Number(app.price || app.visitingFee || 0),
           visitingFee: Number(app.visitingFee || 0),
-          available: true,
+          available: false,
           isOnline: onlineByUid.get(String(app.uid || app.id)) === true,
           area: String(app.area || ""),
           sector: String(app.sector || ""),
@@ -2406,11 +2349,7 @@ async function startServer() {
           name: 'AC Repair',
           category: 'AC Repair',
           icon: 'ac_unit',
-          activeSpecialists: 14,
-          avgRating: 4.9,
-          startingPrice: 199,
-          slaMinutes: 15,
-          available: true,
+          available: false,
           description: 'PCB diagnostics, gas charging, filter sanitization & cooling overhaul'
         },
         {
@@ -2418,11 +2357,7 @@ async function startServer() {
           name: 'Electrical Systems',
           category: 'Electrical Systems',
           icon: 'electrical_services',
-          activeSpecialists: 19,
-          avgRating: 4.8,
-          startingPrice: 179,
-          slaMinutes: 12,
-          available: true,
+          available: false,
           description: 'Short-circuit repair, MCB panel installation, heavy cabling & UPS/Inverter'
         },
         {
@@ -2430,11 +2365,7 @@ async function startServer() {
           name: 'Plumbing & Drainage',
           category: 'Plumbing & Drainage',
           icon: 'plumbing',
-          activeSpecialists: 16,
-          avgRating: 4.9,
-          startingPrice: 159,
-          slaMinutes: 18,
-          available: true,
+          available: false,
           description: 'High-pressure leaks, concealed line repairs, fixture replacement & drain unclog'
         },
         {
@@ -2442,11 +2373,7 @@ async function startServer() {
           name: 'Deep Cleaning',
           category: 'Deep Cleaning & Sanitization',
           icon: 'cleaning_services',
-          activeSpecialists: 11,
-          avgRating: 4.85,
-          startingPrice: 249,
-          slaMinutes: 25,
-          available: true,
+          available: false,
           description: 'Hospital-grade sanitization, kitchen chimney degrease & bathroom restoration'
         },
         {
@@ -2454,11 +2381,7 @@ async function startServer() {
           name: 'Painting & Walls',
           category: 'Painting',
           icon: 'format_paint',
-          activeSpecialists: 8,
-          avgRating: 4.75,
-          startingPrice: 299,
-          slaMinutes: 30,
-          available: true,
+          available: false,
           description: 'Interior luxury emulsion, moisture barrier waterproofing & touch-ups'
         },
         {
@@ -2466,11 +2389,7 @@ async function startServer() {
           name: 'Carpentry & Locks',
           category: 'Carpentry & Security Locks',
           icon: 'carpenter',
-          activeSpecialists: 10,
-          avgRating: 4.8,
-          startingPrice: 189,
-          slaMinutes: 20,
-          available: true,
+          available: false,
           description: 'Smart digital lock installation, bespoke woodwork, hinges & modular kitchen repair'
         },
         {
@@ -2478,11 +2397,7 @@ async function startServer() {
           name: 'Pest Control',
           category: 'Pest Control',
           icon: 'pest_control',
-          activeSpecialists: 7,
-          avgRating: 4.9,
-          startingPrice: 219,
-          slaMinutes: 20,
-          available: true,
+          available: false,
           description: 'Odorless herbal pest eradication, anti-termite and gel bait treatments'
         },
         {
@@ -2490,11 +2405,7 @@ async function startServer() {
           name: 'Appliance Maintenance',
           category: 'Appliance Maintenance',
           icon: 'build',
-          activeSpecialists: 12,
-          avgRating: 4.8,
-          startingPrice: 199,
-          slaMinutes: 15,
-          available: true,
+          available: false,
           description: 'Washing machines, microwave ovens, refrigerators & water purifiers'
         },
         {
@@ -2502,37 +2413,34 @@ async function startServer() {
           name: 'Moving & Logistics',
           category: 'Moving',
           icon: 'local_shipping',
-          activeSpecialists: 6,
-          avgRating: 4.7,
-          startingPrice: 499,
-          slaMinutes: 45,
-          available: true,
+          available: false,
           description: 'High-care furniture packaging, express tempo dispatch & cargo handling'
         }
       ];
 
       // Custom availability customization for zones if needed
-      const registeredServices = MASTER_SERVICES.map(srv => {
-        // Adjust specialist count dynamically according to sector hash
-        const hash = (sectorName.length + srv.name.length) % 5;
-        return {
-          ...srv,
-          activeSpecialists: Math.max(3, srv.activeSpecialists - hash),
-          sectorCoverage: sectorName,
-          landmarkNote: landmark ? `Servicing near ${landmark}` : `Full coverage across ${sectorName}`
-        };
-      });
+      const registeredServices = MASTER_SERVICES.map(srv => ({
+        ...srv,
+        activeSpecialists: null,
+        avgRating: null,
+        startingPrice: null,
+        slaMinutes: null,
+        available: false,
+        availabilityStatus: "Admin confirmation required",
+        sectorCoverage: sectorName,
+        landmarkNote: landmark ? `Near ${landmark}` : "Professional availability is confirmed after admin review"
+      }));
 
       return res.json({
         success: true,
         address: fullAddress,
         area: rawArea,
-        city: city || "Bengaluru",
+        city: city || "",
         sector: sectorName,
         landmark: landmark || "",
-        lat: lat || 12.9716,
-        lng: lng || 77.5946,
-        coverageStatus: "100% Active & Certified Coverage",
+        lat: Number.isFinite(Number(lat)) ? Number(lat) : null,
+        lng: Number.isFinite(Number(lng)) ? Number(lng) : null,
+        coverageStatus: "Location resolved; professional availability requires admin confirmation.",
         totalRegisteredServices: registeredServices.length,
         registeredServices
       });
@@ -2542,336 +2450,35 @@ async function startServer() {
     }
   });
 
-  // Dedicated Registered Customers by Worker Location API Endpoint
-  app.post("/api/worker-location-customers", async (req, res) => {
+  // Customer directory is intentionally disabled until real, consented lead/order data is connected.
+  // Never return fabricated customer identities, addresses, phone numbers, or booking histories.
+  app.post("/api/worker-location-customers", requireFirebaseUser, async (req, res) => {
     try {
-      let { lat, lng, address, landmark } = req.body;
-      const mapsKey = process.env.GOOGLE_MAPS_PLATFORM_KEY || process.env.GOOGLE_MAPS_API_KEY || "";
-      let fullAddress = address || "";
-      let area = "";
-      let city = "";
-
-      // 1. Forward Geocoding if text address is provided
-      if ((!lat || !lng) && address && address.trim().length > 2) {
-        if (mapsKey) {
-          try {
-            const gForward = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address + (landmark ? ' near ' + landmark : ''))}&key=${mapsKey}`);
-            const gData = await gForward.json();
-            if (gData.status === "OK" && gData.results && gData.results[0]) {
-              fullAddress = gData.results[0].formatted_address;
-              lat = gData.results[0].geometry.location.lat;
-              lng = gData.results[0].geometry.location.lng;
-              for (const comp of gData.results[0].address_components) {
-                if (comp.types.includes("sublocality") || comp.types.includes("neighborhood")) {
-                  if (!area) area = comp.long_name;
-                }
-                if (comp.types.includes("locality") || comp.types.includes("administrative_area_level_2")) {
-                  if (!city) city = comp.long_name;
-                }
-              }
-            }
-          } catch (e) {
-            console.warn("Forward Google Geocode error:", e);
-          }
-        }
-
-        if (!lat || !lng) {
-          try {
-            const nomSearch = await fetch(
-              `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + (landmark ? ' ' + landmark : ''))}&format=json&addressdetails=1&limit=1`,
-              { headers: { 'Accept-Language': 'en', 'User-Agent': 'PunchX-Service-App/1.0' } }
-            );
-            if (nomSearch.ok) {
-              const nomArr = await nomSearch.json();
-              if (nomArr && nomArr[0]) {
-                lat = parseFloat(nomArr[0].lat);
-                lng = parseFloat(nomArr[0].lon);
-                fullAddress = nomArr[0].display_name;
-                const addrObj = nomArr[0].address || {};
-                area = addrObj.sublocality || addrObj.neighbourhood || addrObj.suburb || addrObj.residential || addrObj.road || addrObj.quarter || addrObj.city_district || "";
-                city = addrObj.city || addrObj.town || addrObj.village || addrObj.county || addrObj.state || "";
-              }
-            }
-          } catch (e) {
-            console.warn("Nominatim forward search error:", e);
-          }
-        }
+      const uid = String((req as any).user?.uid || "");
+      const profile = uid ? await dbAdapter.getUser(uid) : null;
+      const application = uid ? await dbAdapter.getWorkerApplicationByUid(uid) : null;
+      if (!profile || profile.role !== "worker" || profile.status !== "APPROVED" || application?.status !== "APPROVED") {
+        return res.status(403).json({ success: false, error: "Approved professional access is required." });
       }
 
-      // 2. Reverse Geocoding if lat/lng available but address is empty
-      if (lat && lng && (!fullAddress || fullAddress.length < 5)) {
-        if (mapsKey) {
-          try {
-            const gRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${mapsKey}`);
-            const gData = await gRes.json();
-            if (gData.status === "OK" && gData.results && gData.results[0]) {
-              fullAddress = gData.results[0].formatted_address;
-              for (const comp of gData.results[0].address_components) {
-                if (comp.types.includes("sublocality") || comp.types.includes("neighborhood")) {
-                  if (!area) area = comp.long_name;
-                }
-                if (comp.types.includes("locality") || comp.types.includes("administrative_area_level_2")) {
-                  if (!city) city = comp.long_name;
-                }
-              }
-            }
-          } catch (e) {
-            console.warn("Reverse geocode error:", e);
-          }
-        }
-
-        if (!fullAddress && lat && lng) {
-          try {
-            const nomRes = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
-              { headers: { 'Accept-Language': 'en', 'User-Agent': 'PunchX-Service-App/1.0' } }
-            );
-            if (nomRes.ok) {
-              const nomData = await nomRes.json();
-              if (nomData && nomData.display_name) {
-                fullAddress = nomData.display_name;
-                const addrObj = nomData.address || {};
-                area = area || addrObj.sublocality || addrObj.neighbourhood || addrObj.suburb || addrObj.residential || addrObj.road || addrObj.quarter || addrObj.city_district || "";
-                city = city || addrObj.city || addrObj.town || addrObj.village || addrObj.county || addrObj.state || "";
-              }
-            }
-          } catch (e) {
-            console.warn("Nominatim reverse error:", e);
-          }
-        }
-      }
-
-      if (!fullAddress) {
-        fullAddress = address || "Indiranagar 100ft Road, Sector 2, Bengaluru, KA 560038";
-      }
-
-      // Standardize Sector
-      const rawArea = (area || fullAddress.split(',')[0] || "Indiranagar").trim();
-      let sectorName = "";
-      const lowerStr = (fullAddress + " " + rawArea + " " + (landmark || "")).toLowerCase();
-      
-      if (lowerStr.includes("hsr")) {
-        sectorName = "Sector 1 (HSR Layout)";
-      } else if (lowerStr.includes("indiranagar")) {
-        sectorName = "Sector 2 (Indiranagar)";
-      } else if (lowerStr.includes("koramangala")) {
-        sectorName = "Sector 3 (Koramangala)";
-      } else if (lowerStr.includes("whitefield")) {
-        sectorName = "Sector 4 (Whitefield)";
-      } else if (lowerStr.includes("jayanagar")) {
-        sectorName = "Sector 5 (Jayanagar)";
-      } else if (lowerStr.includes("jp nagar")) {
-        sectorName = "Sector 6 (JP Nagar)";
-      } else if (lowerStr.includes("electronic city")) {
-        sectorName = "Sector 7 (Electronic City)";
-      } else if (lowerStr.includes("bellandur")) {
-        sectorName = "Sector 8 (Bellandur)";
-      } else {
-        const cleanSub = rawArea.replace(/sector|layout|stage|phase|block/gi, "").trim();
-        sectorName = `Sector (${cleanSub || 'Metro Zone'})`;
-      }
-
-      // Sector Specific Registered Customer Pool
-      const SECTOR_CUSTOMER_DATABASE: Record<string, Array<{
-        id: string;
-        name: string;
-        phoneMasked: string;
-        address: string;
-        landmark: string;
-        serviceNeeded: string;
-        urgency: string;
-        distanceKm: number;
-        verifiedStatus: string;
-        totalPreviousBookings: number;
-        rating: number;
-      }>> = {
-        'Sector 2 (Indiranagar)': [
-          {
-            id: 'CUST-IN-101',
-            name: 'Priya Narayanan',
-            phoneMasked: '+91 98450 •••••',
-            address: 'Flat 304, Royal Palms, 12th Main Road',
-            landmark: 'Near 100ft Road Corner, Indiranagar',
-            serviceNeeded: 'AC PCB Diagnostic & Gas Refill',
-            urgency: '⚡ Immediate Dispatch (within 15m)',
-            distanceKm: 0.4,
-            verifiedStatus: 'Verified Resident (Premium)',
-            totalPreviousBookings: 6,
-            rating: 4.9
-          },
-          {
-            id: 'CUST-IN-102',
-            name: 'Vikramaditya Rao',
-            phoneMasked: '+91 99002 •••••',
-            address: 'Villa 18, Defence Colony, 2nd Avenue',
-            landmark: 'Near Chinmaya Mission Hospital',
-            serviceNeeded: 'MCB Panel Tripping & Heavy Power Cabling',
-            urgency: 'Scheduled: Today 4:30 PM',
-            distanceKm: 0.8,
-            verifiedStatus: 'Verified Resident (Owner)',
-            totalPreviousBookings: 3,
-            rating: 5.0
-          },
-          {
-            id: 'CUST-IN-103',
-            name: 'Ananya Deshmukh',
-            phoneMasked: '+91 97411 •••••',
-            address: 'Apt 502, Skyline Residency, CMH Road',
-            landmark: 'Opposite Metro Pillar 148',
-            serviceNeeded: 'Under-Sink Pipe Leak & Tap Valve Replacement',
-            urgency: '⚡ Immediate Dispatch (within 20m)',
-            distanceKm: 1.1,
-            verifiedStatus: 'Verified Citizen',
-            totalPreviousBookings: 5,
-            rating: 4.8
-          },
-          {
-            id: 'CUST-IN-104',
-            name: 'Siddharth Menon',
-            phoneMasked: '+91 96321 •••••',
-            address: 'House #44, 4th Cross, HAL 2nd Stage',
-            landmark: 'Behind BDA Complex',
-            serviceNeeded: 'Deep Kitchen Chimney & Tile Degreasing',
-            urgency: 'Scheduled: Tomorrow Morning',
-            distanceKm: 1.4,
-            verifiedStatus: 'Verified Resident',
-            totalPreviousBookings: 2,
-            rating: 4.9
-          }
-        ],
-        'Sector 1 (HSR Layout)': [
-          {
-            id: 'CUST-HSR-201',
-            name: 'Rahul Kulkarni',
-            phoneMasked: '+91 98860 •••••',
-            address: 'Plot 82, 27th Main, Sector 1',
-            landmark: 'Near NIFT Campus & HSR Club',
-            serviceNeeded: 'Dual Split Inverter AC Servicing',
-            urgency: '⚡ Immediate Dispatch (within 15m)',
-            distanceKm: 0.5,
-            verifiedStatus: 'Verified Resident (Gold)',
-            totalPreviousBookings: 8,
-            rating: 5.0
-          },
-          {
-            id: 'CUST-HSR-202',
-            name: 'Meera Nambiar',
-            phoneMasked: '+91 98441 •••••',
-            address: 'Apt B-201, Green Glen, 14th Main',
-            landmark: 'Near Agara Lake Road',
-            serviceNeeded: 'Main Line Concealed Drain Unclogging',
-            urgency: '⚡ Priority Dispatch (within 20m)',
-            distanceKm: 0.9,
-            verifiedStatus: 'Verified Resident',
-            totalPreviousBookings: 4,
-            rating: 4.8
-          },
-          {
-            id: 'CUST-HSR-203',
-            name: 'Karthik Balaji',
-            phoneMasked: '+91 97312 •••••',
-            address: 'House 112, 19th Main, Sector 2',
-            landmark: 'Behind CPWD Quarters',
-            serviceNeeded: 'Smart Digital Lock Installation & Wood Trim',
-            urgency: 'Scheduled: Today 5:00 PM',
-            distanceKm: 1.2,
-            verifiedStatus: 'Verified Citizen',
-            totalPreviousBookings: 3,
-            rating: 4.9
-          }
-        ],
-        'Sector 3 (Koramangala)': [
-          {
-            id: 'CUST-KOR-301',
-            name: 'Rohan Singhania',
-            phoneMasked: '+91 99160 •••••',
-            address: 'Villa 7, 4th Block, 80ft Road',
-            landmark: 'Near Sony World Signal',
-            serviceNeeded: 'AC Capacitor Repair & Filter Sterilization',
-            urgency: '⚡ Immediate Dispatch (within 15m)',
-            distanceKm: 0.6,
-            verifiedStatus: 'Verified Resident (Premium)',
-            totalPreviousBookings: 7,
-            rating: 4.9
-          },
-          {
-            id: 'CUST-KOR-302',
-            name: 'Tanvi Gokhale',
-            phoneMasked: '+91 98800 •••••',
-            address: 'Flat 102, Palm Meadows, 5th Block',
-            landmark: 'Opposite Jyoti Nivas College',
-            serviceNeeded: 'Emergency Kitchen Water Heater Wiring',
-            urgency: '⚡ Priority Dispatch (within 25m)',
-            distanceKm: 0.8,
-            verifiedStatus: 'Verified Resident',
-            totalPreviousBookings: 3,
-            rating: 4.85
-          }
-        ]
-      };
-
-      // Default or dynamic fallback customers if exact sector key doesn't match default list
-      let sectorCustomers = SECTOR_CUSTOMER_DATABASE[sectorName];
-      if (!sectorCustomers || sectorCustomers.length === 0) {
-        sectorCustomers = [
-          {
-            id: `CUST-LOC-001`,
-            name: 'Aditya Verma',
-            phoneMasked: '+91 98451 •••••',
-            address: `Main Boulevard, ${rawArea}`,
-            landmark: landmark ? `Near ${landmark}` : `Central ${rawArea}`,
-            serviceNeeded: 'AC Cooling Diagnostic & General Service',
-            urgency: '⚡ Immediate Dispatch (within 15m)',
-            distanceKm: 0.5,
-            verifiedStatus: 'Verified Resident',
-            totalPreviousBookings: 4,
-            rating: 4.9
-          },
-          {
-            id: `CUST-LOC-002`,
-            name: 'Sneha Kulkarni',
-            phoneMasked: '+91 97312 •••••',
-            address: `2nd Cross Avenue, ${rawArea}`,
-            landmark: `Opposite Community Park, ${rawArea}`,
-            serviceNeeded: 'Electrical Distribution Board Inspection',
-            urgency: 'Scheduled: Today 4:00 PM',
-            distanceKm: 0.9,
-            verifiedStatus: 'Verified Citizen',
-            totalPreviousBookings: 2,
-            rating: 4.8
-          },
-          {
-            id: `CUST-LOC-003`,
-            name: 'Rajesh Nair',
-            phoneMasked: '+91 96110 •••••',
-            address: `Block 4, Palm Residency, ${rawArea}`,
-            landmark: `Behind Commercial Hub, ${rawArea}`,
-            serviceNeeded: 'Bathroom Fixture & Concealed Pipe Leak Fix',
-            urgency: '⚡ Priority Dispatch (within 20m)',
-            distanceKm: 1.3,
-            verifiedStatus: 'Verified Resident',
-            totalPreviousBookings: 5,
-            rating: 5.0
-          }
-        ];
-      }
-
+      const address = typeof req.body?.address === "string" ? req.body.address.slice(0, 240) : "";
+      const landmark = typeof req.body?.landmark === "string" ? req.body.landmark.slice(0, 120) : "";
       return res.json({
         success: true,
-        address: fullAddress,
-        area: rawArea,
-        city: city || "Bengaluru",
-        sector: sectorName,
-        landmark: landmark || "",
-        lat: lat || 12.9716,
-        lng: lng || 77.5946,
-        totalRegisteredCustomersInLocation: sectorCustomers.length,
-        coverageMessage: `Service partner visibility active exclusively for registered customers in ${sectorName}`,
-        registeredCustomers: sectorCustomers
+        address,
+        area: "",
+        city: "",
+        sector: "",
+        landmark,
+        lat: null,
+        lng: null,
+        totalRegisteredCustomersInLocation: 0,
+        coverageMessage: "Customer discovery is not available yet. PUNCHX will show verified customer requests when the order-dispatch workflow is connected.",
+        registeredCustomers: []
       });
     } catch (err: any) {
-      console.error("Worker location customers backend error:", err);
-      return res.status(500).json({ error: "Failed to resolve registered customers for location" });
+      logger.error("Worker customer directory error:", err);
+      return res.status(500).json({ success: false, error: "Could not load customer requests." });
     }
   });
 

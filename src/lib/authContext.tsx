@@ -171,17 +171,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
 
           if (userSnap.exists()) {
             const existingData = userSnap.data() as UserProfile;
-            const rawStoredRole = localStorage.getItem('punchx_auth_role');
-            const hasWorkerDetails = Boolean(
-              (existingData as any).workerSkill || 
-              ((existingData as any).categories && (existingData as any).categories.length > 0) || 
-              (existingData as any).applicationId
-            );
-            const isWorker = existingData.role === 'worker' || hasWorkerDetails || (rawStoredRole === 'worker' && existingData.role !== 'admin');
-            const resolvedRole: 'citizen' | 'worker' | 'admin' = existingData.role === 'admin' 
-              ? 'admin' 
-              : isWorker 
-                ? 'worker' 
+            // Professional details or a client-side role preference never grant worker access.
+            // The backend must set role=worker and status=APPROVED after admin review.
+            const isApprovedWorker = existingData.role === 'worker' && existingData.status === 'APPROVED';
+            const resolvedRole: 'citizen' | 'worker' | 'admin' = existingData.role === 'admin'
+              ? 'admin'
+              : isApprovedWorker
+                ? 'worker'
                 : 'citizen';
 
             const updatedProfile: UserProfile = {
@@ -199,27 +195,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
               phone: existingData.phone || identity.phone_number || ''
             };
 
-            if (resolvedRole === 'worker' && existingData.status !== 'APPROVED') {
-              try {
-                await setDoc(userDocRef, { role: 'worker', status: 'APPROVED' }, { merge: true });
-              } catch {}
-            }
             
             setUserProfile(updatedProfile);
             localStorage.setItem('punchx_namoid_profile', JSON.stringify(updatedProfile));
-            if (resolvedRole === 'worker' && hasWorkerDetails) {
+            if (resolvedRole === 'worker') {
               localStorage.setItem('punchx_auth_role', 'worker');
               localStorage.setItem('punchx_worker_approved', 'true');
               localStorage.setItem('punchx_worker_online_status', 'true');
             }
             return updatedProfile;
           } else {
-            const rawStoredRole = localStorage.getItem('punchx_auth_role');
-            const initialProfile: UserProfile = { ...fallbackProfile };
-            if (rawStoredRole === 'worker') {
-              initialProfile.role = 'worker';
-              initialProfile.status = 'PENDING';
-            }
+            // New client-created profiles always begin as citizens.
+            // Professional status is represented by the separate pending application record.
+            const initialProfile: UserProfile = { ...fallbackProfile, role: 'citizen' };
 
             try {
               await Promise.race([
@@ -234,9 +222,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode; activeRole?: 'c
 
             setUserProfile(initialProfile);
             localStorage.setItem('punchx_namoid_profile', JSON.stringify(initialProfile));
-            if (initialProfile.role === 'worker') {
-              localStorage.setItem('punchx_auth_role', 'worker');
-            }
             return initialProfile;
           }
         } catch (fsErr) {

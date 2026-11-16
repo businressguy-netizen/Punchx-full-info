@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppScreen, WorkerApplication } from '../types';
 import PUNCHX_LOGO from '../assets/logo';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { requestAndAutoUpdateLocation } from '../lib/location';
 import { 
@@ -56,6 +56,7 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
   const [termsAccepted, setTermsAccepted] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pre-fill existing user details if available
   useEffect(() => {
@@ -248,135 +249,74 @@ export default function WorkerSignup({ onTransition, showNotification, setWorker
       setErrorMsg('You must review and accept the PunchX Terms & Conditions and Privacy Policy to proceed.');
       return;
     }
-    const applicantUid = auth.currentUser?.uid || localStorage.getItem('punchx_applicant_uid') || `worker_${Date.now()}`;
-    try { localStorage.setItem('punchx_applicant_uid', applicantUid); } catch {}
-
-    const appId = `APP-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const assignedWorkerId = generateWorkerId();
-    try { localStorage.setItem('punchx_worker_id', assignedWorkerId); } catch {}
-
-    const application: WorkerApplication = {
-      id: appId,
-      uid: applicantUid,
-      workerId: assignedWorkerId,
-      partnerId: assignedWorkerId,
-      legalName: legalName.trim(),
-      dob: dob.trim(),
-      birthdate: dob.trim(),
-      address: resolvedAddress,
-      streetAddress: streetAddress.trim(),
-      landmark: landmark.trim(),
-      area: area.trim(),
-      city: city.trim(),
-      sector: sector.trim(),
-      categories: allCategories,
-      skill: primaryTrade,
-      customSkill: customSkill.trim() || undefined,
-      experienceYears,
-      minimumVisitingFee: Number(minimumVisitingFee),
-      maximumVisitingFee: Number(maximumVisitingFee),
-      visitingFee: Number(minimumVisitingFee),
-      phone: phone.trim(),
-      email: email.trim(),
-      photoURL: photoURL || undefined,
-      termsAccepted: true,
-      status: 'APPROVED',
-      appliedAt: new Date().toISOString()
-    };
-
-    setWorkerApplicationData(application);
-    let savedApplication: WorkerApplication = application;
-
-    // 1. Direct Firestore save to both workerApplications and users collections
-    try {
-      if (db) {
-        await Promise.allSettled([
-          setDoc(doc(db, 'workerApplications', application.id), application, { merge: true }),
-          setDoc(doc(db, 'workerApplications', applicantUid), application, { merge: true }),
-          setDoc(doc(db, 'users', applicantUid), {
-            uid: applicantUid,
-            workerId: assignedWorkerId,
-            partnerId: assignedWorkerId,
-            name: legalName.trim(),
-            legalName: legalName.trim(),
-            dob: dob.trim(),
-            birthdate: dob.trim(),
-            address: resolvedAddress,
-            streetAddress: streetAddress.trim(),
-            landmark: landmark.trim(),
-            area: area.trim(),
-            city: city.trim(),
-            sector: sector.trim(),
-            phone: phone.trim(),
-            email: email.trim(),
-            role: 'worker',
-            status: 'APPROVED',
-            workerSkill: primaryTrade,
-            skill: primaryTrade,
-            workerCategories: allCategories,
-            categories: allCategories,
-            customSkill: customSkill.trim() || '',
-            workerExperience: experienceYears,
-            experienceYears: experienceYears,
-            visitingFee: Number(minimumVisitingFee),
-            minimumVisitingFee: Number(minimumVisitingFee),
-            maximumVisitingFee: Number(maximumVisitingFee),
-            photoURL: photoURL || '',
-            applicationId: application.id,
-            termsAccepted: true,
-            appliedAt: application.appliedAt,
-            isProfileCompleted: true,
-            updatedAt: new Date().toISOString()
-          }, { merge: true })
-        ]);
-        console.log('Successfully saved worker form data directly to Firebase:', application.id);
-      }
-    } catch (fsError) {
-      console.warn('Firestore direct write notice:', fsError);
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) {
+      setErrorMsg('Please sign in before submitting your professional application.');
+      return;
     }
 
-    // 2. Submit through backend Admin API so records are confirmed in database
+    setIsSubmitting(true);
     try {
+      const idToken = await firebaseUser.getIdToken();
+      const application: WorkerApplication = {
+        id: `APP-${Date.now().toString().slice(-6)}-${Math.floor(1000 + Math.random() * 9000)}`,
+        uid: firebaseUser.uid,
+        legalName: legalName.trim(),
+        dob: dob.trim(),
+        birthdate: dob.trim(),
+        address: resolvedAddress,
+        streetAddress: streetAddress.trim(),
+        landmark: landmark.trim(),
+        area: area.trim(),
+        city: city.trim(),
+        sector: sector.trim(),
+        categories: allCategories,
+        skill: primaryTrade,
+        customSkill: customSkill.trim() || undefined,
+        experienceYears,
+        minimumVisitingFee: Number(minimumVisitingFee),
+        maximumVisitingFee: Number(maximumVisitingFee),
+        visitingFee: Number(minimumVisitingFee),
+        phone: phone.trim(),
+        email: email.trim(),
+        photoURL: photoURL || undefined,
+        termsAccepted: true,
+        status: 'PENDING',
+        appliedAt: new Date().toISOString()
+      };
+
       const backendBase = String(import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
-      const firebaseUser = auth.currentUser;
-      const idToken = firebaseUser ? await firebaseUser.getIdToken().catch(() => null) : null;
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
       const response = await fetch(`${backendBase}/api/worker-applications`, {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`
+        },
         body: JSON.stringify(application),
       });
       const result = await response.json().catch(() => ({}));
-      if (response.ok && result.success && result.application) {
-        savedApplication = result.application as WorkerApplication;
-        setWorkerApplicationData(savedApplication);
+      if (!response.ok || !result.success || !result.application) {
+        throw new Error(result.error || 'We could not save your application. Please try again.');
       }
-    } catch (backendErr) {
-      console.warn('Backend worker application submit notice:', backendErr);
+
+      const savedApplication = result.application as WorkerApplication;
+      setWorkerApplicationData(savedApplication);
+      try {
+        localStorage.setItem('punchx_worker_app_id', savedApplication.id);
+        localStorage.setItem('punchx_auth_role', 'worker');
+        localStorage.removeItem('punchx_worker_approved');
+        localStorage.removeItem('punchx_worker_online_status');
+        localStorage.removeItem('punchx_edit_worker_signup');
+      } catch {}
+
+      showNotification('Your professional application has been submitted for admin review.');
+      onTransition('worker-pending-approval');
+    } catch (submitError) {
+      const message = submitError instanceof Error ? submitError.message : 'Application submission failed. Please try again.';
+      setErrorMsg(message);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Local storage UI cache
-    const existingApps = JSON.parse(
-      localStorage.getItem('punchx_worker_applications') || '[]'
-    );
-
-    localStorage.setItem(
-      'punchx_worker_applications',
-      JSON.stringify([savedApplication, ...existingApps])
-    );
-    localStorage.setItem('punchx_worker_app_id', savedApplication.id);
-    localStorage.setItem('punchx_worker_approved', 'true');
-    localStorage.setItem('punchx_worker_online_status', 'true');
-    localStorage.setItem('punchx_auth_role', 'worker');
-    localStorage.removeItem('punchx_edit_worker_signup');
-
-    showNotification(
-      '✓ Specialist registered & auto-approved! Welcome to PunchX Specialist Workspace.'
-    );
-
-    onTransition('worker-dashboard');
   };
 
   return (

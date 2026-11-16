@@ -256,6 +256,8 @@ export interface OrderRecord {
   adminReviewedAt?: string;
   adminReviewNotes?: string;
   customerConfirmedAt?: string;
+  assignedAt?: string;
+  assignedBy?: string;
   whatsappOpenedAt?: string;
   invoiceStatus?: 'NOT_READY' | 'READY' | 'ISSUED';
   invoiceId?: string;

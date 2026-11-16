@@ -100,7 +100,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, Accept, X-Requested-With, x-admin-key, X-Admin-Key"
+          "value": "Content-Type, Authorization, Accept, X-Requested-With"
         },
         {
           "key": "Access-Control-Allow-Credentials",
@@ -125,7 +125,7 @@
         },
         {
           "key": "Access-Control-Allow-Headers",
-          "value": "Content-Type, Authorization, Accept, X-Requested-With, x-admin-key, X-Admin-Key"
+          "value": "Content-Type, Authorization, Accept, X-Requested-With"
         },
         {
           "key": "Cache-Control",

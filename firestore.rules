@@ -46,10 +46,12 @@ service cloud.firestore {
     }
 
     function validApplicationCreate() {
-      return (signedIn() || true)
+      return signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid)
         && (
           !('status' in request.resource.data)
-          || request.resource.data.status in ['PENDING', 'APPROVED']
+          || request.resource.data.status == 'PENDING'
         )
         && request.resource.data.keys().hasOnly([
           'id',
@@ -87,37 +89,13 @@ service cloud.firestore {
           'status',
           'appliedAt',
           'updatedAt',
-          'available',
-          'rating',
-          'reviewsCount',
-          'avatar',
-          'photoURL',
-          'proBadge',
-          'completedJobs',
-          'jobsCompletedCount',
-          'onTimeRate',
-          'identityVerified',
-          'skillVerified',
-          'backgroundChecked',
-          'trainingCertified',
-          'insuranceCovered',
-          'insuranceAmount',
-          'reviewedBy',
-          'approvedAt',
-          'rejectedAt',
-          'rejectionReason',
           'otpVerified',
-          'otpCode',
           'geofenceArea',
           'geofenceAreas',
           'serviceAreas',
           'serviceAreaMode',
           'serviceAreaUpdatedAt',
-          'geofenceUpdatedAt',
-          'workerAvailability',
-          'isOnline',
-          'workerStatus',
-          'availabilityUpdatedAt'
+          'geofenceUpdatedAt'
         ]);
     }
 
@@ -299,7 +277,7 @@ service cloud.firestore {
       // New client-created profiles cannot make themselves admin.
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId
-        && request.resource.data.role in ['citizen', 'worker'];
+        && request.resource.data.role == 'citizen';
 
       // Users can update their own profile.
       // Admins can update profiles.
@@ -354,8 +332,7 @@ service cloud.firestore {
               'categories',
               'skill',
               'isProfileCompleted',
-              'applicationId',
-              'status'
+              'applicationId'
             ])
         );
 
@@ -375,7 +352,7 @@ service cloud.firestore {
     match /workerApplications/{appId} {
 
       // Allow reading worker applications if signed in or for public technician discovery
-      allow read: if signedIn() || true;
+      allow read: if isAdmin() || isApplicationOwner(resource.data);
 
       // Allow creating worker applications with status PENDING or APPROVED
       allow create: if validApplicationCreate();
@@ -393,7 +370,7 @@ service cloud.firestore {
 
     // Compatibility alias for snake_case collection
     match /worker_applications/{appId} {
-      allow read: if signedIn() || true;
+      allow read: if isAdmin() || isApplicationOwner(resource.data);
       allow create: if validApplicationCreate();
       allow update: if signedIn() && (
         validApplicationAdminUpdate() || validApplicationOwnerUpdate()

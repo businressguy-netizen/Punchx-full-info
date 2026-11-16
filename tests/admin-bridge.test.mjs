@@ -1,135 +1,196 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import express from 'express';
-import cors from 'cors';
-import { adminRouter, platformSettings } from '../src/backend/routes/adminBridgeRoutes.ts';
+import { readFileSync } from 'node:fs';
 
-const ALLOWED_ORIGINS = [
-  'https://www.punchxapp.co.in',
-  'https://punchxapp.co.in',
-  'https://businressguy-netizen.github.io',
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://127.0.0.1:5173',
-  'http://127.0.0.1:3000',
-];
+const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
+const adminRoutes = read('../src/backend/routes/adminBridgeRoutes.ts');
+const adminUi = read('../src/components/AdminCommandCenter.tsx');
+const health = read('../api/admin/health.ts');
+const firestoreRules = read('../firestore.rules');
+const adminPortal = read('../src/components/AdminBridgePortal.tsx');
+const server = read('../server.ts');
+const authContext = read('../src/lib/authContext.tsx');
+const signup = read('../src/components/WorkerSignup.tsx');
+const pending = read('../src/components/WorkerPendingApproval.tsx');
+const app = read('../src/App.tsx');
+const locationSetup = read('../src/components/WorkerLocationSetup.tsx');
+const otpPass = read('../src/components/WorkerOtpPass.tsx');
+const providersUi = read('../src/components/ProvidersList.tsx');
+const confirmBookingUi = read('../src/components/ConfirmBooking.tsx');
+const paymentUi = read('../src/components/ChoosePayment.tsx');
+const locationServicesApi = read('../api/location-services.ts');
 
-const isAllowedCorsOrigin = (origin) => {
-  if (!origin) return true;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  if (origin.endsWith('.github.io')) return true;
-  return false;
-};
-
-const app = express();
-app.use(cors({
-  origin: (origin, callback) => {
-    if (isAllowedCorsOrigin(origin)) callback(null, true);
-    else callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With', 'x-admin-key', 'X-Admin-Key'],
-}));
-app.use(express.json());
-app.use('/api/admin', adminRouter);
-
-let server;
-let baseUrl;
-
-test.before(async () => {
-  await new Promise((resolve) => {
-    server = app.listen(0, '127.0.0.1', () => {
-      const port = server.address().port;
-      baseUrl = `http://127.0.0.1:${port}`;
-      resolve();
-    });
-  });
+test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
+  assert.match(adminRoutes, /verifyIdToken\(/);
+  assert.match(adminRoutes, /profile\.role !== 'admin'/);
+  assert.match(adminRoutes, /status\(403\)/);
+  assert.doesNotMatch(adminRoutes, /x-admin-key/i);
 });
 
-test.after(async () => {
-  if (server) {
-    await new Promise((resolve) => server.close(resolve));
-  }
+test('standalone admin health endpoint has no static fallback key', () => {
+  assert.match(health, /verifyIdToken\(/);
+  assert.match(health, /profile\.role !== 'admin'/);
+  assert.doesNotMatch(health, /ADMIN_API_KEY|x-admin-key|punchx_admin_secure_live_key/i);
 });
 
-test('OPTIONS preflight request from GitHub Pages origin is allowed with 204 and CORS headers', async () => {
-  const res = await fetch(`${baseUrl}/api/admin/health`, {
-    method: 'OPTIONS',
-    headers: {
-      'Origin': 'https://businressguy-netizen.github.io',
-      'Access-Control-Request-Method': 'GET',
-      'Access-Control-Request-Headers': 'x-admin-key',
-    },
-  });
-
-  assert.equal(res.status, 204);
-  assert.equal(res.headers.get('access-control-allow-origin'), 'https://businressguy-netizen.github.io');
-  assert.ok(res.headers.get('access-control-allow-headers')?.toLowerCase().includes('x-admin-key'));
+test('legacy admin portal uses the signed-in Firebase bearer token', () => {
+  assert.match(adminPortal, /getIdToken\(/);
+  assert.match(adminPortal, /Authorization: `Bearer/);
+  assert.doesNotMatch(adminPortal, /x-admin-key|punchx_admin_secure_live_key/i);
 });
 
-test('GET /api/admin/health without x-admin-key is rejected with 401', async () => {
-  const res = await fetch(`${baseUrl}/api/admin/health`, {
-    method: 'GET',
-    headers: {
-      'Origin': 'https://businressguy-netizen.github.io',
-    },
-  });
-
-  assert.equal(res.status, 401);
-  const data = await res.json();
-  assert.equal(data.success, false);
+test('professional applications are private to their owner and admins', () => {
+  assert.equal((firestoreRules.match(/allow read: if isAdmin\(\) \|\| isApplicationOwner\(resource\.data\);/g) || []).length, 2);
+  assert.doesNotMatch(firestoreRules, /allow read: if signedIn\(\) \|\| true/);
 });
 
-test('GET /api/admin/health with valid x-admin-key returns 200 connected handshake', async () => {
-  const res = await fetch(`${baseUrl}/api/admin/health`, {
-    method: 'GET',
-    headers: {
-      'Origin': 'https://businressguy-netizen.github.io',
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-  });
-
-  assert.equal(res.status, 200);
-  assert.equal(res.headers.get('access-control-allow-origin'), 'https://businressguy-netizen.github.io');
-  const data = await res.json();
-  assert.equal(data.success, true);
-  assert.equal(data.status, 'connected');
-  assert.ok(data.platform.includes('PunchX'));
+test('professional application creation requires its owner and pending status', () => {
+  assert.match(firestoreRules, /function validApplicationCreate\(\)\s*\{\s*return signedIn\(\)/);
+  assert.match(firestoreRules, /request\.resource\.data\.uid == request\.auth\.uid/);
+  assert.match(firestoreRules, /request\.resource\.data\.status == 'PENDING'/);
+  assert.doesNotMatch(firestoreRules, /request\.resource\.data\.status in \['PENDING', 'APPROVED'\]/);
 });
 
-test('GET and POST /api/admin/settings updates dynamic marketplace parameters', async () => {
-  const getRes = await fetch(`${baseUrl}/api/admin/settings`, {
-    headers: {
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-  });
-  assert.equal(getRes.status, 200);
-  const initialData = await getRes.json();
-  assert.equal(initialData.success, true);
-
-  const updateRes = await fetch(`${baseUrl}/api/admin/settings`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-    body: JSON.stringify({ convenienceFee: 35, emergencySurcharge: 120 }),
-  });
-  assert.equal(updateRes.status, 200);
-  const updatedData = await updateRes.json();
-  assert.equal(updatedData.success, true);
-  assert.equal(updatedData.settings.convenienceFee, 35);
-  assert.equal(updatedData.settings.emergencySurcharge, 120);
-
-  // Restore defaults
-  await fetch(`${baseUrl}/api/admin/settings`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-    },
-    body: JSON.stringify({ convenienceFee: 29, emergencySurcharge: 99 }),
-  });
+test('users cannot self-edit their protected account status', () => {
+  const userRules = firestoreRules.slice(firestoreRules.indexOf('match /users/{userId}'), firestoreRules.indexOf('match /workerApplications/{appId}'));
+  assert.doesNotMatch(userRules, /'applicationId',\s*'status'/);
 });
 
+test('admin dispatch only accepts confirmed, unassigned orders and approved professionals', () => {
+  assert.match(adminRoutes, /order\.status !== 'CUSTOMER_CONFIRMED' \|\| order\.workerId/);
+  assert.match(adminRoutes, /professional\.status !== 'APPROVED'/);
+  assert.match(adminRoutes, /updateOrderStatus\(order\.id, 'DISPATCHING'/);
+});
+
+test('admin refresh callback is stable when notification props change', () => {
+  assert.match(adminUi, /useEffect\(\(\) => \{ notificationRef\.current = showNotification; \}, \[showNotification\]\)/);
+  assert.match(adminUi, /\}, \[request\]\);/);
+  assert.doesNotMatch(adminUi, /\}, \[request, showNotification\]\);/);
+});
+
+test('professional applications require authentication and start pending', () => {
+  const start = server.indexOf('app.post("/api/worker-applications", requireFirebaseUser');
+  const end = server.indexOf('// Public professional discovery:', start);
+  assert.ok(start >= 0 && end > start);
+  const route = server.slice(start, end);
+  assert.match(route, /status: "PENDING"/);
+  assert.doesNotMatch(route, /status: "APPROVED"|role: "worker"/);
+  assert.doesNotMatch(route, /appData\.uid|applicant_\$\{Date\.now\(\)\}/);
+});
+
+test('client profile data cannot self-approve a professional', () => {
+  assert.match(authContext, /existingData\.role === 'worker' && existingData\.status === 'APPROVED'/);
+  assert.doesNotMatch(authContext, /hasWorkerDetails/);
+  assert.match(authContext, /initialProfile: UserProfile = \{ \.\.\.fallbackProfile, role: 'citizen' \}/);
+  assert.doesNotMatch(authContext, /setDoc\(userDocRef, \{ role: 'worker', status: 'APPROVED' \}/);
+});
+
+test('login session ignores client-requested professional role', () => {
+  const start = server.indexOf('app.post("/api/auth/session", requireFirebaseUser');
+  const end = server.indexOf('// ─── USER PROFILE CRUD APIS ───', start);
+  const route = server.slice(start, end);
+  assert.doesNotMatch(route, /requestedRole|req\.body\?\.role/);
+  assert.match(route, /existing\.role === "worker" && existing\.status === "APPROVED"/);
+  assert.match(route, /: "citizen"/);
+});
+
+test('Firestore clients cannot create a worker-role user profile', () => {
+  const users = firestoreRules.slice(firestoreRules.indexOf('match /users/{userId}'), firestoreRules.indexOf('match /workerApplications/{appId}'));
+  assert.match(users, /request\.resource\.data\.role == 'citizen'/);
+  assert.doesNotMatch(users, /request\.resource\.data\.role in \['citizen', 'worker'\]/);
+});
+
+test('worker status endpoint requires Firebase authentication and returns stored application status', () => {
+  const start = server.indexOf('app.get("/api/workers/status", requireFirebaseUser');
+  const end = server.indexOf('// Authoritative worker availability endpoint.', start);
+  const route = server.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(route, /workerApp\.status === "APPROVED"/);
+  assert.match(route, /workerApp\.status === "REJECTED"/);
+  assert.doesNotMatch(route, /const status = "APPROVED"|APP-AUTO-APPROVED|getWorkerApplicationByContact|Buffer\.from\(parts\[1\]/);
+});
+
+test('professional signup cannot mark itself approved or bypass the server save', () => {
+  assert.match(signup, /status: 'PENDING'/);
+  assert.match(signup, /Authorization: `Bearer \$\{idToken\}`/);
+  assert.match(signup, /onTransition\('worker-pending-approval'\)/);
+  assert.doesNotMatch(signup, /status: 'APPROVED'/);
+  assert.equal(signup.includes("localStorage.setItem('punchx_worker_approved', 'true')"), false);
+});
+
+test('professional pending screen cannot approve itself or read local approval cache', () => {
+  assert.match(pending, /if \(appStatus !== 'APPROVED'\)/);
+  assert.match(pending, /disabled=\{appStatus !== 'APPROVED'\}/);
+  assert.match(pending, /fetch\('\/api\/workers\/status'/);
+  assert.doesNotMatch(pending, /punchx_worker_approved|Admin Review Bypassed|setAppStatus\('APPROVED'\)|onSnapshot\(/);
+});
+
+test('worker dashboard route requires the server-approved profile role and status', () => {
+  assert.match(app, /currentScreen === 'worker-dashboard'[\s\S]*?userProfile\?\.role !== 'worker'[\s\S]*?userProfile\?\.status !== 'APPROVED'/);
+  const guardStart = app.indexOf("currentScreen === 'worker-dashboard'");
+  const guardEnd = app.indexOf('const onboardingScreens', guardStart);
+  const workerGuard = app.slice(guardStart, guardEnd);
+  assert.doesNotMatch(workerGuard, /localStorage|punchx_worker_approved/);
+});
+
+test('legacy professional location setup cannot self-approve or enter dashboard', () => {
+  assert.match(locationSetup, /status: 'PENDING'/);
+  assert.match(locationSetup, /onTransition\('worker-pending-approval'\)/);
+  assert.doesNotMatch(locationSetup, /status: 'APPROVED'|role: 'worker'/);
+  assert.equal(locationSetup.includes("localStorage.setItem('punchx_worker_approved', 'true')"), false);
+});
+
+test('legacy OTP step never simulates verification or approval', () => {
+  assert.match(otpPass, /OTP is not configured/);
+  assert.doesNotMatch(otpPass, /status: 'APPROVED'|punchx_worker_approved|debugPhoneCode|debugEmailCode/);
+});
+
+test('OTP endpoint does not return static verification codes', () => {
+  const start = server.indexOf('app.post("/api/auth/worker-signup-otp"');
+  const end = server.indexOf('// ─── WORKER APPLICATIONS APIS ───', start);
+  const route = server.slice(start, end);
+  assert.match(route, /status\(410\)/);
+  assert.doesNotMatch(route, /debugCodes|123456|success: true/);
+});
+
+test('worker customer directory never exposes fabricated customer identities', () => {
+  const start = server.indexOf('app.post("/api/worker-location-customers", requireFirebaseUser');
+  const end = server.indexOf('// BE-10: AUTH DECISION', start);
+  const route = server.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(route, /profile\.role !== "worker"/);
+  assert.match(route, /application\?\.status !== "APPROVED"/);
+  assert.match(route, /registeredCustomers: \[\]/);
+  assert.doesNotMatch(route, /Priya Narayanan|Vikramaditya Rao|CUST-IN-|\+91 9[0-9]{4} •••••|totalPreviousBookings/);
+});
+
+test('professional availability cannot promote a pending applicant', () => {
+  const start = server.indexOf('app.patch("/api/workers/availability", requireFirebaseUser');
+  const end = server.indexOf('app.post("/api/worker-applications"', start);
+  const route = server.slice(start, end);
+  assert.match(route, /currentData\?\.role === "worker" && currentData\?\.status === "APPROVED"/);
+  assert.match(route, /workerApp\?\.uid === uid && workerApp\?\.status === "APPROVED"/);
+  assert.doesNotMatch(route, /hasWorkerProfileSignals/);
+});
+
+test('citizen service catalogue never displays or lets customers select professionals', () => {
+  assert.match(providersUi, /You will not need to choose a professional/);
+  assert.doesNotMatch(providersUi, /DEMO_PROFESSIONALS|fetchApprovedProfessionals|matchingWorkers\.map|onSelectWorker\(/);
+});
+
+test('citizen booking submits an admin-assignment request without selecting a worker', () => {
+  assert.match(confirmBookingUi, /Professional assignment/);
+  assert.match(confirmBookingUi, /workerId:null/);
+  assert.match(confirmBookingUi, /serviceAvailabilityChecked:false/);
+  assert.doesNotMatch(confirmBookingUi, /fetchApprovedProfessionals|DEMO_PROFESSIONALS|customWorker|selectedWorker|chooseWorker/);
+  assert.match(paymentUi, /dispatchMode:'ADMIN_ASSIGNMENT'/);
+  assert.match(paymentUi, /workerId:null/);
+  assert.doesNotMatch(paymentUi, /selectedWorker|PERSONAL_SELECT/);
+});
+
+test('location service lookup does not fabricate capacity, ratings, prices, or coverage', () => {
+  assert.doesNotMatch(locationServicesApi, /activeSpecialists: \d+|avgRating: [\d.]+|startingPrice: \d+|slaMinutes: \d+|Math\.max\(3/);
+  assert.match(locationServicesApi, /availabilityStatus: "Admin confirmation required"/);
+  assert.doesNotMatch(server, /city: city \|\| "Bengaluru"|12\.9716|77\.5946|100% Active & Certified Coverage/);
+  assert.match(server, /availabilityStatus: "Admin confirmation required"/);
+});

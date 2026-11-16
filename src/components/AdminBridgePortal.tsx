@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { AppScreen } from '../types';
 import PUNCHX_LOGO from '../assets/logo';
+import { auth } from '../lib/firebase';
 
 interface AdminBridgePortalProps {
   onTransition: (screen: AppScreen) => void;
@@ -20,7 +21,6 @@ interface AdminBridgePortalProps {
 }
 
 export default function AdminBridgePortal({ onTransition, showNotification }: AdminBridgePortalProps) {
-  const adminDashboardUrl = 'https://businressguy-netizen.github.io/Admin-dashboard-/';
   const [backendHealth, setBackendHealth] = useState<'checking' | 'healthy' | 'offline'>('checking');
   const [latency, setLatency] = useState<number>(0);
 
@@ -29,10 +29,15 @@ export default function AdminBridgePortal({ onTransition, showNotification }: Ad
     const checkBridge = async () => {
       const start = performance.now();
       try {
+        const user = auth.currentUser;
+        if (!user) {
+          if (isMounted) setBackendHealth('offline');
+          return;
+        }
+        const token = await user.getIdToken();
         const res = await fetch('/api/admin/health', {
-          headers: {
-            'x-admin-key': 'punchx_admin_secure_live_key_2026_9941a8',
-          },
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
         });
         const elapsed = Math.round(performance.now() - start);
         if (isMounted) {
@@ -55,8 +60,8 @@ export default function AdminBridgePortal({ onTransition, showNotification }: Ad
   }, []);
 
   const handleLaunchDashboard = () => {
-    showNotification('Launching PunchX Admin Command Center...');
-    window.open(adminDashboardUrl, '_blank', 'noopener,noreferrer');
+    showNotification('Opening the protected PUNCHX Admin Command Center...');
+    onTransition('admin-dashboard');
   };
 
   return (
@@ -84,7 +89,7 @@ export default function AdminBridgePortal({ onTransition, showNotification }: Ad
           </div>
 
           <div className="inline-flex items-center gap-2 rounded-full border border-[#ff6b00]/30 bg-[#ff6b00]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#ff6b00] mb-4">
-            <ShieldCheck className="h-3.5 w-3.5" /> Dual-Repository Command Center
+            <ShieldCheck className="h-3.5 w-3.5" /> Protected Admin Command Center
           </div>
 
           <h1 className="text-3xl font-black tracking-tight sm:text-4xl text-white">
@@ -124,9 +129,9 @@ export default function AdminBridgePortal({ onTransition, showNotification }: Ad
               <div className="text-white font-semibold truncate">businressguy-netizen.github.io</div>
             </div>
             <div className="rounded-xl border border-white/5 bg-black/20 p-3">
-              <div className="text-gray-400 mb-1">API Handshake Key</div>
+              <div className="text-gray-400 mb-1">Admin authentication</div>
               <div className="text-emerald-400 font-semibold flex items-center gap-1">
-                <Lock className="h-3 w-3" /> Active (x-admin-key)
+                <Lock className="h-3 w-3" /> Firebase ID token
               </div>
             </div>
           </div>
@@ -151,7 +156,7 @@ export default function AdminBridgePortal({ onTransition, showNotification }: Ad
 
         {/* Security badge */}
         <p className="text-[11px] text-gray-500 flex items-center justify-center gap-1.5">
-          <Lock className="h-3 w-3 text-gray-400" /> End-to-end encrypted administrative channel with rate-limit exemptions.
+          <Lock className="h-3 w-3 text-gray-400" /> Admin API requests require a verified Firebase session and server-side admin role.
         </p>
       </div>
     </main>
