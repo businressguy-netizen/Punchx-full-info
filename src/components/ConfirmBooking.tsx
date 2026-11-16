@@ -20,7 +20,7 @@ interface ConfirmBookingProps {
 type CartItem = { id:string; serviceId?:string; serviceName:string; category:string; subcategory?:string; description?:string; price:number; duration?:string; image?:string; bookingTiming?:'instant'|'later' };
 type Address = { house:string; street:string; landmark:string; villageArea:string; city:string; district:string; state:string; pinCode:string };
 const EMPTY:Address={house:'',street:'',landmark:'',villageArea:'',city:'',district:'',state:'',pinCode:''};
-const dateISO=(value:string)=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)?value:'';
+const dateISO=(value:string)=>/^\d{4}-\d{2}-\d{2}$/.test(value)?value:'';
 const SCHEDULE_SLOTS=Array.from({length:12},(_,i)=>{const minutes=9*60+30+i*30;const h=Math.floor(minutes/60);const m=minutes%60;return `${h%12||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`;});
 const formatDay=(value:string)=>{const d=new Date(`${value}T12:00:00`);return {weekday:d.toLocaleDateString('en-IN',{weekday:'short'}),day:d.toLocaleDateString('en-IN',{day:'2-digit'}),month:d.toLocaleDateString('en-IN',{month:'short'})};};
 const loadJSON = <T,>(key:string, fallback:T):T => { try { const v=JSON.parse(localStorage.getItem(key)||'null'); return v ?? fallback; } catch { return fallback; } };
