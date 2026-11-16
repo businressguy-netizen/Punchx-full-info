@@ -15,6 +15,7 @@ const pending = read('../src/components/WorkerPendingApproval.tsx');
 const app = read('../src/App.tsx');
 const locationSetup = read('../src/components/WorkerLocationSetup.tsx');
 const otpPass = read('../src/components/WorkerOtpPass.tsx');
+const providersUi = read('../src/components/ProvidersList.tsx');
 
 test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
   assert.match(adminRoutes, /verifyIdToken\(/);
@@ -167,4 +168,9 @@ test('professional availability cannot promote a pending applicant', () => {
   assert.match(route, /currentData\?\.role === "worker" && currentData\?\.status === "APPROVED"/);
   assert.match(route, /workerApp\?\.uid === uid && workerApp\?\.status === "APPROVED"/);
   assert.doesNotMatch(route, /hasWorkerProfileSignals/);
+});
+
+test('citizen service catalogue never displays or lets customers select professionals', () => {
+  assert.match(providersUi, /You will not need to choose a professional/);
+  assert.doesNotMatch(providersUi, /DEMO_PROFESSIONALS|fetchApprovedProfessionals|matchingWorkers\.map|onSelectWorker\(/);
 });
