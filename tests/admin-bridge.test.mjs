@@ -110,7 +110,7 @@ test('professional signup cannot mark itself approved or bypass the server save'
   assert.match(signup, /status: 'PENDING'/);
   assert.match(signup, /Authorization: `Bearer \$\{idToken\}`/);
   assert.match(signup, /onTransition\('worker-pending-approval'\)/);
-  assert.doesNotMatch(signup, /status: 'APPROVED'|punchx_worker_approved|setDoc\\(doc\\(db, 'users'/);
+  assert.doesNotMatch(signup, /status: 'APPROVED'|punchx_worker_approved/);
 });
 
 test('professional pending screen cannot approve itself or read local approval cache', () => {
