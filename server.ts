@@ -1061,16 +1061,10 @@ async function startServer() {
 
   // ─── WORKER SIGNUP DYNAMIC DUAL OTP API (TASK SHEET SECTION 8 [P0]) ───
   // Replaces hardcoded 8842/9921 with dynamic server-generated challenge
-  app.post("/api/auth/worker-signup-otp", async (_req, res) => {
-    // OTP system removed - phone and email verification bypassed
-    return res.json({
-      success: true,
-      challengeId: `CHAL-${Date.now()}`,
-      message: "Phone and email verification bypassed (OTP system removed)",
-      debugCodes: {
-        phoneCode: "123456",
-        emailCode: "123456"
-      }
+  app.post("/api/auth/worker-signup-otp", (_req, res) => {
+    return res.status(410).json({
+      success: false,
+      error: "Phone and email OTP verification is not configured. Sign-in is required before submitting an application."
     });
   });
 

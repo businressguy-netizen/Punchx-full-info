@@ -13,6 +13,8 @@ const authContext = read('../src/lib/authContext.tsx');
 const signup = read('../src/components/WorkerSignup.tsx');
 const pending = read('../src/components/WorkerPendingApproval.tsx');
 const app = read('../src/App.tsx');
+const locationSetup = read('../src/components/WorkerLocationSetup.tsx');
+const otpPass = read('../src/components/WorkerOtpPass.tsx');
 
 test('admin API verifies Firebase bearer tokens and checks the database admin role', () => {
   assert.match(adminRoutes, /verifyIdToken\(/);
@@ -124,4 +126,23 @@ test('worker dashboard route requires the server-approved profile role and statu
   const guardEnd = app.indexOf('const onboardingScreens', guardStart);
   const workerGuard = app.slice(guardStart, guardEnd);
   assert.doesNotMatch(workerGuard, /localStorage|punchx_worker_approved/);
+});
+
+test('legacy professional location setup cannot self-approve or enter dashboard', () => {
+  assert.match(locationSetup, /status: 'PENDING'/);
+  assert.match(locationSetup, /onTransition\('worker-pending-approval'\)/);
+  assert.doesNotMatch(locationSetup, /status: 'APPROVED'|role: 'worker'|setItem\('punchx_worker_approved'/);
+});
+
+test('legacy OTP step never simulates verification or approval', () => {
+  assert.match(otpPass, /OTP is not configured/);
+  assert.doesNotMatch(otpPass, /status: 'APPROVED'|punchx_worker_approved|debugPhoneCode|debugEmailCode/);
+});
+
+test('OTP endpoint does not return static verification codes', () => {
+  const start = server.indexOf('app.post("/api/auth/worker-signup-otp"');
+  const end = server.indexOf('// ─── WORKER APPLICATIONS APIS ───', start);
+  const route = server.slice(start, end);
+  assert.match(route, /status\(410\)/);
+  assert.doesNotMatch(route, /debugCodes|123456|success: true/);
 });
