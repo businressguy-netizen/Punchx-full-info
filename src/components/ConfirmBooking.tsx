@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, CalendarDays, Check, ChevronRight, Home, MapPin, Plus, ShoppingBag, Trash2, UserRound, Wallet, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, Check, Home, MapPin, Plus, ShoppingBag, Trash2, Wallet, X, ShieldCheck } from 'lucide-react';
 import { AppScreen } from '../types';
 import { auth } from '../lib/firebase';
 
@@ -23,7 +23,6 @@ const EMPTY:Address={house:'',street:'',landmark:'',villageArea:'',city:'',distr
 const dateISO=(value:string)=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)?value:'';
 const SCHEDULE_SLOTS=Array.from({length:12},(_,i)=>{const minutes=9*60+30+i*30;const h=Math.floor(minutes/60);const m=minutes%60;return `${h%12||12}:${String(m).padStart(2,'0')} ${h<12?'AM':'PM'}`;});
 const formatDay=(value:string)=>{const d=new Date(`${value}T12:00:00`);return {weekday:d.toLocaleDateString('en-IN',{weekday:'short'}),day:d.toLocaleDateString('en-IN',{day:'2-digit'}),month:d.toLocaleDateString('en-IN',{month:'short'})};};
-const DEMO_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_PROFESSIONALS === 'true';
 const loadJSON = <T,>(key:string, fallback:T):T => { try { const v=JSON.parse(localStorage.getItem(key)||'null'); return v ?? fallback; } catch { return fallback; } };
 const saveJSON = (key:string, value:unknown) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} };
 
@@ -36,22 +35,16 @@ export default function ConfirmBooking({ onTransition, bookingTime, setBookingTi
   const [geofenceError,setGeofenceError]=useState('');
   const [validatingGeofence,setValidatingGeofence]=useState(false);
 
-  const customerGeo = useMemo(() => { try { const v=JSON.parse(localStorage.getItem('punchx_user_location')||'null'); return v&&typeof v.lat==='number'&&typeof v.lng==='number'?v:null; } catch { return null; } }, []);
-
   useEffect(() => {
     const pending = loadJSON<any>('punchx_pending_booking', null);
     if (!cart.length && pending?.serviceName) {
       setCart([{ id:`pending-${pending.serviceName}`, serviceId:pending.serviceId, serviceName:pending.serviceName, category:pending.category||'Service', description:pending.description, price:Number(pending.price||0), duration:pending.duration }]);
     }
-    return () => {};
-
   }, []);
 
   const serviceValue=useMemo(()=>cart.reduce((sum,item)=>sum+Number(item.price||0),0),[cart]);
-  const pricing=useMemo(()=>calculatePunchXPricing(serviceValue),[serviceValue]);
   const estimatedDuration=cart.map(item=>item.duration).filter(Boolean)[0] || (cart.length>1?`${cart.length} services · duration confirmed after review`:'About 1–2 hours');
   const scheduleDays=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()+i);return d.toLocaleDateString('en-CA');});
-  const total=(pricing.visitingFee || 59) + pricing.customerPlatformFee;
   const addressText=[address.house,address.street,address.landmark,address.villageArea,address.city,address.district,address.state,address.pinCode].filter(Boolean).join(', ');
   const validAddress=Object.values(address).every(v=>String(v).trim().length>0);
   const valid=cart.length>0&&validAddress&&date&&time;
