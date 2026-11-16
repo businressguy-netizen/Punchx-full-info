@@ -200,10 +200,16 @@ function AppMain() {
         if (now - lastGeofenceCheckAt >= 60000) {
           lastGeofenceCheckAt = now;
           try {
+            const idToken = await auth.currentUser?.getIdToken().catch(() => null);
+            if (!idToken) return;
             const response = await fetch('/api/location-services', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ lat, lng, address: previous.address || userProfile?.address || '' })
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${idToken}`
+              },
+              body: JSON.stringify({ lat, lng, address: previous.address || userProfile?.address || '' }),
+              cache: 'no-store'
             });
             const result = response.ok ? await response.json() : null;
             if (active && result?.geofence) {
