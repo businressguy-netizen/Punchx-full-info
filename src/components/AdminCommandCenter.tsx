@@ -22,7 +22,7 @@ export default function AdminCommandCenter({ showNotification }: { showNotificat
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [lastUpdated, setLastUpdated] = useState('');
   const notificationRef = useRef(showNotification);
-  notificationRef.current = showNotification;
+  useEffect(() => { notificationRef.current = showNotification; }, [showNotification]);
 
   const request = useCallback(async (path: string, options: RequestInit = {}) => {
     const user = auth.currentUser;
