@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, MapPin, Search, ShieldCheck, ShoppingCart, Star, X, Package, Info } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AppScreen, Worker } from '../types';
+import { AppScreen } from '../types';
 import { PUNCHX_50_CATEGORIES, isCategoryMatching } from '../data/categories';
 import { getCatalogCategory, ServiceCategory, ServicesSubcategory, ServiceItem } from '../data/serviceCatalogs';
 import { serviceImageFallback } from '../data/serviceVisuals';
@@ -12,7 +12,6 @@ interface ProvidersListProps {
   onTransition: (target: AppScreen) => void;
   selectedCategory: string;
   onSelectCategory?: (category: string) => void;
-  onSelectWorker: (worker: Worker) => void;
   authMethod: 'phone' | 'gmail';
   authTarget: string;
   showNotification: (msg: string) => void;
@@ -26,7 +25,7 @@ type CartItem = { id: string; serviceId: string; serviceName: string; category: 
 const norm = (value?: string) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const readCart = (): CartItem[] => { try { const v = JSON.parse(localStorage.getItem('punchx_cart') || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
 
-export default function ProvidersList({ onTransition, selectedCategory, onSelectCategory, onSelectWorker, showNotification }: ProvidersListProps) {
+export default function ProvidersList({ onTransition, selectedCategory, onSelectCategory, showNotification }: ProvidersListProps) {
   const initial = getCatalogCategory(selectedCategory || '');
   const [step, setStep] = useState<'categories' | 'subcategories' | 'services'>(initial ? 'subcategories' : 'categories');
   const [category, setCategory] = useState<ServiceCategory | null>(initial || null);
@@ -102,7 +101,7 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
     const next=[...cart,item]; setCart(next); localStorage.setItem('punchx_cart',JSON.stringify(next)); showNotification(`✓ ${selectedService.name} added to cart.`);
   };
 
-  const back = () => { if(step==='categories'){ if(window.history.state?.screen==='providers'&&window.history.length>1)window.history.back();else onTransition('home'); } else if(step==='subcategories'){setStep('categories');setCategory(null);} else {setStep('subcategories');setSelectedService(null);setAvailable(false);setMatchingWorkers([]);} setSearch(''); };
+  const back = () => { if(step==='categories'){ if(window.history.state?.screen==='providers'&&window.history.length>1)window.history.back();else onTransition('home'); } else if(step==='subcategories'){setStep('categories');setCategory(null);} else {setStep('subcategories');setSelectedService(null);setAvailable(false);} setSearch(''); };
 
   return <div id="punchx-provider-discovery" className="min-h-screen bg-[#f7faff] pb-32 text-[#0f172a]">
     <header className="sticky top-0 z-40 border-b border-[#dbeafe] bg-white/95 backdrop-blur-xl"><div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-2.5 sm:px-6"><button onClick={back} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-white"><ArrowLeft className="h-5 w-5"/></button><div className="min-w-0 flex-1"><div className="truncate text-lg font-black">{category?.name||'PUNCHX Services'}</div><div className="flex items-center gap-1 text-[10px] text-[#64748b]"><MapPin className="h-3 w-3 text-[#2563eb]"/>{geo?.area||'Service area'} · named localities only</div></div><div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#dbeafe] bg-[#eef6ff]"><Search className="h-4 w-4 text-[#2563eb]"/></div></div></header>
@@ -113,11 +112,11 @@ export default function ProvidersList({ onTransition, selectedCategory, onSelect
         <section className="mb-3 rounded-2xl border border-[#dbeafe] bg-white p-3 shadow-sm">
           <div className="text-[10px] font-black uppercase tracking-[.16em] text-[#2563eb]">Booking type</div>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <button type="button" onClick={()=>{setBookingTiming('instant');setMatchingWorkers([]);setAvailable(false);}} className={`rounded-xl border p-3 text-left ${bookingTiming==='instant'?'border-[#2563eb] bg-[#eef6ff]':'border-[#dbeafe] bg-white'}`}>
+            <button type="button" onClick={()=>{setBookingTiming('instant');setAvailable(false);}} className={`rounded-xl border p-3 text-left ${bookingTiming==='instant'?'border-[#2563eb] bg-[#eef6ff]':'border-[#dbeafe] bg-white'}`}>
               <div className="text-xs font-black">Instant / SOS</div>
               <div className="mt-1 text-[10px] text-[#64748b]">Show only professionals who are online now.</div>
             </button>
-            <button type="button" onClick={()=>{setBookingTiming('later');setMatchingWorkers([]);setAvailable(false);}} className={`rounded-xl border p-3 text-left ${bookingTiming==='later'?'border-[#2563eb] bg-[#eef6ff]':'border-[#dbeafe] bg-white'}`}>
+            <button type="button" onClick={()=>{setBookingTiming('later');setAvailable(false);}} className={`rounded-xl border p-3 text-left ${bookingTiming==='later'?'border-[#2563eb] bg-[#eef6ff]':'border-[#dbeafe] bg-white'}`}>
               <div className="text-xs font-black">Book for later</div>
               <div className="mt-1 text-[10px] text-[#64748b]">Show registered professionals inside your service zone.</div>
             </button>
