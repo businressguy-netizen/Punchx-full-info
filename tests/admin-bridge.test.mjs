@@ -146,3 +146,14 @@ test('OTP endpoint does not return static verification codes', () => {
   assert.match(route, /status\(410\)/);
   assert.doesNotMatch(route, /debugCodes|123456|success: true/);
 });
+
+test('worker customer directory never exposes fabricated customer identities', () => {
+  const start = server.indexOf('app.post("/api/worker-location-customers", requireFirebaseUser');
+  const end = server.indexOf('// BE-10: AUTH DECISION', start);
+  const route = server.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(route, /profile\.role !== "worker"/);
+  assert.match(route, /application\?\.status !== "APPROVED"/);
+  assert.match(route, /registeredCustomers: \[\]/);
+  assert.doesNotMatch(route, /Priya Narayanan|Vikramaditya Rao|CUST-IN-|\+91 9[0-9]{4} •••••|totalPreviousBookings/);
+});
